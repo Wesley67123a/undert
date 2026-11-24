@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>UNDERTALE — Asriel Dreemurr (7 SOULs Battle Simulator)</title>
+  <style>
+    :root {
+      --bg: #050507; --panel: #0e0e12; --border: #ffffff;
+      --gold: #ffff00; --red: #ff2a2a; --muted: #a6a6b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%; min-height: 100%; background: var(--bg); color: #fff;
+      font-family: "Determination Mono", "Courier New", monospace;
+      overflow-x: hidden; touch-action: manipulation; user-select: none;
+    }
+    .app-shell { max-width: 900px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 8px 10px 14px; gap: 8px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      border: 2px solid rgba(255,255,255,0.22); background: var(--panel); padding: 8px 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .soul-badge {
+      display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+      border: 2px solid #fff; font-size: 16px; animation: rainbowB 3s linear infinite;
+    }
+    @keyframes rainbowB {
+      0% { color: #ff4a4a; border-color: #ff4a4a; }
+      20% { color: #ffb84a; border-color: #ffb84a; }
+      40% { color: #ffff4a; border-color: #ffff4a; }
+      60% { color: #4aff7c; border-color: #4aff7c; }
+      80% { color: #4ab8ff; border-color: #4ab8ff; }
+      100% { color: #ff4aff; border-color: #ff4aff; }
+    }
+    .brand h1 { font-size: 14px; letter-spacing: 0.05em; }
+    .brand p { font-size: 11px; color: var(--gold); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .ut-btn, .ut-select {
+      font-family: inherit; font-size: 12px; color: #fff; background: #000;
+      border: 2px solid #fff; padding: 5px 9px; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .ut-btn:hover, .ut-select:hover { border-color: var(--gold); color: var(--gold); }
+    .ut-btn.rainbow { border-color: #4ab8ff; color: #9ee6ff; }
+    .stage-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+    .canvas-frame {
+      width: 100%; max-width: 720px; background: #000; border: 3px solid #fff;
+      box-shadow: 0 0 35px rgba(140, 80, 255, 0.25); overflow: hidden;
+    }
+    canvas#game { display: block; width: 100%; height: auto; aspect-ratio: 4/3; image-rendering: pixelated; cursor: pointer; touch-action: none; }
+    .hint-bar {
+      width: 100%; max-width: 720px; border: 2px solid rgba(255,255,255,0.2); background: var(--panel);
+      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.45;
+    }
+    .controls-deck {
+      width: 100%; max-width: 720px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 8px 2px;
+    }
+    .dpad-surface { position: relative; width: 142px; height: 142px; touch-action: none; flex-shrink: 0; }
+    .dpad-cross { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 3px; pointer-events: none; }
+    .dpad-arm {
+      display: flex; align-items: center; justify-content: center; background: #14141c;
+      border: 2px solid rgba(255,255,255,0.45); color: rgba(255,255,255,0.8); font-size: 16px; border-radius: 6px;
+    }
+    .dpad-arm.active { background: #362208; border-color: var(--gold); color: var(--gold); }
+    .dpad-center { background: #0c0c12; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--red); }
+    .desktop-legend { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .desktop-legend kbd { border: 1px solid rgba(255,255,255,0.4); background: #16161d; padding: 1px 5px; color: #fff; }
+    .action-cluster { display: flex; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+    .act-btn {
+      font-family: inherit; font-weight: bold; color: #fff; background: #12121a; border: 2.5px solid #fff;
+      border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .act-btn .k { font-size: 16px; } .act-btn .sub { font-size: 9px; color: var(--muted); }
+    .act-btn.z-btn { width: 66px; height: 66px; border-color: var(--gold); }
+    .act-btn.z-btn .k { color: var(--gold); }
+    .act-btn.x-btn { width: 54px; height: 54px; }
+    .act-btn.active, .act-btn:active { background: rgba(255,255,0,0.2); transform: scale(0.95); }
+    @media (max-width: 720px) { .desktop-legend { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="soul-badge" aria-hidden="true">★</span>
+        <div>
+          <h1>ASRIEL DREEMURR — 7 SOULs BATTLE</h1>
+          <p id="phaseLbl">Hopes &amp; Dreams / SAVE the World</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <select id="modeSel" class="ut-select" aria-label="Jump to Battle Phase">
+          <option value="">Jump Phase ▾</option>
+          <option value="title">★ Simulator Title Menu</option>
+          <option value="intro">0. Intro Transform</option>
+          <option value="p1">1. Phase 1: Hopes &amp; Dreams</option>
+          <option value="hypergoner">2. HYPER GONER</option>
+          <option value="p2">3. Phase 2: Burn in Despair!</option>
+          <option value="save">4. SAVE the World (Lost Souls)</option>
+          <option value="finale">5. Finale: His Theme</option>
+          <option value="single_menu">🎯 Single Attack Practice</option>
+        </select>
+        <button id="btnLang" class="ut-btn" type="button">EN / 繁中</button>
+        <button id="btnMute" class="ut-btn" type="button">🔊 Audio</button>
+        <a class="ut-btn rainbow" href="index.html">🏠 Ruins &amp; Snowdin</a>
+      </div>
+    </header>
+
+    <section class="stage-wrap">
+      <div class="canvas-frame">
+        <canvas id="game" width="640" height="480" tabindex="0"></canvas>
+      </div>
+      <div class="hint-bar" id="hintBar">
+        ★ Choose <b>NORMAL</b> for the full 7 SOULs story, <b>PHASE SELECT</b> for checkpoints, or <b>SINGLE ATTACKS</b> to master each pattern!
+      </div>
+      <div class="controls-deck">
+        <div id="dpadZone" class="dpad-surface">
+          <div class="dpad-cross">
+            <div></div><div class="dpad-arm" data-dpad="up">▲</div><div></div>
+            <div class="dpad-arm" data-dpad="left">◀</div><div class="dpad-center">♥</div><div class="dpad-arm" data-dpad="right">▶</div>
+            <div></div><div class="dpad-arm" data-dpad="down">▼</div><div></div>
+          </div>
+        </div>
+        <div class="desktop-legend">
+          <div><kbd>↑↓←→</kbd> / <kbd>WASD</kbd> Move / Shield / Jump</div>
+          <div><kbd>Z</kbd> / <kbd>Enter</kbd> Confirm / Shoot · <kbd>X</kbd> / <kbd>Shift</kbd> Slow / Back</div>
+        </div>
+        <div class="action-cluster">
+          <button id="btnX" class="act-btn x-btn" type="button"><span class="k">X</span><span class="sub">BACK</span></button>
+          <button id="btnZ" class="act-btn z-btn" type="button"><span class="k">Z</span><span class="sub">OK</span></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/core_assets.js"></script>
+  <script src="assets/asriel_assets.js"></script>
+  <script src="assets/battle_engine.js"></script>
+  <script src="assets/asriel_engine.js"></script>
+  <script>
+    (function () {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const sfx = new window.UTEngineCore.UTSoundEngine();
+      const G = {
+        lang: 'en',
+        sfx,
+        state: { name: 'FRISK', lv: 1, hp: 20, maxHp: 20 },
+        keys: { up: false, down: false, left: false, right: false, cancel: false },
+        onUI: () => {
+          document.getElementById('hintBar').innerHTML = G.lang === 'zh'
+            ? '★ <b>完整決戰</b>體驗完整 7 靈魂劇情、<b>階段選擇</b>直達各經典名場面、或 <b>單一招式練習</b>無限專精閃躲技巧！'
+            : '★ Choose <b>NORMAL</b> for the full 7 SOULs story, <b>PHASE SELECT</b> for checkpoints, or <b>SINGLE ATTACKS</b> to master each pattern!';
+        },
+      };
+      const asriel = window.UTAsrielEngine.createAsrielBattle(G);
+      window.UTAsrielSim = { G, asriel };
+      const initMode = new URLSearchParams(location.search).get('mode') || 'title';
+      asriel.open(initMode === 'single_menu' ? 'title' : initMode, true);
+      if (initMode === 'single_menu') asriel.mode = 'single_menu';
+
+      const kb = {}, ts = {};
+      function sync() {
+        for (const k of ['up', 'down', 'left', 'right', 'cancel']) G.keys[k] = !!(kb[k] || ts[k]);
+        document.querySelectorAll('[data-dpad]').forEach(el => el.classList.toggle('active', !!G.keys[el.dataset.dpad]));
+      }
+      const DIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+      window.addEventListener('keydown', e => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+        if (e.repeat) return;
+        if (DIR[e.code]) { kb[DIR[e.code]] = true; asriel.onNav(DIR[e.code]); sync(); }
+        else if (e.code === 'KeyZ' || e.code === 'Enter' || e.code === 'Space') asriel.onConfirm();
+        else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'Escape') { kb.cancel = true; asriel.onCancel(); sync(); }
+      });
+      window.addEventListener('keyup', e => {
+        if (DIR[e.code]) { kb[DIR[e.code]] = false; sync(); }
+        else if (e.code === 'KeyX' || e.code === 'ShiftLeft') { kb.cancel = false; sync(); }
+      });
+
+      const dpad = document.getElementById('dpadZone');
+      let lastDir = '';
+      function dpadPt(cx, cy) {
+        const r = dpad.getBoundingClientRect();
+        const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+        ts.up = ts.down = ts.left = ts.right = false;
+        if (Math.hypot(dx, dy) > 12) {
+          const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+          ts.right = deg > -65 && deg < 65; ts.down = deg > 25 && deg < 155;
+          ts.left = deg > 115 || deg < -115; ts.up = deg > -155 && deg < -25;
+          const p = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+          if (p !== lastDir) { lastDir = p; asriel.onNav(p); }
+        } else lastDir = '';
+        sync();
+      }
+      dpad.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+      dpad.addEventListener('touchmove', e => { e.preventDefault(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+      dpad.addEventListener('touchend', e => { e.preventDefault(); ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; sync(); }, { passive: false });
+      dpad.addEventListener('mousedown', e => { sfx.unlock(); dpadPt(e.clientX, e.clientY); });
+      window.addEventListener('mouseup', () => { ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; sync(); });
+
+      const bindBtn = (id, fnD, fnU) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', e => { e.preventDefault(); el.classList.add('active'); fnD(); }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); el.classList.remove('active'); fnU?.(); }, { passive: false });
+        el.addEventListener('mousedown', () => { el.classList.add('active'); fnD(); });
+        el.addEventListener('mouseup', () => { el.classList.remove('active'); fnU?.(); });
+      };
+      bindBtn('btnZ', () => asriel.onConfirm());
+      bindBtn('btnX', () => { ts.cancel = true; asriel.onCancel(); sync(); }, () => { ts.cancel = false; sync(); });
+
+      canvas.addEventListener('pointerdown', e => {
+        const r = canvas.getBoundingClientRect();
+        asriel.onCanvasTap(((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 480);
+      });
+      document.getElementById('modeSel').addEventListener('change', e => {
+        const v = e.target.value; e.target.value = ''; sfx.unlock();
+        if (!v) return;
+        if (v === 'title' || v === 'phase_menu' || v === 'single_menu') { asriel.resetEntities(); asriel.mode = v; asriel.menuCursor = 0; }
+        else asriel.startPhase(v);
+      });
+      document.getElementById('btnLang').addEventListener('click', () => { G.lang = G.lang === 'en' ? 'zh' : 'en'; G.onUI(); });
+      document.getElementById('btnMute').addEventListener('click', e => { sfx.unlock(); sfx.setMuted(!sfx.muted); e.currentTarget.textContent = sfx.muted ? '🔇 Muted' : '🔊 Audio'; });
+
+      let last = 0, acc = 0;
+      function loop(ts) {
+        if (!last) last = ts;
+        acc += Math.min(50, ts - last); last = ts;
+        while (acc >= 1000 / 60) { asriel.update(G.keys); acc -= 1000 / 60; }
+        ctx.imageSmoothingEnabled = false;
+        asriel.render(ctx);
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

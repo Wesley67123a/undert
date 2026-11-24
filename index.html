@@ -125,6 +125,8 @@
     }
 
     .ut-btn.danger { background:#3a0000; border-color:#ff2a2a; color:#ff5050; }
+    .ut-btn.rainbow { background:#110824; border-color:#68d0ff; color:#bfefff; }
+    .ut-btn.rainbow:hover { border-color:#ff7ce5; color:#ffff80; }
     .ut-btn.accent {
       border-color: var(--btn-orange);
       color: var(--btn-orange);
@@ -441,6 +443,8 @@
         <select id="roomJumpSel" class="ut-select" aria-label="Jump to Ruins Scene">
           <option value="">Jump Scene ▾</option>
         </select>
+        <button id="btnAsriel" class="ut-btn rainbow" type="button" title="Asriel Dreemurr — 7 SOULs Boss Fight Simulator">★ 7 SOULs Asriel</button>
+        <a class="ut-btn rainbow" href="asriel.html" title="Standalone Asriel Boss Simulator (Normal / Practice / Single Attacks)">🌈 Sim</a>
         <button id="btnGeno" class="ut-btn" type="button" title="Toggle Genocide Route (or grind kills naturally)">☠ Genocide 0/20</button>
         <button id="btnWalkthrough" class="ut-btn accent" type="button">📖 Walkthrough</button>
         <button id="btnLang" class="ut-btn" type="button">EN / 繁中</button>
@@ -505,9 +509,11 @@
   </aside>
 
   <script src="assets/core_assets.js"></script>
+  <script src="assets/asriel_assets.js"></script>
   <script src="assets/rooms_data.js"></script>
   <script src="assets/dialogue.js"></script>
   <script src="assets/battle_engine.js"></script>
+  <script src="assets/asriel_engine.js"></script>
   <script src="assets/overworld.js"></script>
   <script src="assets/app.js"></script>
 </body>

@@ -6,6 +6,12 @@
   const { G, getRoomImg } = window.UTOverworldFactory.createGame(canvas);
   const { SPR, drawSpr, drawRichText, stripCodes } = window.UTEngineCore;
   window.UTGame = G;
+  G.asriel = window.UTAsrielEngine?.createAsrielBattle(G) || null;
+  G.onExitAsriel = () => { G.enterRoom(Math.max(4, G.state.room || 4)); };
+  G.startAsriel = (entry = 'title') => {
+    if (!G.asriel) return;
+    G.sfx.unlock(); G.mode = 'asriel_battle'; G.asriel.open(entry, false); G.onUI?.();
+  };
 
   const motes = Array.from({ length: 18 }, () => ({
     x: 110 + Math.random() * 90, y: Math.random() * 170, vy: 0.16 + Math.random() * 0.2, a: 0.35 + Math.random() * 0.4
@@ -66,6 +72,7 @@
     }
     if (G.mode === 'flowey_battle') { G.fb.update(G.keys); return; }
     if (G.mode === 'rpg_battle') { G.rpg.update(G.keys); return; }
+    if (G.mode === 'asriel_battle') { G.asriel?.update(G.keys); return; }
 
     if (G.mode === 'fall') {
       G.frisk.y += G.fallAnim.vy;
@@ -140,6 +147,8 @@
       G.fb.render(ctx, G.time);
     } else if (G.mode === 'rpg_battle') {
       G.rpg.render(ctx, G.time);
+    } else if (G.mode === 'asriel_battle') {
+      G.asriel?.render(ctx);
     } else if (G.mode === 'finale') {
       renderFinale(ctx);
     } else {
@@ -573,6 +582,7 @@
     if (G.mode === 'finale') { G.startFade(() => G.enterRoom(3)); return; }
     if (G.mode === 'flowey_battle') { G.fb.confirm(); return; }
     if (G.mode === 'rpg_battle') { G.rpg.confirm(); return; }
+    if (G.mode === 'asriel_battle') { G.asriel?.onConfirm(); return; }
 
     if (G.mode === 'save_menu') {
       if (G.saveMenu.saved) { G.mode = 'explore'; return; }
@@ -652,6 +662,7 @@
     if (G.mode === 'intro' || G.mode === 'intro_pan') { G.startFade(() => G.enterRoom(3)); return; }
     if (G.mode === 'flowey_battle') { G.fb.skip(); return; }
     if (G.mode === 'rpg_battle') { G.rpg.cancel(); return; }
+    if (G.mode === 'asriel_battle') { G.asriel?.onCancel(); return; }
     if (G.mode === 'dlg') {
       const cur = G.dlg.q[G.dlg.i];
       if (cur) G.dlg.c = stripCodes(cur.text).length;
@@ -701,6 +712,8 @@
       }
     } else if (G.mode === 'rpg_battle') {
       G.rpg.move(dir);
+    } else if (G.mode === 'asriel_battle') {
+      G.asriel?.onNav(dir);
     }
   }
 
@@ -804,7 +817,13 @@
   bindActionBtn('btnActZ', () => pressConfirm());
   bindActionBtn('btnActX', () => { touchState.cancel = true; pressCancel(); syncKeys(); }, () => { touchState.cancel = false; syncKeys(); });
   bindActionBtn('btnActC', () => pressMenu());
-  canvas.addEventListener('pointerdown', () => { G.sfx.unlock(); canvas.focus(); });
+  canvas.addEventListener('pointerdown', (e) => {
+    G.sfx.unlock(); canvas.focus();
+    if (G.mode === 'asriel_battle' && G.asriel) {
+      const r = canvas.getBoundingClientRect();
+      G.asriel.onCanvasTap(((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 480);
+    }
+  });
 
   // =========================================================================
   // HEADER CONTROLS & INTERACTIVE FULL RUINS WALKTHROUGH GUIDE
@@ -860,9 +879,9 @@
 
   G.onUI = function() {
     const zh = G.lang === 'zh';
-    const rName = G.D().roomNames[G.state.room] || `Room ${G.state.room}`;
+    const rName = G.mode === 'asriel_battle' ? (zh ? '艾斯利爾·逐夢 (7 SOULs 終極決戰)' : 'ASRIEL DREEMURR (7 SOULs Finale)') : (G.D().roomNames[G.state.room] || `Room ${G.state.room}`);
     const lbl = document.getElementById('roomLabel');
-    if (lbl) lbl.textContent = `${rName} (#${G.state.room})`;
+    if (lbl) lbl.textContent = G.mode === 'asriel_battle' ? rName : `${rName} (#${G.state.room})`;
     const gb = document.getElementById('btnGeno');
     if (gb) {
       const st = G.state, rk = st.ruinsKills || 0, sk = st.snowdinKills || 0;
@@ -873,7 +892,11 @@
     }
     const step = window.UT_WALKTHROUGH.slice().reverse().find(w => w.room <= G.state.room) || window.UT_WALKTHROUGH[0];
     const hint = document.getElementById('liveWalkthroughHint');
-    if (hint) hint.textContent = `♥ ${zh ? step.tipZh : step.tipEn}`;
+    if (hint) {
+      hint.textContent = G.mode === 'asriel_battle'
+        ? (zh ? '★ 艾斯利爾 (7 個靈魂)：選「完整決戰」或「單一招式練習」；方向鍵閃躲，[Z] 確認 / 黃魂射擊！' : '★ ASRIEL DREEMURR (7 SOULs): Play Normal Mode, Phase Select, or Single Attack Practice! Arrows move, [Z] Confirm.')
+        : `♥ ${zh ? step.tipZh : step.tipEn}`;
+    }
     renderWalkthroughList();
   };
 
@@ -883,9 +906,12 @@
   });
   document.getElementById('btnGeno')?.addEventListener('click', () => {
     G.sfx.unlock();
-    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle') return;
+    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle' || G.mode === 'asriel_battle') return;
     G.toggleGenocideRoute();
     G.onUI();
+  });
+  document.getElementById('btnAsriel')?.addEventListener('click', () => {
+    G.startAsriel('title');
   });
   document.getElementById('btnLang')?.addEventListener('click', () => {
     G.lang = G.lang === 'en' ? 'zh' : 'en';

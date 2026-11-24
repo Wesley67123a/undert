@@ -8,13 +8,18 @@
     document.head.appendChild(st);
   }
 
-  // Decode all packed sprite sheets
+  // Decode all packed sprite sheets (Core + Asriel 7-Souls)
   const SPR = {};
-  for (const [k, meta] of Object.entries(window.UT_SPRITES || {})) {
-    const img = new Image();
-    img.src = 'data:image/png;base64,' + meta.b64;
-    SPR[k] = { ...meta, img };
+  function registerSprites(dict) {
+    for (const [k, meta] of Object.entries(dict || {})) {
+      if (SPR[k]) continue;
+      const img = new Image();
+      img.src = 'data:image/png;base64,' + meta.b64;
+      SPR[k] = { ...meta, img };
+    }
   }
+  registerSprites(window.UT_SPRITES);
+  registerSprites(window.UT_ASRIEL_SPRITES);
 
   function drawSpr(ctx, name, frame, x, y, scX = 1, scY = scX, useOrigin = false) {
     const s = SPR[name];
@@ -29,6 +34,38 @@
       ctx.drawImage(s.img, f * s.w, 0, s.w, s.h, 0, 0, Math.round(s.w * Math.abs(scX)), Math.round(s.h * Math.abs(scY)));
     } else {
       ctx.drawImage(s.img, f * s.w, 0, s.w, s.h, Math.round(dx), Math.round(dy), Math.round(s.w * scX), Math.round(s.h * scY));
+    }
+    ctx.restore();
+  }
+
+  // Extended sprite renderer with rotation (GM counter-clockwise deg), origin support, alpha & tint (via reusable scratch canvas)
+  let _tintCanv = null, _tintCtx = null;
+  function drawSprExt(ctx, name, frame, x, y, scX = 1, scY = scX, deg = 0, tint = null, alpha = 1, useOrigin = false) {
+    const s = SPR[name];
+    if (!s || !s.img.complete || !s.img.naturalWidth || alpha <= 0) return;
+    const f = ((Math.floor(frame) % s.n) + s.n) % s.n;
+    const ox = useOrigin ? s.xo : 0;
+    const oy = useOrigin ? s.yo : 0;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    ctx.translate(x, y);
+    if (deg) ctx.rotate(-deg * Math.PI / 180);
+    ctx.scale(scX, scY);
+    if (tint) {
+      if (!_tintCanv) { _tintCanv = document.createElement('canvas'); _tintCtx = _tintCanv.getContext('2d'); }
+      if (_tintCanv.width !== s.w || _tintCanv.height !== s.h) { _tintCanv.width = s.w; _tintCanv.height = s.h; }
+      _tintCtx.globalCompositeOperation = 'source-over';
+      _tintCtx.clearRect(0, 0, s.w, s.h);
+      _tintCtx.drawImage(s.img, f * s.w, 0, s.w, s.h, 0, 0, s.w, s.h);
+      _tintCtx.globalCompositeOperation = 'multiply';
+      _tintCtx.fillStyle = tint;
+      _tintCtx.fillRect(0, 0, s.w, s.h);
+      _tintCtx.globalCompositeOperation = 'destination-in';
+      _tintCtx.drawImage(s.img, f * s.w, 0, s.w, s.h, 0, 0, s.w, s.h);
+      _tintCtx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(_tintCanv, -ox, -oy);
+    } else {
+      ctx.drawImage(s.img, f * s.w, 0, s.w, s.h, -ox, -oy, s.w, s.h);
     }
     ctx.restore();
   }
@@ -66,11 +103,25 @@
     constructor() {
       this.ctx = null;
       this.buffers = {};
-      this.decoding = false;
+      this.decodedKeys = new Set();
       this.muted = false;
       this.bgmName = null;
       this.bgmAudio = null;
+      this.bgmVol = 0.5;
       this.bgmCache = {};
+    }
+    _decodeDict(dict) {
+      if (!this.ctx || !dict) return;
+      for (const [k, b64] of Object.entries(dict)) {
+        if (this.decodedKeys.has(k)) continue;
+        this.decodedKeys.add(k);
+        try {
+          const bin = atob(b64);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          this.ctx.decodeAudioData(arr.buffer.slice(0), buf => { this.buffers[k] = buf; }, () => {});
+        } catch {}
+      }
     }
     unlock() {
       if (!this.ctx) {
@@ -78,15 +129,8 @@
         if (AC) this.ctx = new AC();
       }
       if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-      if (!this.decoding && this.ctx && window.UT_SFX_B64) {
-        this.decoding = true;
-        for (const [k, b64] of Object.entries(window.UT_SFX_B64)) {
-          const bin = atob(b64);
-          const arr = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-          this.ctx.decodeAudioData(arr.buffer.slice(0), buf => { this.buffers[k] = buf; }, () => {});
-        }
-      }
+      this._decodeDict(window.UT_SFX_B64);
+      this._decodeDict(window.UT_ASRIEL_SFX);
       if (this.bgmAudio && !this.muted && this.bgmAudio.paused && this.bgmName) {
         this.bgmAudio.play().catch(() => {});
       }
@@ -116,6 +160,11 @@
       if (who === 'toriel') this.sfx('txttor', 0.5, 0.98 + Math.random() * 0.05);
       else if (who === 'sans') this.sfx('txtsans', 0.52, 0.97 + Math.random() * 0.05);
       else if (who === 'papyrus') this.sfx('txtpap', 0.52, 0.98 + Math.random() * 0.06);
+      else if (who === 'asriel') this.sfx('txtasr', 0.54, 0.97 + Math.random() * 0.06);
+      else if (who === 'asrielboss') this.sfx('txtasr2', 0.56, 0.96 + Math.random() * 0.07);
+      else if (who === 'undyne') this.sfx('txtund', 0.52, 0.97 + Math.random() * 0.05);
+      else if (who === 'alphys') this.sfx('txtal', 0.5, 0.97 + Math.random() * 0.05);
+      else if (who === 'asgore') this.sfx('txtasg', 0.54, 0.97 + Math.random() * 0.05);
       else if (who === 'flowey') {
         const evil = expr === 'evil' || expr === 'laugh' || expr === 'pissed';
         this.sfx(evil ? 'txtflw2' : 'txtflw', 0.5, 0.96 + Math.random() * 0.08);
@@ -123,7 +172,11 @@
       else this.sfx('txt1', 0.42, 0.98 + Math.random() * 0.05);
     }
     playBGM(name, loop = true, vol = 0.5) {
-      if (this.bgmName === name) return;
+      this.bgmVol = vol;
+      if (this.bgmName === name) {
+        if (this.bgmAudio) this.bgmAudio.volume = this.muted ? 0 : vol;
+        return;
+      }
       this.stopBGM();
       this.bgmName = name;
       if (!name) return;
@@ -139,6 +192,10 @@
       this.bgmAudio = a;
       if (!this.muted) a.play().catch(() => {});
     }
+    setBGMVolume(vol) {
+      this.bgmVol = Math.max(0, Math.min(1, vol));
+      if (this.bgmAudio && !this.muted) this.bgmAudio.volume = this.bgmVol;
+    }
     stopBGM() {
       if (this.bgmAudio) { this.bgmAudio.pause(); this.bgmAudio.currentTime = 0; }
       this.bgmAudio = null;
@@ -147,7 +204,7 @@
     setMuted(m) {
       this.muted = m;
       if (this.bgmAudio) {
-        this.bgmAudio.volume = m ? 0 : 0.5;
+        this.bgmAudio.volume = m ? 0 : (this.bgmVol || 0.5);
         if (!m && this.bgmName && this.bgmAudio.paused) this.bgmAudio.play().catch(() => {});
       }
     }
@@ -1716,5 +1773,5 @@
     };
   }
 
-  window.UTEngineCore = { SPR, drawSpr, drawRichText, stripCodes, UTSoundEngine, createFloweyBattle, createRPGBattle };
+  window.UTEngineCore = { SPR, registerSprites, drawSpr, drawSprExt, drawRichText, stripCodes, drawBattleHUD, UTSoundEngine, createFloweyBattle, createRPGBattle };
 })();

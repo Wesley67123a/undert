@@ -74,6 +74,7 @@
         G.frisk.dir = dirs[(dirs.indexOf(G.frisk.dir) + 1) % 4];
       }
       if (--G.fallAnim.ticks <= 0) {
+        if (G.fallAnim.targetY != null) { G.frisk.y = G.fallAnim.targetY; G.fallAnim.targetY = null; }
         G.frisk.dir = 'down'; G.mode = 'explore'; G.updateCamera(true);
       } else G.updateCamera(false);
       return;
@@ -207,6 +208,37 @@
     }
   }
 
+  // obj -> [sprite, sort-foot offset (null = sprite height), animation speed in ticks (0 = static)]
+  const SNOW_PROPS = {
+    obj_convenientlamp: ['spr_convenientlamp', null, 0],
+    obj_sansbox: ['spr_chestbox', null, 0],
+    obj_nicesnowman: ['spr_regsnowman', null, 0],
+    obj_sanssnowman: ['spr_regsnowman', null, 0],
+    obj_nicecreamguy: ['spr_icecreamguy_happy', null, 20],
+    obj_spaghetti: ['spr_spaghetti', null, 0],
+    obj_microwave: ['spr_microwave', null, 0],
+    obj_xoxocontroller1: ['spr_groundswitch1', 0, 0],
+    obj_gyftrotnpc: ['spr_gyftrotnpc', null, 24],
+    obj_snowpoff: ['spr_snowpoff', null, 0],
+    obj_dogpoff: ['spr_dogpoff', null, 0],
+    obj_paphouse: ['spr_papyrushouse', null, 0],
+    obj_papshed: ['spr_awfulshed', null, 0],
+    obj_xmastree: ['spr_xmastree', null, 0],
+    obj_snowdinlogo: ['spr_snowdinlogo', 0, 0],
+    obj_grillbynpc_doggo: ['spr_movedoge', null, 0],
+    obj_grillbynpc_mandog: ['spr_mandoge', null, 0],
+    obj_grillbynpc_womandog: ['spr_womandoge', null, 0],
+    obj_bigdog: ['spr_npc_bigdog', null, 24],
+    obj_townnpc_bear1: ['spr_npc_bear', null, 30],
+    obj_townnpc_beartree: ['spr_npc_giftbear', null, 30],
+    obj_townnpc_reddemon: ['spr_npc_reddemon', null, 30],
+    obj_townnpc_icewolf: ['spr_icewolf', null, 30],
+    obj_throwwolf: ['spr_icewolf', null, 30],
+    obj_townnpc_innlady: ['spr_npc_innkeep', null, 30],
+    obj_townnpc_bunlady: ['spr_npc_bunbun', null, 30],
+    obj_townnpc_bunboy: ['spr_npc_bunbun', null, 30],
+  };
+
   function renderOverworld(ctx) {
     const id = G.state.room, R = window.UT_GMC_ROOMS[id], fl = G.state.flags;
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
@@ -306,6 +338,24 @@
       else if (o === 'obj_uchair') drawList.push({ y: y + 20, draw: () => drawSpr(ctx, 'spr_topchair', 0, x, y) });
       else if (o === 'obj_smallchair') drawList.push({ y: y + 28, draw: () => drawSpr(ctx, 'spr_smallchair', 0, x, y) });
       else if (o === 'obj_cactus') drawList.push({ y: y + 45, draw: () => drawSpr(ctx, 'spr_cactus', 0, x, y) });
+      else if (o in SNOW_PROPS) {
+        const [sp, fh, anim] = SNOW_PROPS[o];
+        const s = SPR[sp];
+        const h = s ? s.h : 20;
+        drawList.push({ y: y + (fh != null ? fh : h), draw: () => drawSpr(ctx, sp, anim ? Math.floor(G.time / anim) : 0, x, y) });
+      }
+    }
+
+    // Snowdin XO tile puzzle (X = 0, O = 1)
+    for (const t of G.xoTiles) drawSpr(ctx, 'spr_xoxo', t.state, t.x, t.y);
+
+    // Sans & Papyrus overworld actors
+    const actorSpr = (nm, a) => ({ down: `spr_${nm}_d`, up: `spr_${nm}_u`, left: `spr_${nm}_l`, right: `spr_${nm}_r` }[a.dir] || `spr_${nm}_d`);
+    if (G.sans && G.sans.vis) {
+      drawList.push({ y: G.sans.y + 30, draw: () => drawSpr(ctx, actorSpr('sans', G.sans), 0, G.sans.x, G.sans.y) });
+    }
+    if (G.pap && G.pap.vis) {
+      drawList.push({ y: G.pap.y + 42, draw: () => drawSpr(ctx, actorSpr('papyrus', G.pap), Math.floor(G.time / 12) % 2 ? 0 : 0, G.pap.x, G.pap.y) });
     }
 
     // Rock plate tiles in rooms 15 & 17
@@ -384,6 +434,14 @@
       else if (cur.expr === 'cold') tspr = 'spr_face_torielcold';
       else if (cur.expr === 'blush') tspr = 'spr_face_torielembarrassed';
       drawSpr(ctx, tspr, talking ? 1 : 0, bx + 22, by + 22, 3, 3);
+      tx = bx + 132;
+    } else if (cur.who === 'sans') {
+      const smap = { wink: 'spr_face_sanswink', blink: 'spr_face_sansblink', noeyes: 'spr_face_sansnoeyes', dark: 'spr_face_sansnoeyes' };
+      drawSpr(ctx, smap[cur.expr] || 'spr_face_sans', 0, bx + 24, by + 24, 2.4, 2.4);
+      tx = bx + 132;
+    } else if (cur.who === 'papyrus') {
+      const pmap = { cool: 'spr_face_papyruscool', mad: 'spr_face_papyrusmad', sweat: 'spr_face_papyrussweat', wacky: 'spr_face_papyruswacky' };
+      drawSpr(ctx, pmap[cur.expr] || 'spr_face_papyrus', talking ? 1 : 0, bx + 24, by + 16, 2.4, 2.4);
       tx = bx + 132;
     }
 
@@ -759,7 +817,8 @@
     if (roomId >= 12) { G.state.hasPhone = true; fl.r11_done = true; }
     if (roomId >= 32) { G.state.hasPhone = true; fl.r31_done = true; }
     if (roomId >= 38) { G.state.hasPhone = true; fl.torBasement = true; }
-    if (roomId === 43) { fl.torielDone = true; }
+    if (roomId >= 43) { fl.torielDone = true; }
+    if (roomId >= 44) { G.state.hasPhone = true; fl.r11_done = true; fl.r31_done = true; fl.torBasement = true; fl.floweyDone = true; }
     G.startFade(() => G.enterRoom(roomId));
   }
 
@@ -770,7 +829,7 @@
     const zh = G.lang === 'zh';
     listEl.innerHTML = '';
     if (selEl) {
-      selEl.innerHTML = `<option value="">${zh ? '快速跳關 (43 房間) ▾' : 'Jump Scene (Rooms 1-43) ▾'}</option>`;
+      selEl.innerHTML = `<option value="">${zh ? '快速跳關 (廢墟 + 雪鎮) ▾' : 'Jump Scene (Ruins + Snowdin) ▾'}</option>`;
     }
     window.UT_WALKTHROUGH.forEach((step) => {
       const title = zh ? step.titleZh : step.titleEn;
@@ -804,6 +863,14 @@
     const rName = G.D().roomNames[G.state.room] || `Room ${G.state.room}`;
     const lbl = document.getElementById('roomLabel');
     if (lbl) lbl.textContent = `${rName} (#${G.state.room})`;
+    const gb = document.getElementById('btnGeno');
+    if (gb) {
+      const st = G.state, rk = st.ruinsKills || 0, sk = st.snowdinKills || 0;
+      const on = G.isGenocideActive();
+      const prog = st.room <= 43 ? `${Math.min(rk, 20)}/20` : `${Math.min(sk, 16)}/16`;
+      gb.classList.toggle('danger', on);
+      gb.textContent = (on ? '💀 ' : '☠ ') + (zh ? (on ? '滅絕路線 ' : '滅絕 ') : (on ? 'Genocide ' : 'Genocide ')) + prog;
+    }
     const step = window.UT_WALKTHROUGH.slice().reverse().find(w => w.room <= G.state.room) || window.UT_WALKTHROUGH[0];
     const hint = document.getElementById('liveWalkthroughHint');
     if (hint) hint.textContent = `♥ ${zh ? step.tipZh : step.tipEn}`;
@@ -813,6 +880,12 @@
   document.getElementById('roomJumpSel')?.addEventListener('change', (e) => {
     const r = parseInt(e.target.value, 10); e.target.value = '';
     if (r) jumpToWalkthroughRoom(r);
+  });
+  document.getElementById('btnGeno')?.addEventListener('click', () => {
+    G.sfx.unlock();
+    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle') return;
+    G.toggleGenocideRoute();
+    G.onUI();
   });
   document.getElementById('btnLang')?.addEventListener('click', () => {
     G.lang = G.lang === 'en' ? 'zh' : 'en';

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>UNDERTALE — Undyne the Undying (Battle Against a True Hero)</title>
+  <style>
+    :root {
+      --bg: #04070a; --panel: #0a1016; --border: #ffffff;
+      --gold: #ffff00; --cyan: #48e8ff; --green: #38ff7a; --muted: #9eb0bf;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%; min-height: 100%; background: var(--bg); color: #fff;
+      font-family: "Determination Mono", "Courier New", monospace;
+      overflow-x: hidden; touch-action: manipulation; user-select: none;
+    }
+    .app-shell { max-width: 900px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 8px 10px 14px; gap: 8px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      border: 2px solid rgba(72,232,255,0.35); background: var(--panel); padding: 8px 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .soul-badge {
+      display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+      border: 2px solid var(--green); color: var(--green); font-size: 16px;
+    }
+    .brand h1 { font-size: 14px; letter-spacing: 0.05em; color: var(--cyan); }
+    .brand p { font-size: 11px; color: var(--gold); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .ut-btn, .ut-select {
+      font-family: inherit; font-size: 12px; color: #fff; background: #000;
+      border: 2px solid #fff; padding: 5px 9px; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .ut-btn:hover, .ut-select:hover { border-color: var(--gold); color: var(--gold); }
+    .ut-btn.shield-on { background: #062b36; border-color: var(--cyan); color: var(--cyan); }
+    .stage-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+    .canvas-frame {
+      width: 100%; max-width: 720px; background: #000; border: 3px solid #fff;
+      box-shadow: 0 0 32px rgba(56, 255, 122, 0.2); overflow: hidden;
+    }
+    canvas#game { display: block; width: 100%; height: auto; aspect-ratio: 4/3; image-rendering: pixelated; cursor: pointer; touch-action: none; }
+    .hint-bar {
+      width: 100%; max-width: 720px; border: 2px solid rgba(255,255,255,0.2); background: var(--panel);
+      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.45;
+    }
+    .controls-deck {
+      width: 100%; max-width: 720px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 8px 2px;
+    }
+    .dpad-surface { position: relative; width: 146px; height: 146px; touch-action: none; flex-shrink: 0; }
+    .dpad-cross { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 3px; pointer-events: none; }
+    .dpad-arm {
+      display: flex; align-items: center; justify-content: center; background: #101820;
+      border: 2px solid rgba(255,255,255,0.45); color: rgba(255,255,255,0.85); font-size: 16px; border-radius: 6px;
+    }
+    .dpad-arm.active { background: #0d3622; border-color: var(--green); color: var(--green); }
+    .dpad-center { background: #0a1016; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--green); }
+    .desktop-legend { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .desktop-legend kbd { border: 1px solid rgba(255,255,255,0.4); background: #131c24; padding: 1px 5px; color: #fff; }
+    .action-cluster { display: flex; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+    .act-btn {
+      font-family: inherit; font-weight: bold; color: #fff; background: #101820; border: 2.5px solid #fff;
+      border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .act-btn .k { font-size: 16px; } .act-btn .sub { font-size: 9px; color: var(--muted); }
+    .act-btn.z-btn { width: 66px; height: 66px; border-color: var(--gold); }
+    .act-btn.z-btn .k { color: var(--gold); }
+    .act-btn.x-btn { width: 54px; height: 54px; }
+    .act-btn.active, .act-btn:active { background: rgba(56,255,122,0.22); transform: scale(0.95); }
+    @media (max-width: 720px) { .desktop-legend { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="soul-badge" aria-hidden="true">💚</span>
+        <div>
+          <h1>UNDYNE THE UNDYING — GENOCIDE BOSS</h1>
+          <p>Battle Against a True Hero (1:1 Spear Shield Simulator)</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <select id="modeSel" class="ut-select" aria-label="Jump to Wave">
+          <option value="">Jump Wave ▾</option>
+          <option value="title">★ Simulator Title Menu</option>
+          <option value="intro">0. Intro Awakening</option>
+          <option value="w1">1. Waves 1-3 (Green Shield)</option>
+          <option value="w4">2. Waves 4-5 (Red Spears)</option>
+          <option value="w6">3. Waves 6-9 (Reverse &amp; Rings)</option>
+          <option value="w10">4. Waves 10-13 (Spear Storm)</option>
+          <option value="death">5. Melting Finale</option>
+          <option value="single_menu">🎯 Single Attack Practice</option>
+        </select>
+        <button id="btnShield" class="ut-btn" type="button">🛡 Shield OFF</button>
+        <button id="btnLang" class="ut-btn" type="button">EN / 繁中</button>
+        <button id="btnMute" class="ut-btn" type="button">🔊 Audio</button>
+        <a class="ut-btn" href="asriel.html">★ Asriel</a>
+        <a class="ut-btn" href="index.html">🏠 Overworld</a>
+      </div>
+    </header>
+
+    <section class="stage-wrap">
+      <div class="canvas-frame">
+        <canvas id="game" width="640" height="480" tabindex="0"></canvas>
+      </div>
+      <div class="hint-bar" id="hintBar">
+        💚 <b>Green SOUL:</b> Point your shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch out for <b>YELLOW</b> arrows that flip 180°!
+      </div>
+      <div class="controls-deck">
+        <div id="dpadZone" class="dpad-surface">
+          <div class="dpad-cross">
+            <div></div><div class="dpad-arm" data-dpad="up">▲</div><div></div>
+            <div class="dpad-arm" data-dpad="left">◀</div><div class="dpad-center">💚</div><div class="dpad-arm" data-dpad="right">▶</div>
+            <div></div><div class="dpad-arm" data-dpad="down">▼</div><div></div>
+          </div>
+        </div>
+        <div class="desktop-legend">
+          <div><kbd>↑↓←→</kbd> / <kbd>WASD</kbd> Aim Spear Shield / Dodge</div>
+          <div><kbd>Z</kbd> / <kbd>Enter</kbd> Confirm &amp; Strike · <kbd>X</kbd> / <kbd>Shift</kbd> Slow / Back</div>
+        </div>
+        <div class="action-cluster">
+          <button id="btnX" class="act-btn x-btn" type="button"><span class="k">X</span><span class="sub">BACK</span></button>
+          <button id="btnZ" class="act-btn z-btn" type="button"><span class="k">Z</span><span class="sub">OK</span></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/core_assets.js"></script>
+  <script src="assets/undyne_assets.js"></script>
+  <script src="assets/battle_engine.js"></script>
+  <script src="assets/undyne_engine.js"></script>
+  <script>
+    (function () {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const sfx = new window.UTEngineCore.UTSoundEngine();
+      const G = {
+        lang: 'en',
+        sfx,
+        noHitShield: false,
+        state: { name: 'CHARA', lv: 10, hp: 56, maxHp: 56 },
+        keys: { up: false, down: false, left: false, right: false, cancel: false, moveScale: 1 },
+        onUI: () => {
+          const on = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
+          const sb = document.getElementById('btnShield');
+          sb.classList.toggle('shield-on', on);
+          sb.textContent = on ? (G.lang === 'zh' ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (G.lang === 'zh' ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF');
+          document.getElementById('hintBar').innerHTML = G.lang === 'zh'
+            ? '💚 <b>綠魂擋矛：</b>按方向鍵、滑動十字鍵、或直接點擊畫面上下左右擋住飛矛！注意<b>黃色箭頭</b>會在接近時 180° 反轉方向！'
+            : '💚 <b>Green SOUL:</b> Point your shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch out for <b>YELLOW</b> arrows that flip 180°!';
+        },
+      };
+      const undyne = window.UTUndyneEngine.createUndyneBattle(G);
+      window.UTUndyneSim = { G, undyne };
+      undyne.open('title', true);
+
+      const kb = {}, ts = {};
+      let touchHoldFrames = 0;
+      function sync() {
+        for (const k of ['up', 'down', 'left', 'right', 'cancel']) G.keys[k] = !!(kb[k] || ts[k]);
+        document.querySelectorAll('[data-dpad]').forEach(el => el.classList.toggle('active', !!G.keys[el.dataset.dpad]));
+      }
+      const DIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+      window.addEventListener('keydown', e => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+        if (e.repeat) return;
+        if (DIR[e.code]) { kb[DIR[e.code]] = true; undyne.onNav(DIR[e.code]); sync(); }
+        else if (e.code === 'KeyZ' || e.code === 'Enter' || e.code === 'Space') undyne.onConfirm();
+        else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'Escape') { kb.cancel = true; undyne.onCancel(); sync(); }
+      });
+      window.addEventListener('keyup', e => {
+        if (DIR[e.code]) { kb[DIR[e.code]] = false; sync(); }
+        else if (e.code === 'KeyX' || e.code === 'ShiftLeft') { kb.cancel = false; sync(); }
+      });
+
+      // Mobile D-pad with startup movement ramp + menu repeat delay!
+      const dpad = document.getElementById('dpadZone');
+      let lastNavDir = '', navNextTs = 0;
+      function dpadPt(cx, cy) {
+        const r = dpad.getBoundingClientRect();
+        const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+        ts.up = ts.down = ts.left = ts.right = false;
+        if (Math.hypot(dx, dy) > 15) {
+          const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+          ts.right = deg > -62 && deg < 62; ts.down = deg > 28 && deg < 152;
+          ts.left = deg > 118 || deg < -118; ts.up = deg > -152 && deg < -28;
+          const p = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+          const now = performance.now();
+          if (p !== lastNavDir) {
+            lastNavDir = p; navNextTs = now + 220;
+            undyne.onNav(p);
+          } else if (now >= navNextTs) {
+            navNextTs = now + 135;
+            undyne.onNav(p);
+          }
+        } else { lastNavDir = ''; }
+        sync();
+      }
+      dpad.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); touchHoldFrames = 0; dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+      dpad.addEventListener('touchmove', e => { e.preventDefault(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+      dpad.addEventListener('touchend', e => { e.preventDefault(); ts.up = ts.down = ts.left = ts.right = false; lastNavDir = ''; touchHoldFrames = 0; sync(); }, { passive: false });
+      dpad.addEventListener('mousedown', e => { sfx.unlock(); touchHoldFrames = 0; dpadPt(e.clientX, e.clientY); });
+      window.addEventListener('mouseup', () => { ts.up = ts.down = ts.left = ts.right = false; lastNavDir = ''; touchHoldFrames = 0; sync(); });
+
+      const bindBtn = (id, fnD, fnU) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', e => { e.preventDefault(); el.classList.add('active'); fnD(); }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); el.classList.remove('active'); fnU?.(); }, { passive: false });
+        el.addEventListener('mousedown', () => { el.classList.add('active'); fnD(); });
+        el.addEventListener('mouseup', () => { el.classList.remove('active'); fnU?.(); });
+      };
+      bindBtn('btnZ', () => undyne.onConfirm());
+      bindBtn('btnX', () => { ts.cancel = true; undyne.onCancel(); sync(); }, () => { ts.cancel = false; sync(); });
+
+      canvas.addEventListener('pointerdown', e => {
+        const r = canvas.getBoundingClientRect();
+        undyne.onCanvasTap(((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 480);
+      });
+      document.getElementById('modeSel').addEventListener('change', e => {
+        const v = e.target.value; e.target.value = ''; sfx.unlock();
+        if (!v) return;
+        if (v === 'title' || v === 'phase_menu' || v === 'single_menu') { undyne.clearBullets(); undyne.mode = v; undyne.menuCursor = 0; }
+        else undyne.startPhase(v);
+      });
+      document.getElementById('btnShield').addEventListener('click', () => { sfx.unlock(); undyne.toggleNoHit(); });
+      document.getElementById('btnLang').addEventListener('click', () => { G.lang = G.lang === 'en' ? 'zh' : 'en'; G.onUI(); });
+      document.getElementById('btnMute').addEventListener('click', e => { sfx.unlock(); sfx.setMuted(!sfx.muted); e.currentTarget.textContent = sfx.muted ? '🔇 Muted' : '🔊 Audio'; });
+
+      let last = 0, acc = 0;
+      function loop(now) {
+        if (!last) last = now;
+        acc += Math.min(50, now - last); last = now;
+        while (acc >= 1000 / 60) {
+          const anyTouchDir = ts.up || ts.down || ts.left || ts.right;
+          if (anyTouchDir) {
+            touchHoldFrames++;
+            G.keys.moveScale = touchHoldFrames <= 2 ? 0.28 : (touchHoldFrames <= 5 ? 0.62 : 1.0);
+          } else {
+            touchHoldFrames = 0;
+            G.keys.moveScale = 1.0;
+          }
+          undyne.update(G.keys);
+          acc -= 1000 / 60;
+        }
+        ctx.imageSmoothingEnabled = false;
+        undyne.render(ctx);
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

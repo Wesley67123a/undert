@@ -603,6 +603,11 @@
 
       hurt(dmg) {
         if (this.invuln > 0) return;
+        if (this.currentAtk !== 'lastbeam' && (this.noHitMode || G.noHitShield || window.UT_NO_HIT_SHIELD)) {
+          this.invuln = 28;
+          G.sfx.sfx('bell', 0.45);
+          return;
+        }
         let realDmg = dmg;
         if (this.mode === 'p1' && this.hopeActive) {
           realDmg = Math.max(1, dmg - 3);
@@ -630,10 +635,6 @@
         this.onHitFlash = 6;
         this.damageTakenTotal += realDmg;
 
-        if (this.noHitMode && this.singlePractice) {
-          this.hp = Math.max(1, this.hp - realDmg);
-          return;
-        }
         if (this.mode === 'p1' && this.hopeActive && this.hp > 1 && this.hp - realDmg <= 0) {
           this.hp = 1;
           return;
@@ -1291,26 +1292,29 @@
           else if (keys.down) this.shieldDir = 2;
           else if (keys.left) this.shieldDir = 3;
         } else if (this.soulColor === 'blue') {
-          const spd = keys.cancel ? 1.8 : (this.seaTeaBoost ? 3.8 : 3.2);
+          const ramp = keys.moveScale != null ? keys.moveScale : 1;
+          const spd = (keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.9 : 2.3)) * ramp;
           if (keys.left) this.soulX -= spd;
           if (keys.right) this.soulX += spd;
-          if (keys.up && this.soulY >= bb - 7 && this.soulVy >= 0) this.soulVy = -7.2;
+          if (keys.up && this.soulY >= bb - 7 && this.soulVy >= 0) this.soulVy = -6.8;
           if (!keys.up && this.soulVy < -1.5) this.soulVy *= 0.6;
-          this.soulVy = Math.min(7.5, this.soulVy + 0.32);
+          this.soulVy = Math.min(7.2, this.soulVy + 0.31);
           this.soulY += this.soulVy;
           if (this.soulY > bb - 6) { this.soulY = bb - 6; this.soulVy = 0; }
           if (this.soulY < by + 6) { this.soulY = by + 6; this.soulVy = 0; }
         } else {
-          const spd = keys.cancel ? 1.9 : (this.seaTeaBoost ? 4.3 : 3.5);
-          const dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-          const dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+          const ramp = keys.moveScale != null ? keys.moveScale : 1;
+          const spd = (keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.95 : 2.35)) * ramp;
+          let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+          let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+          if (dx && dy) { dx *= 0.75; dy *= 0.75; }
           this.soulX += dx * spd;
           this.soulY += dy * spd;
           if (this.goner && this.goner.t > 80 && this.goner.t < 290) {
             // Hyper Goner suction force pulling SOUL up into the roaring jaws!
             const pullAng = Math.atan2(180 - this.soulY, 320 - this.soulX);
-            this.soulX += Math.cos(pullAng) * 1.45;
-            this.soulY += Math.sin(pullAng) * 2.15;
+            this.soulX += Math.cos(pullAng) * 1.05;
+            this.soulY += Math.sin(pullAng) * 1.45;
           }
         }
         this.soulX = Math.max(bx + 6, Math.min(br - 6, this.soulX));
@@ -1796,7 +1800,7 @@
         if (this.sub === 'bubble' && this.bubbles[this.bubIdx]) {
           ctx.fillStyle = '#fff'; ctx.fillRect(392, 46, 224, 134);
           ctx.beginPath(); ctx.moveTo(392, 92); ctx.lineTo(374, 102); ctx.lineTo(392, 112); ctx.fill();
-          drawRichText(ctx, this.bubbles[this.bubIdx].text, 404, 58, this.bubC, { size: 17, lineH: 22, color: '#000000' });
+          drawRichText(ctx, this.bubbles[this.bubIdx].text, 404, 56, this.bubC, { size: 17, lineH: 22, color: '#000000', who: 'asrielboss', maxWidth: 202, maxHeight: 116 });
         }
 
         // 4. Battle Box & Contents
@@ -1810,9 +1814,9 @@
         if (this.goner) this.drawHyperGoner(ctx);
 
         if (this.sub === 'main') {
-          drawRichText(ctx, this.statusTxt || '* ...', this.box.x + 22, this.box.y + 20, 999, { size: 22, lineH: 30 });
+          drawRichText(ctx, this.statusTxt || '* ...', this.box.x + 22, this.box.y + 20, 999, { size: 22, lineH: 30, maxWidth: this.box.w - 44, maxHeight: this.box.h - 32 });
         } else if (this.sub === 'msg') {
-          drawRichText(ctx, this.msg, this.box.x + 22, this.box.y + 20, Math.floor(this.mc), { size: 21, lineH: 29 });
+          drawRichText(ctx, this.msg, this.box.x + 22, this.box.y + 18, Math.floor(this.mc), { size: 21, lineH: 28, maxWidth: this.box.w - 44, maxHeight: this.box.h - 28 });
         } else if (this.sub === 'target') {
           if (this.subCur === 0) drawSpr(ctx, 'spr_heart', 0, 58, 286, 1, 1);
           drawRichText(ctx, `* ASRIEL DREEMURR   LV ∞`, 86, 280, 999, { size: 24 });
@@ -1868,6 +1872,10 @@
           const soulSpr = { red: 'spr_heart', blue: 'spr_heartblue', green: 'spr_heartgreen', yellow: 'spr_heartyellow_flip' }[this.soulColor] || 'spr_heart';
           if (!this.invuln || Math.floor(this.invuln / 3) % 2 === 0) {
             drawSpr(ctx, soulSpr, 0, Math.round(this.soulX - 8), Math.round(this.soulY - 8), 1, 1);
+          }
+          if (this.noHitMode || G.noHitShield || window.UT_NO_HIT_SHIELD) {
+            ctx.save(); ctx.strokeStyle = 'rgba(80,235,255,0.85)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(this.soulX, this.soulY, 14, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
           }
           if (this.soulColor === 'green') {
             // Draw Undyne's blocking shield arc!

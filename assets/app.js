@@ -6,11 +6,19 @@
   const { G, getRoomImg } = window.UTOverworldFactory.createGame(canvas);
   const { SPR, drawSpr, drawRichText, stripCodes } = window.UTEngineCore;
   window.UTGame = G;
+  G.noHitShield = !!window.UT_NO_HIT_SHIELD;
+  G.keys.moveScale = 1;
   G.asriel = window.UTAsrielEngine?.createAsrielBattle(G) || null;
   G.onExitAsriel = () => { G.enterRoom(Math.max(4, G.state.room || 4)); };
   G.startAsriel = (entry = 'title') => {
     if (!G.asriel) return;
     G.sfx.unlock(); G.mode = 'asriel_battle'; G.asriel.open(entry, false); G.onUI?.();
+  };
+  G.undyne = window.UTUndyneEngine?.createUndyneBattle(G) || null;
+  G.onExitUndyne = () => { G.enterRoom(Math.max(4, G.state.room || 4)); };
+  G.startUndyne = (entry = 'title') => {
+    if (!G.undyne) return;
+    G.sfx.unlock(); G.mode = 'undyne_battle'; G.undyne.open(entry, false); G.onUI?.();
   };
 
   const motes = Array.from({ length: 18 }, () => ({
@@ -73,6 +81,7 @@
     if (G.mode === 'flowey_battle') { G.fb.update(G.keys); return; }
     if (G.mode === 'rpg_battle') { G.rpg.update(G.keys); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.update(G.keys); return; }
+    if (G.mode === 'undyne_battle') { G.undyne?.update(G.keys); return; }
 
     if (G.mode === 'fall') {
       G.frisk.y += G.fallAnim.vy;
@@ -117,7 +126,9 @@
       else if (dy < 0) G.frisk.dir = 'up';
       else if (dx < 0) G.frisk.dir = 'left';
       else if (dx > 0) G.frisk.dir = 'right';
-      const spd = G.keys.cancel ? 3.1 : 2.15;
+      // Authentic Undertale 3px @ 30fps = 1.50px @ 60fps, scaled by mobile startup delay ramp
+      const baseSpd = G.keys.cancel ? 1.85 : 1.50;
+      const spd = baseSpd * (G.keys.moveScale ?? 1) * (dx && dy ? 0.78 : 1);
       if (dx) G.moveFrisk(dx * spd, 0);
       if (dy) G.moveFrisk(0, dy * spd);
       G.frisk.walk++;
@@ -149,6 +160,8 @@
       G.rpg.render(ctx, G.time);
     } else if (G.mode === 'asriel_battle') {
       G.asriel?.render(ctx);
+    } else if (G.mode === 'undyne_battle') {
+      G.undyne?.render(ctx);
     } else if (G.mode === 'finale') {
       renderFinale(ctx);
     } else {
@@ -217,39 +230,37 @@
     }
   }
 
-  // obj -> [sprite, sort-foot offset (null = sprite height), animation speed in ticks (0 = static)]
-  const SNOW_PROPS = {
-    obj_convenientlamp: ['spr_convenientlamp', null, 0],
-    obj_sansbox: ['spr_chestbox', null, 0],
-    obj_nicesnowman: ['spr_regsnowman', null, 0],
-    obj_sanssnowman: ['spr_regsnowman', null, 0],
-    obj_nicecreamguy: ['spr_icecreamguy_happy', null, 20],
-    obj_spaghetti: ['spr_spaghetti', null, 0],
-    obj_microwave: ['spr_microwave', null, 0],
-    obj_xoxocontroller1: ['spr_groundswitch1', 0, 0],
-    obj_gyftrotnpc: ['spr_gyftrotnpc', null, 24],
-    obj_snowpoff: ['spr_snowpoff', null, 0],
-    obj_dogpoff: ['spr_dogpoff', null, 0],
-    obj_paphouse: ['spr_papyrushouse', null, 0],
-    obj_papshed: ['spr_awfulshed', null, 0],
-    obj_xmastree: ['spr_xmastree', null, 0],
-    obj_snowdinlogo: ['spr_snowdinlogo', 0, 0],
-    obj_grillbynpc_doggo: ['spr_movedoge', null, 0],
-    obj_grillbynpc_mandog: ['spr_mandoge', null, 0],
-    obj_grillbynpc_womandog: ['spr_womandoge', null, 0],
-    obj_bigdog: ['spr_npc_bigdog', null, 24],
-    obj_townnpc_bear1: ['spr_npc_bear', null, 30],
-    obj_townnpc_beartree: ['spr_npc_giftbear', null, 30],
-    obj_townnpc_reddemon: ['spr_npc_reddemon', null, 30],
-    obj_townnpc_icewolf: ['spr_icewolf', null, 30],
-    obj_throwwolf: ['spr_icewolf', null, 30],
-    obj_townnpc_innlady: ['spr_npc_innkeep', null, 30],
-    obj_townnpc_bunlady: ['spr_npc_bunbun', null, 30],
-    obj_townnpc_bunboy: ['spr_npc_bunbun', null, 30],
+  // Snowdin NPC idle animation rates (0 = static idle frame 0)
+  const SNOW_ANIM = {
+    obj_nicecreamguy: 22, obj_gyftrotnpc: 24, obj_bigdog: 24,
+    obj_townnpc_bear1: 30, obj_townnpc_beartree: 30, obj_townnpc_reddemon: 30,
+    obj_townnpc_icewolf: 28, obj_throwwolf: 22, obj_townnpc_innlady: 30,
+    obj_townnpc_bunlady: 30, obj_townnpc_bunboy: 30, obj_townnpc_unfunny: 30,
+    obj_grillbynpc_grillby: 12, obj_grillbynpc_hot2: 20, obj_grillbynpc_foodmonster: 26,
+    obj_grillbynpc_hotandbothered: 24, obj_grillbynpc_lesserdog: 26,
+    obj_townnpc_hatescity: 28, obj_townnpc_weirdfish: 28,
+    obj_snowdrakenpc: 24, obj_chilldrakenpc: 24,
+    obj_librarynpc_jumbler: 30, obj_librarynpc_lizard1: 30,
+    obj_librarynpc_lizard2: 30, obj_librarynpc_wordsearch: 30,
   };
+  // Explicit sprite overrides where .room.gmx default differs or needs state
+  const SNOW_SPR_OVERRIDE = {
+    obj_grillbynpc_doggo: 'spr_movedoge_o',
+    obj_grillbynpc_mandog: 'spr_mandogwalk',
+    obj_grillbynpc_womandog: 'spr_womandogwalk',
+    obj_townnpc_bunboy: 'spr_npc_rabbitkid',
+    obj_xoxocontroller1: 'spr_groundswitch1',
+  };
+  const SNOW_FLOOR_OBJS = new Set([
+    'obj_xoxocontroller1', 'obj_golfhole', 'obj_snowdinlogo', 'obj_crossword', 'obj_spagnot'
+  ]);
+  const SNOW_SKIP_OBJS = new Set([
+    'obj_kitchenchecker', 'obj_xoxo', 'obj_grillbynpc_sansdate'
+  ]);
 
   function renderOverworld(ctx) {
     const id = G.state.room, R = window.UT_GMC_ROOMS[id], fl = G.state.flags;
+    const genoSnow = G.isGenocideSnowdin && G.isGenocideSnowdin();
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
 
     ctx.save();
@@ -269,7 +280,7 @@
       ctx.save();
       ctx.beginPath(); ctx.rect(638, 108, 48, 22); ctx.clip();
       const mirSpr = { down: 'spr_maincharau', up: 'spr_maincharad', left: 'spr_maincharal', right: 'spr_maincharar' }[G.frisk.dir];
-      const mf = G.frisk.moving ? Math.floor(G.frisk.walk / 7) : 0;
+      const mf = G.frisk.moving ? Math.floor(G.frisk.walk / 10) : 0;
       drawSpr(ctx, mirSpr, mf, G.frisk.x, 244 - G.frisk.y);
       ctx.restore();
     }
@@ -347,11 +358,40 @@
       else if (o === 'obj_uchair') drawList.push({ y: y + 20, draw: () => drawSpr(ctx, 'spr_topchair', 0, x, y) });
       else if (o === 'obj_smallchair') drawList.push({ y: y + 28, draw: () => drawSpr(ctx, 'spr_smallchair', 0, x, y) });
       else if (o === 'obj_cactus') drawList.push({ y: y + 45, draw: () => drawSpr(ctx, 'spr_cactus', 0, x, y) });
-      else if (o in SNOW_PROPS) {
-        const [sp, fh, anim] = SNOW_PROPS[o];
-        const s = SPR[sp];
-        const h = s ? s.h : 20;
-        drawList.push({ y: y + (fh != null ? fh : h), draw: () => drawSpr(ctx, sp, anim ? Math.floor(G.time / anim) : 0, x, y) });
+      else if (id >= 44) {
+        if (SNOW_SKIP_OBJS.has(o)) continue;
+        // Epilogue-only Royal Guard placements outside Grillby's in Room 68 (normally inside Room 73)
+        if (id === 68 && (o === 'obj_bigdog' || o.startsWith('obj_grillbynpc_'))) continue;
+        // Genocide Route evacuates Snowdin Town & interiors (Rooms 68..74)
+        if (genoSnow && id >= 68 && id <= 74 && (
+          o.startsWith('obj_townnpc_') || o.startsWith('obj_grillbynpc_') || o.startsWith('obj_librarynpc_') || o === 'obj_bigdog'
+        )) continue;
+        if ((o === 'obj_sans_room' || o === 'obj_doublesans') && (G.sans?.vis || genoSnow)) continue;
+        if ((o === 'obj_papyrus_houseoutside' || o === 'obj_papyrus_guide' || o === 'obj_papyrus_hisroom') && (G.pap?.vis || fl.papyrusKilled || genoSnow)) continue;
+
+        if (o === 'obj_stick') {
+          drawSpr(ctx, 'spr_stick', fl.r45_branch ? 1 : 0, x, y);
+        } else if (o === 'obj_creeptree1' || o === 'obj_creeptree_stickbreak') {
+          const px = Math.round(x - (G.frisk.x - x) * 0.32);
+          drawList.push({ y: 9999, draw: () => drawSpr(ctx, 'spr_treeshadow', 0, px, y) });
+        } else if (o === 'obj_switch') {
+          drawSpr(ctx, 'spr_specialswitch', fl.r60_sw ? 1 : 0, x, y);
+        } else {
+          let sp = SNOW_SPR_OVERRIDE[o] || inst.spr;
+          if (o === 'obj_nicesnowman') sp = (fl.snowmanPieces >= 3) ? 'spr_sadsnowman' : 'spr_regsnowman';
+          if (o === 'obj_nicecreamguy') sp = genoSnow ? 'spr_icecreamguy_sad' : 'spr_icecreamguy_happy';
+          if (!sp || sp === 'spr_interactable' || sp === 'spr_event' || sp === 'spr_pixwht' || !SPR[sp]) continue;
+          if (SNOW_FLOOR_OBJS.has(o)) {
+            drawSpr(ctx, sp, 0, x, y);
+          } else {
+            const s = SPR[sp];
+            const h = s ? s.h : 24;
+            const sortY = o === 'obj_dogehouseback' ? (y + 18) : (y + h);
+            const animRate = SNOW_ANIM[o] || 0;
+            const frame = animRate ? Math.floor(G.time / animRate) : 0;
+            drawList.push({ y: sortY, draw: () => drawSpr(ctx, sp, frame, x, y) });
+          }
+        }
       }
     }
 
@@ -361,10 +401,12 @@
     // Sans & Papyrus overworld actors
     const actorSpr = (nm, a) => ({ down: `spr_${nm}_d`, up: `spr_${nm}_u`, left: `spr_${nm}_l`, right: `spr_${nm}_r` }[a.dir] || `spr_${nm}_d`);
     if (G.sans && G.sans.vis) {
-      drawList.push({ y: G.sans.y + 30, draw: () => drawSpr(ctx, actorSpr('sans', G.sans), 0, G.sans.x, G.sans.y) });
+      const sf = G.sans.moving ? Math.floor(G.time / 10) % 4 : 0;
+      drawList.push({ y: G.sans.y + 30, draw: () => drawSpr(ctx, actorSpr('sans', G.sans), sf, G.sans.x, G.sans.y) });
     }
     if (G.pap && G.pap.vis) {
-      drawList.push({ y: G.pap.y + 42, draw: () => drawSpr(ctx, actorSpr('papyrus', G.pap), Math.floor(G.time / 12) % 2 ? 0 : 0, G.pap.x, G.pap.y) });
+      const pf = G.pap.moving ? Math.floor(G.time / 9) % 4 : 0;
+      drawList.push({ y: G.pap.y + 42, draw: () => drawSpr(ctx, actorSpr('papyrus', G.pap), pf, G.pap.x, G.pap.y) });
     }
 
     // Rock plate tiles in rooms 15 & 17
@@ -389,7 +431,7 @@
         draw: () => {
           if (G.tor.hug) { drawSpr(ctx, 'spr_toriel_hug', 1, G.tor.x, G.tor.y + 4); return; }
           const ts = { down: 'spr_toriel_d', up: 'spr_toriel_u', left: 'spr_toriel_l', right: 'spr_toriel_r' }[G.tor.dir] || 'spr_toriel_d';
-          const tf = G.tor.moving ? Math.floor(G.tor.walk / 8) : 0;
+          const tf = G.tor.moving ? Math.floor(G.tor.walk / 9) : 0;
           drawSpr(ctx, ts, tf, G.tor.x, G.tor.y);
         }
       });
@@ -400,7 +442,7 @@
         y: G.frisk.y + 29,
         draw: () => {
           const fs = { down: 'spr_maincharad', up: 'spr_maincharau', left: 'spr_maincharal', right: 'spr_maincharar' }[G.frisk.dir] || 'spr_maincharad';
-          const ff = G.frisk.moving ? Math.floor(G.frisk.walk / 7) : 0;
+          const ff = G.frisk.moving ? Math.floor(G.frisk.walk / 10) : 0;
           drawSpr(ctx, fs, ff, G.frisk.x, G.frisk.y);
           if (G.mode === 'enc_alert') drawSpr(ctx, 'spr_exc', 0, G.frisk.x + 5, G.frisk.y - 12);
         }
@@ -454,13 +496,25 @@
       tx = bx + 132;
     }
 
-    drawRichText(ctx, cur.text, tx, by + 24, G.dlg.c, { size: 26, lineH: 34 });
+    const availW = bx + bw - tx - 20;
+    drawRichText(ctx, cur.text, tx, by + 22, G.dlg.c, {
+      size: 25, lineH: 32,
+      who: cur.who, expr: cur.expr,
+      maxWidth: availW,
+      maxHeight: cur.choices ? 66 : 106,
+    });
 
     if (cur.choices && G.dlg.c >= plain.length) {
+      const nCh = Math.max(1, cur.choices.length);
+      const stepX = Math.min(210, Math.floor((availW - 24) / nCh));
       cur.choices.forEach((ch, idx) => {
-        const cx = tx + 28 + idx * 210, cy = by + 98;
-        drawRichText(ctx, ch, cx, cy, 999, { size: 24, color: G.dlg.choiceIdx === idx ? '#ffff00' : '#ffffff' });
-        if (G.dlg.choiceIdx === idx) drawSpr(ctx, 'spr_heart', 0, cx - 26, cy + 5, 1, 1);
+        const cx = tx + 26 + idx * stepX, cy = by + 98;
+        drawRichText(ctx, ch, cx, cy, 999, {
+          size: 23, who: cur.who,
+          maxWidth: Math.max(80, stepX - 30), maxHeight: 32,
+          color: G.dlg.choiceIdx === idx ? '#ffff00' : '#ffffff',
+        });
+        if (G.dlg.choiceIdx === idx) drawSpr(ctx, 'spr_heart', 0, cx - 24, cy + 5, 1, 1);
       });
     }
   }
@@ -583,6 +637,7 @@
     if (G.mode === 'flowey_battle') { G.fb.confirm(); return; }
     if (G.mode === 'rpg_battle') { G.rpg.confirm(); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.onConfirm(); return; }
+    if (G.mode === 'undyne_battle') { G.undyne?.onConfirm(); return; }
 
     if (G.mode === 'save_menu') {
       if (G.saveMenu.saved) { G.mode = 'explore'; return; }
@@ -663,6 +718,7 @@
     if (G.mode === 'flowey_battle') { G.fb.skip(); return; }
     if (G.mode === 'rpg_battle') { G.rpg.cancel(); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.onCancel(); return; }
+    if (G.mode === 'undyne_battle') { G.undyne?.onCancel(); return; }
     if (G.mode === 'dlg') {
       const cur = G.dlg.q[G.dlg.i];
       if (cur) G.dlg.c = stripCodes(cur.text).length;
@@ -714,6 +770,8 @@
       G.rpg.move(dir);
     } else if (G.mode === 'asriel_battle') {
       G.asriel?.onNav(dir);
+    } else if (G.mode === 'undyne_battle') {
+      G.undyne?.onNav(dir);
     }
   }
 
@@ -721,6 +779,8 @@
   // KEYBOARD + SLIDEABLE MULTI-TOUCH VIRTUAL D-PAD & ACTION BUTTONS
   // =========================================================================
   const kbState = {};
+  let touchHoldFrames = 0;
+  let kbHoldFrames = 0;
   function syncKeys() {
     G.keys.up    = !!(kbState.up    || touchState.up);
     G.keys.down  = !!(kbState.down  || touchState.down);
@@ -746,27 +806,36 @@
     else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { kbState.cancel = false; syncKeys(); }
   });
 
-  // Slideable 8-way Multi-Touch D-Pad Surface (works seamlessly on iOS & Android!)
+  // Slideable 8-way Multi-Touch D-Pad Surface with mobile startup ramp & menu repeat debounce
   const touchState = { up: false, down: false, left: false, right: false, cancel: false };
   const dpadZone = document.getElementById('dpadZone');
   let lastTouchNav = '';
+  let touchNavNextTs = 0;
 
   function updateDpadFromPoint(clientX, clientY) {
     const rect = dpadZone.getBoundingClientRect();
     const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
     const dx = clientX - cx, dy = clientY - cy;
     const dist = Math.hypot(dx, dy);
-    const dead = rect.width * 0.12;
+    const dead = Math.max(15, rect.width * 0.14);
     touchState.up = touchState.down = touchState.left = touchState.right = false;
     if (dist > dead) {
       const ang = Math.atan2(dy, dx); // -PI..PI
-      if (ang > -Math.PI * 0.82 && ang < -Math.PI * 0.18) touchState.up = true;
-      if (ang >  Math.PI * 0.18 && ang <  Math.PI * 0.82) touchState.down = true;
-      if (Math.abs(ang) > Math.PI * 0.62) touchState.left = true;
-      if (Math.abs(ang) < Math.PI * 0.38) touchState.right = true;
+      if (ang > -Math.PI * 0.80 && ang < -Math.PI * 0.20) touchState.up = true;
+      if (ang >  Math.PI * 0.20 && ang <  Math.PI * 0.80) touchState.down = true;
+      if (Math.abs(ang) > Math.PI * 0.64) touchState.left = true;
+      if (Math.abs(ang) < Math.PI * 0.36) touchState.right = true;
 
       const primary = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-      if (primary !== lastTouchNav) { lastTouchNav = primary; navDir(primary); }
+      const now = performance.now();
+      if (primary !== lastTouchNav) {
+        lastTouchNav = primary;
+        touchNavNextTs = now + 225;
+        navDir(primary);
+      } else if (now >= touchNavNextTs) {
+        touchNavNextTs = now + 135;
+        navDir(primary);
+      }
     } else lastTouchNav = '';
     syncKeys();
   }
@@ -775,6 +844,7 @@
     let mouseDown = false;
     dpadZone.addEventListener('touchstart', (e) => {
       e.preventDefault(); G.sfx.unlock();
+      touchHoldFrames = 0;
       const t = e.targetTouches[0];
       if (t) updateDpadFromPoint(t.clientX, t.clientY);
     }, { passive: false });
@@ -787,17 +857,17 @@
       e.preventDefault();
       if (!e.targetTouches || e.targetTouches.length === 0) {
         touchState.up = touchState.down = touchState.left = touchState.right = false;
-        lastTouchNav = ''; syncKeys();
+        lastTouchNav = ''; touchHoldFrames = 0; syncKeys();
       }
     };
     dpadZone.addEventListener('touchend', clearDpad, { passive: false });
     dpadZone.addEventListener('touchcancel', clearDpad, { passive: false });
 
     // Mouse fallback on desktop
-    dpadZone.addEventListener('mousedown', (e) => { mouseDown = true; G.sfx.unlock(); updateDpadFromPoint(e.clientX, e.clientY); });
+    dpadZone.addEventListener('mousedown', (e) => { mouseDown = true; touchHoldFrames = 0; G.sfx.unlock(); updateDpadFromPoint(e.clientX, e.clientY); });
     window.addEventListener('mousemove', (e) => { if (mouseDown) updateDpadFromPoint(e.clientX, e.clientY); });
     window.addEventListener('mouseup', () => {
-      if (mouseDown) { mouseDown = false; touchState.up = touchState.down = touchState.left = touchState.right = false; lastTouchNav = ''; syncKeys(); }
+      if (mouseDown) { mouseDown = false; touchState.up = touchState.down = touchState.left = touchState.right = false; lastTouchNav = ''; touchHoldFrames = 0; syncKeys(); }
     });
   }
 
@@ -819,9 +889,13 @@
   bindActionBtn('btnActC', () => pressMenu());
   canvas.addEventListener('pointerdown', (e) => {
     G.sfx.unlock(); canvas.focus();
+    const r = canvas.getBoundingClientRect();
+    const cx = ((e.clientX - r.left) / r.width) * 640;
+    const cy = ((e.clientY - r.top) / r.height) * 480;
     if (G.mode === 'asriel_battle' && G.asriel) {
-      const r = canvas.getBoundingClientRect();
-      G.asriel.onCanvasTap(((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 480);
+      G.asriel.onCanvasTap(cx, cy);
+    } else if (G.mode === 'undyne_battle' && G.undyne) {
+      G.undyne.onCanvasTap(cx, cy);
     }
   });
 
@@ -879,23 +953,37 @@
 
   G.onUI = function() {
     const zh = G.lang === 'zh';
-    const rName = G.mode === 'asriel_battle' ? (zh ? '艾斯利爾·逐夢 (7 SOULs 終極決戰)' : 'ASRIEL DREEMURR (7 SOULs Finale)') : (G.D().roomNames[G.state.room] || `Room ${G.state.room}`);
+    const rName = G.mode === 'asriel_battle'
+      ? (zh ? '艾斯利爾·逐夢 (7 SOULs 終極決戰)' : 'ASRIEL DREEMURR (7 SOULs Finale)')
+      : G.mode === 'undyne_battle'
+        ? (zh ? '不滅的安黛因 (真正的英雄之戰)' : 'UNDYNE THE UNDYING (Genocide Boss)')
+        : (G.D().roomNames[G.state.room] || `Room ${G.state.room}`);
     const lbl = document.getElementById('roomLabel');
-    if (lbl) lbl.textContent = G.mode === 'asriel_battle' ? rName : `${rName} (#${G.state.room})`;
+    if (lbl) lbl.textContent = (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') ? rName : `${rName} (#${G.state.room})`;
+
+    const sb = document.getElementById('btnShield');
+    if (sb) {
+      const shOn = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
+      sb.classList.toggle('shield-on', shOn);
+      sb.textContent = shOn ? (zh ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (zh ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF');
+    }
+
     const gb = document.getElementById('btnGeno');
     if (gb) {
       const st = G.state, rk = st.ruinsKills || 0, sk = st.snowdinKills || 0;
       const on = G.isGenocideActive();
       const prog = st.room <= 43 ? `${Math.min(rk, 20)}/20` : `${Math.min(sk, 16)}/16`;
       gb.classList.toggle('danger', on);
-      gb.textContent = (on ? '💀 ' : '☠ ') + (zh ? (on ? '滅絕路線 ' : '滅絕 ') : (on ? 'Genocide ' : 'Genocide ')) + prog;
+      gb.textContent = (on ? '💀 ' : '☠ ') + (zh ? (on ? '滅絕路線 ' : '滅絕 ') : 'Genocide ') + prog;
     }
     const step = window.UT_WALKTHROUGH.slice().reverse().find(w => w.room <= G.state.room) || window.UT_WALKTHROUGH[0];
     const hint = document.getElementById('liveWalkthroughHint');
     if (hint) {
       hint.textContent = G.mode === 'asriel_battle'
         ? (zh ? '★ 艾斯利爾 (7 個靈魂)：選「完整決戰」或「單一招式練習」；方向鍵閃躲，[Z] 確認 / 黃魂射擊！' : '★ ASRIEL DREEMURR (7 SOULs): Play Normal Mode, Phase Select, or Single Attack Practice! Arrows move, [Z] Confirm.')
-        : `♥ ${zh ? step.tipZh : step.tipEn}`;
+        : G.mode === 'undyne_battle'
+          ? (zh ? '💚 不滅的安黛因：方向鍵 / 滑動十字鍵 / 點擊畫面四方轉動長矛盾牌擋住飛矛！注意黃色反轉箭頭！' : '💚 UNDYNE THE UNDYING: Point your spear shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch for yellow reverse arrows!')
+          : `♥ ${zh ? step.tipZh : step.tipEn}`;
     }
     renderWalkthroughList();
   };
@@ -906,12 +994,22 @@
   });
   document.getElementById('btnGeno')?.addEventListener('click', () => {
     G.sfx.unlock();
-    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle' || G.mode === 'asriel_battle') return;
+    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle' || G.mode === 'asriel_battle' || G.mode === 'undyne_battle') return;
     G.toggleGenocideRoute();
     G.onUI();
   });
   document.getElementById('btnAsriel')?.addEventListener('click', () => {
     G.startAsriel('title');
+  });
+  document.getElementById('btnUndyne')?.addEventListener('click', () => {
+    G.startUndyne('title');
+  });
+  document.getElementById('btnShield')?.addEventListener('click', () => {
+    G.sfx.unlock();
+    window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
+    G.noHitShield = window.UT_NO_HIT_SHIELD;
+    G.sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
+    G.onUI();
   });
   document.getElementById('btnLang')?.addEventListener('click', () => {
     G.lang = G.lang === 'en' ? 'zh' : 'en';
@@ -937,12 +1035,30 @@
     }
   });
 
-  // Fixed-timestep 60fps loop
+  // Fixed-timestep 60fps loop with smooth mobile movement startup delay
   let lastTs = 0, acc = 0;
   function frame(ts) {
     if (!lastTs) lastTs = ts;
     acc += Math.min(50, ts - lastTs); lastTs = ts;
-    while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+    while (acc >= 1000 / 60) {
+      const anyTouch = touchState.up || touchState.down || touchState.left || touchState.right;
+      const anyKb = kbState.up || kbState.down || kbState.left || kbState.right;
+      if (anyTouch) {
+        touchHoldFrames++;
+        // Startup delay ramp on touch: gentle turn/micro-step on quick tap, smooth ramp to 1:1 speed
+        G.keys.moveScale = touchHoldFrames <= 4 ? 0.18 : (touchHoldFrames <= 9 ? 0.58 : 1.0);
+      } else if (anyKb) {
+        touchHoldFrames = 0;
+        kbHoldFrames++;
+        G.keys.moveScale = kbHoldFrames <= 1 ? 0.65 : 1.0;
+      } else {
+        touchHoldFrames = 0;
+        kbHoldFrames = 0;
+        G.keys.moveScale = 1.0;
+      }
+      update();
+      acc -= 1000 / 60;
+    }
     render();
     requestAnimationFrame(frame);
   }

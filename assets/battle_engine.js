@@ -20,6 +20,7 @@
   }
   registerSprites(window.UT_SPRITES);
   registerSprites(window.UT_ASRIEL_SPRITES);
+  registerSprites(window.UT_UNDYNE_SPRITES);
 
   function drawSpr(ctx, name, frame, x, y, scX = 1, scY = scX, useOrigin = false) {
     const s = SPR[name];
@@ -73,29 +74,156 @@
   const COLOR_MAP = { Y: '#ffff00', R: '#ff4040', B: '#38b8ff', G: '#40ff40', O: '#ffa028', W: '#ffffff' };
   function stripCodes(str) { return (str || '').replace(/\\[YRBOGW]/g, ''); }
 
-  function drawRichText(ctx, rawText, x, y, maxChars = 9999, opts = {}) {
-    const size = opts.size || 26;
-    const lineH = opts.lineH || Math.round(size * 1.28);
-    const baseCol = opts.color || '#ffffff';
-    const isCJK = /[^\x00-\x7F]/.test(rawText);
-    ctx.font = isCJK
-      ? `bold ${Math.round(size * 0.84)}px "Determination Mono", "Noto Sans Mono CJK TC", "PingFang TC", "Microsoft JhengHei", monospace`
-      : `${size}px "Determination Mono", monospace`;
-    ctx.textBaseline = 'top';
+  // Character-specific Undertale font stacks (both English pixel fonts & distinct CJK pairings!)
+  function getCharFontSpec(who, size, isCJK) {
+    const px = isCJK ? Math.round(size * 0.84) : Math.round(size);
+    if (who === 'sans') {
+      return isCJK
+        ? `600 ${px}px "UT Comic Sans", "Comic Sans MS", "PingFang TC", "Microsoft JhengHei UI", cursive, sans-serif`
+        : `${Math.round(size * 0.96)}px "UT Comic Sans", "Comic Sans MS", cursive, sans-serif`;
+    }
+    if (who === 'papyrus') {
+      return isCJK
+        ? `bold ${Math.round(size * 0.88)}px "UT Papyrus", "Papyrus", "Kaiti TC", "DFKai-SB", "STKaiti", serif`
+        : `${Math.round(size * 1.02)}px "UT Papyrus", "Papyrus", fantasy, serif`;
+    }
+    if (who === 'toriel' || who === 'asgore') {
+      return isCJK
+        ? `600 ${px}px "Determination Sans", "Songti TC", "PMingLiU", "Noto Serif CJK TC", serif`
+        : `${px}px "Determination Sans", "Georgia", serif`;
+    }
+    if (who === 'undyne' || who === 'undying') {
+      return isCJK
+        ? `900 ${px}px "Determination Sans", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif`
+        : `bold ${px}px "Determination Sans", "Determination Mono", sans-serif`;
+    }
+    if (who === 'flowey' || who === 'asrielboss') {
+      return isCJK
+        ? `bold ${px}px "Determination Mono", "Noto Sans Mono CJK TC", monospace`
+        : `${px}px "Determination Mono", monospace`;
+    }
+    if (who === 'alphys') {
+      return isCJK
+        ? `500 ${Math.round(size * 0.82)}px "Determination Mono", "PingFang TC", monospace`
+        : `${Math.round(size * 0.94)}px "Determination Mono", monospace`;
+    }
+    return isCJK
+      ? `bold ${px}px "Determination Mono", "Noto Sans Mono CJK TC", "PingFang TC", "Microsoft JhengHei", monospace`
+      : `${px}px "Determination Mono", monospace`;
+  }
 
-    let col = baseCol, cx = x, cy = y, count = 0;
-    for (let i = 0; i < rawText.length && count < maxChars; i++) {
+  // Tokenize rich text into colored characters, then wrap to maxWidth & auto-shrink to fit maxHeight!
+  function layoutRichLines(ctx, rawText, fontFn, size, maxW) {
+    ctx.font = fontFn(size);
+    const lines = [[]];
+    let col = null;
+    let curW = 0;
+
+    // Split by explicit newlines first, then wrap words/CJK chars cleanly
+    let i = 0;
+    const tokens = [];
+    while (i < rawText.length) {
       if (rawText[i] === '\\' && COLOR_MAP[rawText[i + 1]]) {
         col = COLOR_MAP[rawText[i + 1]];
-        i++;
+        i += 2;
         continue;
       }
       const ch = rawText[i];
-      if (ch === '\n') { cx = x; cy += lineH; count++; continue; }
-      ctx.fillStyle = col;
-      ctx.fillText(ch, Math.round(cx), Math.round(cy));
-      cx += ctx.measureText(ch).width;
-      count++;
+      if (ch === '\n') { tokens.push({ nl: true }); i++; continue; }
+      // Group ASCII word (non-space, non-CJK) so words wrap cleanly without mid-word breaks
+      if (ch !== ' ' && ch.charCodeAt(0) < 0x2E80) {
+        let word = [];
+        while (i < rawText.length) {
+          if (rawText[i] === '\\' && COLOR_MAP[rawText[i + 1]]) { col = COLOR_MAP[rawText[i + 1]]; i += 2; continue; }
+          const c2 = rawText[i];
+          if (c2 === '\n' || c2 === ' ' || c2.charCodeAt(0) >= 0x2E80) break;
+          word.push({ ch: c2, col });
+          i++;
+        }
+        tokens.push({ word });
+      } else {
+        tokens.push({ word: [{ ch, col }] });
+        i++;
+      }
+    }
+
+    for (const tk of tokens) {
+      if (tk.nl) {
+        lines.push([]);
+        curW = 0;
+        continue;
+      }
+      let wPx = 0;
+      for (const g of tk.word) {
+        g.w = ctx.measureText(g.ch).width;
+        wPx += g.w;
+      }
+      if (curW > 0 && curW + wPx > maxW) {
+        // Trim leading space on wrapped line
+        if (tk.word.length === 1 && tk.word[0].ch === ' ') continue;
+        lines.push([]);
+        curW = 0;
+      }
+      // If a single long token exceeds maxW, split character-by-character
+      if (wPx > maxW) {
+        for (const g of tk.word) {
+          if (curW > 0 && curW + g.w > maxW) { lines.push([]); curW = 0; }
+          lines[lines.length - 1].push(g);
+          curW += g.w;
+        }
+      } else {
+        for (const g of tk.word) lines[lines.length - 1].push(g);
+        curW += wPx;
+      }
+    }
+    return lines;
+  }
+
+  function drawRichText(ctx, rawText, x, y, maxChars = 9999, opts = {}) {
+    if (!rawText) return;
+    let text = String(rawText);
+    const who = opts.who || '';
+    const isCJK = /[^\x00-\x7F]/.test(stripCodes(text).replace(/[∞★♥]/g, ''));
+    // Canonical Sans lowercase style in English!
+    if (who === 'sans' && !isCJK && !opts.keepCase) text = text.toLowerCase();
+
+    let size = opts.size || 26;
+    const lineRatio = opts.lineH ? (opts.lineH / size) : 1.28;
+    const baseCol = opts.color || '#ffffff';
+    // Never allow text to exceed the 640px canvas width (or explicit box maxWidth)!
+    const maxW = opts.maxWidth || Math.max(64, 626 - x);
+    const maxH = opts.maxHeight || Math.max(36, 474 - y);
+    const minSize = opts.minSize || 13;
+    const fontFn = (sz) => getCharFontSpec(who, sz, isCJK);
+
+    ctx.textBaseline = 'top';
+    let lines = layoutRichLines(ctx, text, fontFn, size, maxW);
+    let lineH = Math.round(size * lineRatio);
+
+    // Auto-scale font size down if wrapped lines would exceed maxHeight!
+    while (size > minSize && lines.length * lineH > maxH + 4) {
+      size -= 1.5;
+      lineH = Math.round(size * lineRatio);
+      lines = layoutRichLines(ctx, text, fontFn, size, maxW);
+    }
+
+    ctx.font = fontFn(size);
+    const jitter = (who === 'flowey' && (opts.expr === 'evil' || opts.expr === 'pissed')) || opts.jitter;
+    let count = 0;
+    for (let li = 0; li < lines.length && count < maxChars; li++) {
+      let cx = x;
+      const cy = y + li * lineH;
+      const ln = lines[li];
+      for (let gi = 0; gi < ln.length && count < maxChars; gi++) {
+        const g = ln[gi];
+        ctx.fillStyle = g.col || baseCol;
+        const jx = jitter ? (Math.random() - 0.5) * 1.4 : 0;
+        const jy = jitter ? (Math.random() - 0.5) * 1.4 : 0;
+        ctx.fillText(g.ch, Math.round(cx + jx), Math.round(cy + jy));
+        cx += g.w;
+        count++;
+      }
+      count++; // account for line break in typewriter budget
     }
   }
 
@@ -131,6 +259,7 @@
       if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
       this._decodeDict(window.UT_SFX_B64);
       this._decodeDict(window.UT_ASRIEL_SFX);
+      this._decodeDict(window.UT_UNDYNE_SFX);
       if (this.bgmAudio && !this.muted && this.bgmAudio.paused && this.bgmName) {
         this.bgmAudio.play().catch(() => {});
       }
@@ -162,6 +291,7 @@
       else if (who === 'papyrus') this.sfx('txtpap', 0.52, 0.98 + Math.random() * 0.06);
       else if (who === 'asriel') this.sfx('txtasr', 0.54, 0.97 + Math.random() * 0.06);
       else if (who === 'asrielboss') this.sfx('txtasr2', 0.56, 0.96 + Math.random() * 0.07);
+      else if (who === 'undying') this.sfx('txtund_h', 0.54, 0.96 + Math.random() * 0.07);
       else if (who === 'undyne') this.sfx('txtund', 0.52, 0.97 + Math.random() * 0.05);
       else if (who === 'alphys') this.sfx('txtal', 0.5, 0.97 + Math.random() * 0.05);
       else if (who === 'asgore') this.sfx('txtasg', 0.54, 0.97 + Math.random() * 0.05);
@@ -277,7 +407,9 @@
         if (this.phase === 'wave' || this.phase === 'ring') {
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-          const spd = keys.cancel ? 2.1 : 3.8;
+          if (dx && dy) { dx *= 0.75; dy *= 0.75; }
+          const ramp = keys.moveScale != null ? keys.moveScale : 1;
+          const spd = (keys.cancel ? 1.15 : 2.25) * ramp;
           this.soulX = Math.max(this.box.x + 12, Math.min(this.box.x + this.box.w - 12, this.soulX + dx * spd));
           this.soulY = Math.max(this.box.y + 12, Math.min(this.box.y + this.box.h - 12, this.soulY + dy * spd));
         }
@@ -308,6 +440,10 @@
               p.x += p.vx; p.y += p.vy;
               if (p.x > -30 && p.x < 670 && p.y > -30 && p.y < 510) alive++;
               if (Math.hypot(p.x - this.soulX, p.y - this.soulY) < 13 && !this.invuln) {
+                if (G.noHitShield || window.UT_NO_HIT_SHIELD) {
+                  this.invuln = 28; G.sfx.sfx('bell', 0.45);
+                  continue;
+                }
                 G.state.hp = 1; this.shake = 22; this.invuln = 40;
                 G.sfx.stopBGM(); G.sfx.sfx('hurt', 0.75);
                 this.phase = 'evil_dlg'; this.pellets = [];
@@ -365,7 +501,7 @@
           ctx.fillStyle = '#fff';
           ctx.fillRect(386, 44, 236, 134);
           ctx.beginPath(); ctx.moveTo(386, 94); ctx.lineTo(370, 104); ctx.lineTo(386, 114); ctx.fill();
-          drawRichText(ctx, cur.text, 398, 56, this.qc, { size: 20, lineH: 25, color: '#000000' });
+          drawRichText(ctx, cur.text, 398, 54, this.qc, { size: 19, lineH: 24, color: '#000000', who: 'flowey', expr: cur.expr, maxWidth: 214, maxHeight: 116 });
         }
 
         ctx.fillStyle = '#000'; ctx.fillRect(this.box.x, this.box.y, this.box.w, this.box.h);
@@ -373,6 +509,10 @@
 
         if (!this.invuln || Math.floor(this.invuln / 4) % 2 === 0) {
           drawSpr(ctx, 'spr_heart', 0, this.soulX - 8, this.soulY - 8, 1, 1);
+        }
+        if (G.noHitShield || window.UT_NO_HIT_SHIELD) {
+          ctx.save(); ctx.strokeStyle = 'rgba(80,235,255,0.85)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(this.soulX, this.soulY, 14, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
         }
         const pel = SPR['pellet'];
         for (const p of this.pellets) {
@@ -392,10 +532,13 @@
   function drawBattleHUD(ctx, st, y = 400) {
     drawRichText(ctx, `${st.name}   LV ${st.lv}`, 32, y, 999, { size: 24 });
     drawRichText(ctx, 'HP', 244, y + 2, 999, { size: 20, color: '#ffff00' });
-    const barW = Math.max(44, Math.min(200, st.maxHp * 2.2));
+    const barW = Math.max(44, Math.min(180, st.maxHp * 2.1));
     ctx.fillStyle = '#c00000'; ctx.fillRect(280, y + 2, barW, 21);
     ctx.fillStyle = '#ffff00'; ctx.fillRect(280, y + 2, Math.max(0, Math.round(barW * (Math.min(st.hp, st.maxHp) / st.maxHp))), 21);
-    drawRichText(ctx, `${st.hp} / ${st.maxHp}`, 292 + barW, y, 999, { size: 24 });
+    drawRichText(ctx, `${st.hp} / ${st.maxHp}`, 290 + barW, y, 999, { size: 23 });
+    if (window.UT_NO_HIT_SHIELD) {
+      drawRichText(ctx, 'SHIELD', 536, y + 2, 999, { size: 18, color: '#58e8ff' });
+    }
   }
 
   // Undertale Canonical EXP -> LOVE Table
@@ -1113,7 +1256,8 @@
           this.timer++;
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-          const spd = keys.cancel ? 2.1 : 3.9;
+          const ramp = keys.moveScale != null ? keys.moveScale : 1;
+          const spd = (keys.cancel ? 1.15 : 2.25) * ramp;
           const oldX = this.soulX, oldY = this.soulY;
 
           if (this.blueSoul) {
@@ -1122,19 +1266,20 @@
             const floorY = this.box.y + this.box.h - 10;
             const onFloor = this.soulY >= floorY - 1;
             if (keys.up && onFloor) {
-              this.soulVy = -6.9;
-            } else if (!keys.up && this.soulVy < -2.2) {
-              this.soulVy = -2.2;
+              this.soulVy = -6.7;
+            } else if (!keys.up && this.soulVy < -2.1) {
+              this.soulVy = -2.1;
             }
-            this.soulVy += 0.34;
+            this.soulVy += 0.32;
             this.soulY = Math.max(this.box.y + 12, Math.min(floorY, this.soulY + this.soulVy));
             if (this.soulY >= floorY) this.soulVy = 0;
           } else {
-            this.soulX = Math.max(this.box.x + 12, Math.min(this.box.x + this.box.w - 12, this.soulX + dx * spd));
-            this.soulY = Math.max(this.box.y + 12, Math.min(this.box.y + this.box.h - 12, this.soulY + dy * spd));
+            const diag = (dx && dy) ? 0.75 : 1;
+            this.soulX = Math.max(this.box.x + 12, Math.min(this.box.x + this.box.w - 12, this.soulX + dx * spd * diag));
+            this.soulY = Math.max(this.box.y + 12, Math.min(this.box.y + this.box.h - 12, this.soulY + dy * spd * diag));
           }
 
-          this.soulMoving = Math.hypot(this.soulX - oldX, this.soulY - oldY) > 0.15;
+          this.soulMoving = Math.hypot(this.soulX - oldX, this.soulY - oldY) > 0.12;
 
           this.spawnEnemyPattern();
 
@@ -1182,13 +1327,17 @@
               if (b.orange && this.soulMoving) continue;
 
               if (!this.invuln) {
+                if (G.noHitShield || window.UT_NO_HIT_SHIELD) {
+                  this.invuln = 28;
+                  G.sfx.sfx('bell', 0.45);
+                  continue;
+                }
                 const armDef = (window.UT_ITEMS[G.state.armor]?.def || 0) + (G.state.def || 0);
                 const hitDmg = Math.max(1, this.m.atk - Math.floor(armDef * 0.6));
                 G.state.hp = Math.max(0, G.state.hp - hitDmg);
                 this.invuln = 36; this.shake = 12;
                 G.sfx.sfx('hurt', 0.8);
                 if (G.state.hp <= 0) {
-                  // In Undertale, losing to Papyrus sends you to his Capture Shed (Room 75) or Game Over; let's keep standard Game Over / Retry!
                   G.sfx.stopBGM();
                   this.menu = 'gameover'; this.goTick = 0; this.shards = [];
                   return;
@@ -1646,12 +1795,13 @@
           }
         }
 
-        // Monster Speech Bubble
+        // Monster Speech Bubble (with authentic character-specific font & auto-fit!)
         if (this.bubTimer > 0 && this.bubble) {
           ctx.fillStyle = '#fff';
           ctx.fillRect(402, 44, 226, 126);
           ctx.beginPath(); ctx.moveTo(402, 92); ctx.lineTo(384, 102); ctx.lineTo(402, 112); ctx.fill();
-          drawRichText(ctx, this.bubble, 414, 54, 999, { size: 19, lineH: 24, color: '#000' });
+          const bubWho = this.id === 'papyrus' ? 'papyrus' : (this.id === 'toriel' ? 'toriel' : 'narrator');
+          drawRichText(ctx, this.bubble, 412, 52, 999, { size: 19, lineH: 24, color: '#000', who: bubWho, maxWidth: 206, maxHeight: 110 });
         }
 
         // Battle Box
@@ -1669,6 +1819,10 @@
           if (!this.invuln || Math.floor(this.invuln / 4) % 2 === 0) {
             const heartSpr = (this.blueSoul && SPR['spr_heartblue']) ? 'spr_heartblue' : 'spr_heart';
             drawSpr(ctx, heartSpr, 0, this.soulX - 8, this.soulY - 8, 1, 1);
+          }
+          if (G.noHitShield || window.UT_NO_HIT_SHIELD) {
+            ctx.save(); ctx.strokeStyle = 'rgba(80,235,255,0.85)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(this.soulX, this.soulY, 14, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
           }
           for (const b of this.bullets) {
             if (b.fire) {
@@ -1734,7 +1888,7 @@
         } else if (this.menu === 'act') {
           this.m.acts.forEach((a, i) => {
             const ax = (i % 2 === 0) ? 96 : 356, ay = 272 + Math.floor(i / 2) * 40;
-            drawRichText(ctx, `* ${zh ? a.zh : a.en}`, ax, ay);
+            drawRichText(ctx, `* ${zh ? a.zh : a.en}`, ax, ay, 999, { maxWidth: 235 });
             if (this.sub === i) drawSpr(ctx, 'spr_heart', 0, ax - 32, ay + 6, 1, 1);
           });
         } else if (this.menu === 'item') {
@@ -1743,7 +1897,7 @@
             const realIdx = pageStart + idx;
             const it = window.UT_ITEMS[k];
             const ax = (idx % 2 === 0) ? 96 : 356, ay = 272 + Math.floor(idx / 2) * 40;
-            drawRichText(ctx, `* ${zh ? it.zh : it.short}`, ax, ay);
+            drawRichText(ctx, `* ${zh ? it.zh : it.short}`, ax, ay, 999, { maxWidth: 235 });
             if (this.sub === realIdx) drawSpr(ctx, 'spr_heart', 0, ax - 32, ay + 6, 1, 1);
           });
         } else if (this.menu === 'mercy') {
@@ -1753,11 +1907,11 @@
           drawSpr(ctx, 'spr_heart', 0, 64, 278 + this.sub * 40, 1, 1);
         } else if (this.menu === 'flee') {
           drawSpr(ctx, 'spr_heartgtfo', Math.floor(time / 4), this.fleeX, 286, 1.5, 1.5);
-          drawRichText(ctx, this.msg, 110, 272);
+          drawRichText(ctx, this.msg, 110, 272, 999, { maxWidth: 480, maxHeight: 110 });
         } else if (this.menu === 'boss_death_dlg') {
           drawRichText(ctx, zh ? '* (按 [Z] 繼續……)' : '* (Press [Z] to continue...)', 52, 268, 999, { color: '#888888' });
         } else {
-          drawRichText(ctx, this.msg, 52, 268, Math.floor(this.mc));
+          drawRichText(ctx, this.msg, 52, 266, Math.floor(this.mc), { maxWidth: 536, maxHeight: 114 });
         }
 
         drawBattleHUD(ctx, G.state, 398);

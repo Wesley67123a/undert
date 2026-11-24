@@ -266,21 +266,22 @@
 
       // Sans & Papyrus Overworld presence in Snowdin
       if (id === 45 && !fl.r45_done) {
-        G.sans.vis = true; G.sans.x = 1690; G.sans.y = 115; G.sans.dir = 'left';
+        // Sans sneaks up from behind in the dark forest at the bridge gate!
+        G.sans.vis = false;
       } else if (id === 49 && !fl.r49_done) {
         G.sans.vis = true; G.sans.x = 310; G.sans.y = 65; G.sans.dir = 'down';
         G.pap.vis = true;  G.pap.x = 345;  G.pap.y = 55;  G.pap.dir = 'left';
       } else if (id === 50 && !fl.r50_done) {
-        G.sans.vis = true; G.sans.x = 460; G.sans.y = 110; G.sans.dir = 'left';
-        G.pap.vis = true;  G.pap.x = 500;  G.pap.y = 100; G.pap.dir = 'left';
+        G.sans.vis = true; G.sans.x = 455; G.sans.y = 138; G.sans.dir = 'left';
+        G.pap.vis = true;  G.pap.x = 495;  G.pap.y = 130; G.pap.dir = 'left';
       } else if (id === 60 && !fl.r60_done) {
         G.sans.vis = true; G.sans.x = 220; G.sans.y = 60; G.sans.dir = 'down';
         G.pap.vis = true;  G.pap.x = 250;  G.pap.y = 95; G.pap.dir = 'left';
       } else if (id === 67 && !fl.r67_done) {
-        G.sans.vis = true; G.sans.x = 830; G.sans.y = 115; G.sans.dir = 'left';
-        G.pap.vis = true;  G.pap.x = 865;  G.pap.y = 105; G.pap.dir = 'left';
+        G.sans.vis = true; G.sans.x = 830; G.sans.y = 122; G.sans.dir = 'left';
+        G.pap.vis = true;  G.pap.x = 865;  G.pap.y = 114; G.pap.dir = 'left';
       } else if (id === 81 && !fl.papyrusDone) {
-        G.pap.vis = true;  G.pap.x = 480;  G.pap.y = 105; G.pap.dir = 'left';
+        G.pap.vis = true;  G.pap.x = 480;  G.pap.y = 122; G.pap.dir = 'left';
       }
 
       // Ensure Frisk isn't spawned inside a solid wall
@@ -500,6 +501,10 @@
         return true;
       }
       if (dtype === 'EXIT') {
+        if (G.isGenocideSnowdin() && G.startUndyne) {
+          G.startFade(() => G.startUndyne('intro'));
+          return true;
+        }
         G.startFade(() => G.enterRoom(999));
         return true;
       }
@@ -784,25 +789,36 @@
       // =====================================================================
       // SNOWDIN CUTSCENES & PUZZLES (Rooms 45..81)
       // =====================================================================
-      // Room 45: Branch snap + Sans Handshake + Papyrus & Convenient Lamp!
-      if (id === 45 && !fl.r45_branch && f.x > 580) {
+      // Room 45: Heavy branch snap + Sans Handshake at Bridge Gate + Papyrus & Convenient Lamp!
+      if (id === 45 && !fl.r45_branch && f.x > 1280) {
         fl.r45_branch = true;
-        sfx.sfx('damage', 0.75);
+        sfx.sfx('break2', 0.75);
       }
-      if (id === 45 && !fl.r45_done && f.x > 1630) {
+      if (id === 45 && !fl.r45_done && f.x > 2152) {
         fl.r45_done = true;
         f.moving = false;
         sfx.stopBGM();
+        // Sans appears right behind Frisk on the open snowy path past the foreground pine trunk!
+        G.sans.vis = true;
+        G.sans.x = Math.max(2118, f.x - 30);
+        G.sans.y = Math.max(162, Math.min(186, f.y - 2));
+        G.sans.dir = 'right';
+        f.dir = 'left';
         const k = G.isGenocideRuins() ? 'sansBridgeGeno' : 'sansBridgeIntro';
         G.sayKey(k, () => {
+          sfx.sfx('noise', 0.65);
           sfx.playBGM('sans');
-          // Move Frisk behind the convenient lamp (x=1960, y=118) & bring Papyrus in
-          f.x = 2224; f.y = 114; G.sans.x = 2160; G.sans.y = 115;
-          G.pap.vis = true; G.pap.x = 2285; G.pap.y = 105; G.pap.dir = 'left';
+          // Hide Frisk cleanly behind obj_convenientlamp (2520, 125) & bring Papyrus into the clearing!
+          f.x = 2521; f.y = 117; f.dir = 'down';
+          G.sans.vis = true; G.sans.x = 2472; G.sans.y = 148; G.sans.dir = 'right';
+          G.pap.vis = true;  G.pap.x = 2568;  G.pap.y = 138; G.pap.dir = 'left';
           G.updateCamera(true);
           sfx.playBGM('nyeh');
           G.sayKey('papyrusLampScene', () => {
             G.pap.vis = false; G.sans.vis = false;
+            // Step Frisk cleanly out from behind the lamp onto the open snow path!
+            f.x = 2520; f.y = 168; f.dir = 'right';
+            G.updateCamera(true);
             sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'snowy');
           });
         });

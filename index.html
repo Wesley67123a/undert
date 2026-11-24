@@ -125,8 +125,11 @@
     }
 
     .ut-btn.danger { background:#3a0000; border-color:#ff2a2a; color:#ff5050; }
-    .ut-btn.rainbow { background:#110824; border-color:#68d0ff; color:#bfefff; }
+    .ut-btn.rainbow { background:#110824; border-color:#68d0ff; color:#bfefff; text-decoration:none; }
     .ut-btn.rainbow:hover { border-color:#ff7ce5; color:#ffff80; }
+    .ut-btn.hero { background:#062016; border-color:#38ff7a; color:#7cffaa; text-decoration:none; }
+    .ut-btn.hero:hover { border-color:#48e8ff; color:#ffff80; }
+    .ut-btn.shield-on { background:#062b36; border-color:#48e8ff; color:#48e8ff; }
     .ut-btn.accent {
       border-color: var(--btn-orange);
       color: var(--btn-orange);
@@ -401,9 +404,11 @@
     @media (max-width: 640px) {
       .app-shell { padding: 6px 6px env(safe-area-inset-bottom, 8px); gap: 6px; }
       .topbar { padding: 6px 8px; }
-      .brand-text h1 { font-size: 14px; }
+      .brand-text h1 { font-size: 13.5px; }
       .desktop-legend { display: none; }
-      .ut-select { max-width: 142px; }
+      .ut-btn, .ut-select { font-size: 11px; padding: 4px 6px; }
+      .ut-select { max-width: 132px; }
+      .hint-bar { font-size: 12px; overflow-wrap: anywhere; }
     }
 
     /* Landscape Mobile & Fullscreen Immersive Mode */
@@ -440,13 +445,16 @@
         </div>
       </div>
       <div class="toolbar">
-        <select id="roomJumpSel" class="ut-select" aria-label="Jump to Ruins Scene">
+        <select id="roomJumpSel" class="ut-select" aria-label="Jump to Scene">
           <option value="">Jump Scene ▾</option>
         </select>
-        <button id="btnAsriel" class="ut-btn rainbow" type="button" title="Asriel Dreemurr — 7 SOULs Boss Fight Simulator">★ 7 SOULs Asriel</button>
+        <button id="btnUndyne" class="ut-btn hero" type="button" title="Undyne the Undying — Battle Against a True Hero">💚 Undying</button>
+        <a class="ut-btn hero" href="undyne.html" title="Standalone Undyne the Undying Simulator (Waves / Practice)">⚔ Sim</a>
+        <button id="btnAsriel" class="ut-btn rainbow" type="button" title="Asriel Dreemurr — 7 SOULs Boss Fight Simulator">★ Asriel</button>
         <a class="ut-btn rainbow" href="asriel.html" title="Standalone Asriel Boss Simulator (Normal / Practice / Single Attacks)">🌈 Sim</a>
+        <button id="btnShield" class="ut-btn" type="button" title="Toggle No-Hit Invincibility Shield in Battles">🛡 Shield OFF</button>
         <button id="btnGeno" class="ut-btn" type="button" title="Toggle Genocide Route (or grind kills naturally)">☠ Genocide 0/20</button>
-        <button id="btnWalkthrough" class="ut-btn accent" type="button">📖 Walkthrough</button>
+        <button id="btnWalkthrough" class="ut-btn accent" type="button">📖 Guide</button>
         <button id="btnLang" class="ut-btn" type="button">EN / 繁中</button>
         <button id="btnMute" class="ut-btn" type="button">🔊 Audio</button>
         <button id="btnFullscreen" class="ut-btn" type="button" title="Toggle Immersive View">⛶ Full</button>
@@ -500,9 +508,9 @@
     </section>
   </main>
 
-  <aside id="wtDrawer" class="wt-drawer" aria-label="Full Ruins Walkthrough">
+  <aside id="wtDrawer" class="wt-drawer" aria-label="Full Walkthrough">
     <div class="wt-hdr">
-      <h2>♥ FULL RUINS WALKTHROUGH (1–43)</h2>
+      <h2>♥ FULL RUINS &amp; SNOWDIN GUIDE</h2>
       <button id="btnCloseWt" class="ut-btn" type="button">✕ Close</button>
     </div>
     <div id="wtList" class="wt-body"></div>
@@ -510,10 +518,12 @@
 
   <script src="assets/core_assets.js"></script>
   <script src="assets/asriel_assets.js"></script>
+  <script src="assets/undyne_assets.js"></script>
   <script src="assets/rooms_data.js"></script>
   <script src="assets/dialogue.js"></script>
   <script src="assets/battle_engine.js"></script>
   <script src="assets/asriel_engine.js"></script>
+  <script src="assets/undyne_engine.js"></script>
   <script src="assets/overworld.js"></script>
   <script src="assets/app.js"></script>
 </body>

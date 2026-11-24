@@ -44,6 +44,7 @@
     }
     .ut-btn:hover, .ut-select:hover { border-color: var(--gold); color: var(--gold); }
     .ut-btn.rainbow { border-color: #4ab8ff; color: #9ee6ff; }
+    .ut-btn.shield-on { background: #062b36; border-color: #48e8ff; color: #48e8ff; }
     .stage-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
     .canvas-frame {
       width: 100%; max-width: 720px; background: #000; border: 3px solid #fff;
@@ -52,7 +53,7 @@
     canvas#game { display: block; width: 100%; height: auto; aspect-ratio: 4/3; image-rendering: pixelated; cursor: pointer; touch-action: none; }
     .hint-bar {
       width: 100%; max-width: 720px; border: 2px solid rgba(255,255,255,0.2); background: var(--panel);
-      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.45;
+      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.45; overflow-wrap: anywhere;
     }
     .controls-deck {
       width: 100%; max-width: 720px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 8px 2px;
@@ -77,7 +78,10 @@
     .act-btn.z-btn .k { color: var(--gold); }
     .act-btn.x-btn { width: 54px; height: 54px; }
     .act-btn.active, .act-btn:active { background: rgba(255,255,0,0.2); transform: scale(0.95); }
-    @media (max-width: 720px) { .desktop-legend { display: none; } }
+    @media (max-width: 720px) {
+      .desktop-legend { display: none; }
+      .ut-btn, .ut-select { font-size: 11px; padding: 4px 7px; }
+    }
   </style>
 </head>
 <body>
@@ -102,8 +106,10 @@
           <option value="finale">5. Finale: His Theme</option>
           <option value="single_menu">🎯 Single Attack Practice</option>
         </select>
+        <button id="btnShield" class="ut-btn" type="button">🛡 Shield OFF</button>
         <button id="btnLang" class="ut-btn" type="button">EN / 繁中</button>
         <button id="btnMute" class="ut-btn" type="button">🔊 Audio</button>
+        <a class="ut-btn" href="undyne.html">💚 Undying</a>
         <a class="ut-btn rainbow" href="index.html">🏠 Ruins &amp; Snowdin</a>
       </div>
     </header>
@@ -147,9 +153,16 @@
       const G = {
         lang: 'en',
         sfx,
+        noHitShield: false,
         state: { name: 'FRISK', lv: 1, hp: 20, maxHp: 20 },
-        keys: { up: false, down: false, left: false, right: false, cancel: false },
+        keys: { up: false, down: false, left: false, right: false, cancel: false, moveScale: 1 },
         onUI: () => {
+          const on = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
+          const sb = document.getElementById('btnShield');
+          if (sb) {
+            sb.classList.toggle('shield-on', on);
+            sb.textContent = on ? (G.lang === 'zh' ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (G.lang === 'zh' ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF');
+          }
           document.getElementById('hintBar').innerHTML = G.lang === 'zh'
             ? '★ <b>完整決戰</b>體驗完整 7 靈魂劇情、<b>階段選擇</b>直達各經典名場面、或 <b>單一招式練習</b>無限專精閃躲技巧！'
             : '★ Choose <b>NORMAL</b> for the full 7 SOULs story, <b>PHASE SELECT</b> for checkpoints, or <b>SINGLE ATTACKS</b> to master each pattern!';
@@ -162,6 +175,7 @@
       if (initMode === 'single_menu') asriel.mode = 'single_menu';
 
       const kb = {}, ts = {};
+      let touchHoldFrames = 0;
       function sync() {
         for (const k of ['up', 'down', 'left', 'right', 'cancel']) G.keys[k] = !!(kb[k] || ts[k]);
         document.querySelectorAll('[data-dpad]').forEach(el => el.classList.toggle('active', !!G.keys[el.dataset.dpad]));
@@ -180,25 +194,27 @@
       });
 
       const dpad = document.getElementById('dpadZone');
-      let lastDir = '';
+      let lastDir = '', navNextTs = 0;
       function dpadPt(cx, cy) {
         const r = dpad.getBoundingClientRect();
         const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
         ts.up = ts.down = ts.left = ts.right = false;
-        if (Math.hypot(dx, dy) > 12) {
+        if (Math.hypot(dx, dy) > 15) {
           const deg = Math.atan2(dy, dx) * 180 / Math.PI;
-          ts.right = deg > -65 && deg < 65; ts.down = deg > 25 && deg < 155;
-          ts.left = deg > 115 || deg < -115; ts.up = deg > -155 && deg < -25;
+          ts.right = deg > -62 && deg < 62; ts.down = deg > 28 && deg < 152;
+          ts.left = deg > 118 || deg < -118; ts.up = deg > -152 && deg < -28;
           const p = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-          if (p !== lastDir) { lastDir = p; asriel.onNav(p); }
+          const now = performance.now();
+          if (p !== lastDir) { lastDir = p; navNextTs = now + 225; asriel.onNav(p); }
+          else if (now >= navNextTs) { navNextTs = now + 135; asriel.onNav(p); }
         } else lastDir = '';
         sync();
       }
-      dpad.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+      dpad.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); touchHoldFrames = 0; dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
       dpad.addEventListener('touchmove', e => { e.preventDefault(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-      dpad.addEventListener('touchend', e => { e.preventDefault(); ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; sync(); }, { passive: false });
-      dpad.addEventListener('mousedown', e => { sfx.unlock(); dpadPt(e.clientX, e.clientY); });
-      window.addEventListener('mouseup', () => { ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; sync(); });
+      dpad.addEventListener('touchend', e => { e.preventDefault(); ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; touchHoldFrames = 0; sync(); }, { passive: false });
+      dpad.addEventListener('mousedown', e => { sfx.unlock(); touchHoldFrames = 0; dpadPt(e.clientX, e.clientY); });
+      window.addEventListener('mouseup', () => { ts.up = ts.down = ts.left = ts.right = false; lastDir = ''; touchHoldFrames = 0; sync(); });
 
       const bindBtn = (id, fnD, fnU) => {
         const el = document.getElementById(id);
@@ -220,14 +236,31 @@
         if (v === 'title' || v === 'phase_menu' || v === 'single_menu') { asriel.resetEntities(); asriel.mode = v; asriel.menuCursor = 0; }
         else asriel.startPhase(v);
       });
+      document.getElementById('btnShield').addEventListener('click', () => {
+        sfx.unlock();
+        window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
+        G.noHitShield = window.UT_NO_HIT_SHIELD;
+        sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
+        G.onUI();
+      });
       document.getElementById('btnLang').addEventListener('click', () => { G.lang = G.lang === 'en' ? 'zh' : 'en'; G.onUI(); });
       document.getElementById('btnMute').addEventListener('click', e => { sfx.unlock(); sfx.setMuted(!sfx.muted); e.currentTarget.textContent = sfx.muted ? '🔇 Muted' : '🔊 Audio'; });
 
       let last = 0, acc = 0;
-      function loop(ts) {
-        if (!last) last = ts;
-        acc += Math.min(50, ts - last); last = ts;
-        while (acc >= 1000 / 60) { asriel.update(G.keys); acc -= 1000 / 60; }
+      function loop(now) {
+        if (!last) last = now;
+        acc += Math.min(50, now - last); last = now;
+        while (acc >= 1000 / 60) {
+          if (ts.up || ts.down || ts.left || ts.right) {
+            touchHoldFrames++;
+            G.keys.moveScale = touchHoldFrames <= 3 ? 0.25 : (touchHoldFrames <= 7 ? 0.60 : 1.0);
+          } else {
+            touchHoldFrames = 0;
+            G.keys.moveScale = 1.0;
+          }
+          asriel.update(G.keys);
+          acc -= 1000 / 60;
+        }
         ctx.imageSmoothingEnabled = false;
         asriel.render(ctx);
         requestAnimationFrame(loop);

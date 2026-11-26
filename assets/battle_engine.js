@@ -301,32 +301,86 @@
       } else if (who === 'intro') this.sfx('txt2', 0.4, 0.92);
       else this.sfx('txt1', 0.42, 0.98 + Math.random() * 0.05);
     }
-    playBGM(name, loop = true, vol = 0.5) {
+    preloadBGM(name) {
+      if (!name) return Promise.resolve(null);
+      this.bgmBlobUrls = this.bgmBlobUrls || {};
+      this.bgmBlobPromises = this.bgmBlobPromises || {};
+      if (this.bgmBlobUrls[name]) return Promise.resolve(this.bgmBlobUrls[name]);
+      if (!this.bgmBlobPromises[name]) {
+        this.bgmBlobPromises[name] = fetch(`assets/bgm/${name}.mp3`)
+          .then(r => r.ok ? r.blob() : null)
+          .then(blob => {
+            if (!blob) return null;
+            const u = URL.createObjectURL(blob);
+            this.bgmBlobUrls[name] = u;
+            return u;
+          })
+          .catch(() => null);
+      }
+      return this.bgmBlobPromises[name];
+    }
+    playBGM(name, loop = true, vol = 0.5, startAt = 0) {
       this.bgmVol = vol;
-      if (this.bgmName === name) {
+      if (this.bgmName === name && (!startAt || (this.bgmAudio && this.bgmAudio.currentTime >= startAt - 0.5))) {
         if (this.bgmAudio) this.bgmAudio.volume = this.muted ? 0 : vol;
         return;
       }
       this.stopBGM();
+      const token = (this._bgmToken = (this._bgmToken || 0) + 1);
       this.bgmName = name;
       if (!name) return;
-      let a = this.bgmCache[name];
-      if (!a) {
-        a = new Audio(`assets/bgm/${name}.mp3`);
-        a.preload = 'auto';
-        this.bgmCache[name] = a;
+      const attachAndPlay = (srcUrl) => {
+        if (this._bgmToken !== token) return;
+        let a = this.bgmCache[name];
+        if (!a) {
+          a = new Audio();
+          a.preload = 'auto';
+          this.bgmCache[name] = a;
+        }
+        a.loop = loop;
+        a.volume = this.muted ? 0 : vol;
+        this.bgmAudio = a;
+        const seekAndPlay = () => {
+          if (this._bgmToken !== token || this.bgmAudio !== a) return;
+          if (startAt > 0 && isFinite(startAt)) {
+            try { a.currentTime = startAt; } catch (_) {}
+          } else {
+            try { a.currentTime = 0; } catch (_) {}
+          }
+          if (!this.muted) a.play().catch(() => {});
+        };
+        if (startAt > 0) {
+          a.addEventListener('playing', () => {
+            if (this._bgmToken === token && this.bgmAudio === a && a.currentTime < startAt - 1.0) {
+              try { a.currentTime = startAt; } catch (_) {}
+            }
+          }, { once: true });
+        }
+        if (srcUrl && a.src !== srcUrl) {
+          a.src = srcUrl;
+          a.addEventListener(startAt > 0 ? 'canplay' : 'loadedmetadata', seekAndPlay, { once: true });
+          a.load();
+        } else if (a.readyState >= (startAt > 0 ? 3 : 1)) {
+          seekAndPlay();
+        } else {
+          a.addEventListener(startAt > 0 ? 'canplay' : 'loadedmetadata', seekAndPlay, { once: true });
+          if (a.readyState === 0) a.load();
+        }
+      };
+      if (startAt > 0) {
+        const cachedBlob = this.bgmBlobUrls?.[name];
+        if (cachedBlob) attachAndPlay(cachedBlob);
+        else this.preloadBGM(name).then(blobUrl => attachAndPlay(blobUrl || `assets/bgm/${name}.mp3`));
+      } else {
+        attachAndPlay(this.bgmBlobUrls?.[name] || `assets/bgm/${name}.mp3`);
       }
-      a.loop = loop;
-      a.volume = this.muted ? 0 : vol;
-      a.currentTime = 0;
-      this.bgmAudio = a;
-      if (!this.muted) a.play().catch(() => {});
     }
     setBGMVolume(vol) {
       this.bgmVol = Math.max(0, Math.min(1, vol));
       if (this.bgmAudio && !this.muted) this.bgmAudio.volume = this.bgmVol;
     }
     stopBGM() {
+      this._bgmToken = (this._bgmToken || 0) + 1;
       if (this.bgmAudio) { this.bgmAudio.pause(); this.bgmAudio.currentTime = 0; }
       this.bgmAudio = null;
       this.bgmName = null;
@@ -409,7 +463,7 @@
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
           if (dx && dy) { dx *= 0.75; dy *= 0.75; }
           const ramp = keys.moveScale != null ? keys.moveScale : 1;
-          const spd = (keys.cancel ? 1.15 : 2.25) * ramp;
+          const spd = (keys.cancel ? 1.0 : 2.0) * ramp;
           this.soulX = Math.max(this.box.x + 12, Math.min(this.box.x + this.box.w - 12, this.soulX + dx * spd));
           this.soulY = Math.max(this.box.y + 12, Math.min(this.box.y + this.box.h - 12, this.soulY + dy * spd));
         }
@@ -1258,7 +1312,7 @@
           this.timer++;
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-          const spd = keys.cancel ? 1.20 : 2.30;
+          const spd = keys.cancel ? 1.0 : 2.0;
           const oldX = this.soulX, oldY = this.soulY;
 
           if (this.blueSoul) {

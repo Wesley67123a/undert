@@ -303,16 +303,17 @@
       document.getElementById('btnMute').addEventListener('click', e => { sfx.unlock(); sfx.setMuted(!sfx.muted); e.currentTarget.textContent = sfx.muted ? '🔇 Muted' : '🔊 Audio'; });
 
       let last = 0, acc = 0;
+      const STEP30 = 1000 / 30;
       function loop(now) {
         if (!last) last = now;
-        acc += Math.min(50, now - last); last = now;
-        while (acc >= 1000 / 60) {
+        acc += Math.min(100, now - last); last = now;
+        while (acc >= STEP30) {
           G.keys.moveScale = 1.0;
-          undyne.update(G.keys);
-          acc -= 1000 / 60;
+          undyne.step30(G.keys);
+          acc -= STEP30;
         }
         ctx.imageSmoothingEnabled = false;
-        undyne.render(ctx);
+        undyne.render(ctx, acc / STEP30);
         requestAnimationFrame(loop);
       }
       requestAnimationFrame(loop);

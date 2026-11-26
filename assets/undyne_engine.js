@@ -331,7 +331,7 @@
         this.boxSway = false;
         const isGreen = kind.startsWith('g_');
         if (this.soulMode !== (isGreen ? 'green' : 'red')) {
-          this.smearAnim = 14;
+          this.smearAnim = 7;
           G.sfx.sfx('spearappear', 0.65);
         }
         this.soulMode = isGreen ? 'green' : 'red';
@@ -345,32 +345,32 @@
           if (kind === 'r_rising' || kind === 'r_swayrise') {
             this.tBox = { x: 254, y: 256, w: 132, h: 128 };
             this.boxSway = (kind === 'r_swayrise');
-            this.attackDur = 290;
+            this.attackDur = 145;
           } else if (kind === 'r_followring') {
             this.tBox = { x: 196, y: 230, w: 248, h: 162 };
-            this.attackDur = 360;
+            this.attackDur = 180;
           } else {
             this.tBox = { x: 216, y: 234, w: 208, h: 158 };
-            this.attackDur = 290;
+            this.attackDur = 145;
           }
           this.soulX = 320; this.soulY = 315;
         }
       },
 
-      // Exact Toby Fox scr_sr(utDir, type, timemod, speedmod) converted 1:1 from 30fps -> 60fps!
+      // Exact Toby Fox scr_sr(utDir, type, timemod, speedmod) @ canonical 30fps!
       // utDir: 0=left(our 3), 1=right(our 1), 2=down(our 2), 3=up(our 0), 4=random
       buildGreenScript(kind) {
         const list = [];
         const UT_TO_DIR = [3, 1, 2, 0];
-        const rating60 = 19; // canonical rating=9.5 @ 30fps -> 19 frames @ 60fps
-        let curT = 14;
+        const rating = 9.5; // canonical rating=9.5 @ 30fps
+        let curT = 7;
         const sr = (utDir, type = 0, timemod = 0, speedmod = 0) => {
           const dIdx = utDir === 4 ? Math.floor(Math.random() * 4) : utDir;
           const dir = UT_TO_DIR[dIdx % 4];
           const tm = (timemod === 0 && type !== 2) ? 1 : timemod;
           const sm = speedmod === 0 ? 1 : speedmod;
-          // Canonical speed tuned 1:1 to Undertale feel across 292px spawn radius (~45-50% slower than old version!)
-          const spd = 2.05 * sm;
+          // Preserves gentler user-tuned Green arrow speed (4.10px @ 30fps = 123px/s * sm)
+          const spd = 4.10 * sm;
           list.push({
             spawnT: Math.round(curT),
             dir,
@@ -381,7 +381,7 @@
             part: 0,
             siner: 0,
           });
-          curT += rating60 * tm;
+          curT += rating * tm;
         };
 
         if (kind === 'g_l5') {
@@ -433,19 +433,19 @@
           for (let i = 0; i < 14; i++) sr(4, i % 3 === 2 ? 1 : 0, 1.2, 1.2);
         }
         this.arrows = list;
-        this.attackDur = Math.round(curT + 190);
+        this.attackDur = Math.round(curT + 95);
       },
 
       hurt(dmg) {
         if (this.invuln > 0) return;
         if (this.isShielded()) {
-          this.invuln = 24;
+          this.invuln = 12;
           G.sfx.sfx('bell', 0.45);
           return;
         }
         this.hitsTaken++;
         G.sfx.sfx('hurt', 0.75);
-        this.invuln = 32;
+        this.invuln = 16;
         this.shake = 10;
         this.hp = Math.max(0, this.hp - dmg);
         if (this.hp <= 0) {
@@ -686,29 +686,121 @@
       },
 
       // =====================================================================
-      // 60FPS UPDATE LOOP
+      // 30FPS CANONICAL LOGIC LOOP + HIGH-FPS SMOOTH INTERPOLATION
       // =====================================================================
+      _snapCapture() {
+        const aMap = new Map();
+        for (const a of this.arrows) aMap.set(a, { dist: a.dist, orbit: a.orbit });
+        const sMap = new Map();
+        for (const s of this.spears) {
+          sMap.set(s, { x: s.x, y: s.y, drawAng: s.drawAng, ang: s.ang, rad: s.rad });
+        }
+        return {
+          soulX: this.soulX, soulY: this.soulY,
+          siner: this.siner, eyeTimer: this.eyeTimer,
+          shieldDrawAng: this.shieldDrawAng,
+          box: { ...this.box }, barX: this.barX, dmgY: this.dmgY,
+          arrows: aMap, spears: sMap,
+        };
+      },
+
+      _applyInterp(interpAlpha) {
+        const p = this._prevSnap;
+        const a = Math.max(0, Math.min(1, interpAlpha !== undefined ? interpAlpha : (this._interpAlpha !== undefined ? this._interpAlpha : 1)));
+        if (!p || a >= 0.999) return null;
+        const saved = {
+          soulX: this.soulX, soulY: this.soulY,
+          siner: this.siner, eyeTimer: this.eyeTimer,
+          shieldDrawAng: this.shieldDrawAng,
+          box: { ...this.box }, barX: this.barX, dmgY: this.dmgY,
+          arrows: [], spears: [],
+        };
+        const lj = (prev, cur, maxJ = 80) => Math.abs(cur - prev) > maxJ ? cur : prev + (cur - prev) * a;
+        const la = (prev, cur) => {
+          const d = ((cur - prev + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+          return prev + d * a;
+        };
+        this.soulX = lj(p.soulX, this.soulX, 60);
+        this.soulY = lj(p.soulY, this.soulY, 60);
+        this.siner = lj(p.siner, this.siner, 10);
+        if (Math.abs(this.eyeTimer - p.eyeTimer) < 5) this.eyeTimer = lj(p.eyeTimer, this.eyeTimer, 5);
+        this.shieldDrawAng = la(p.shieldDrawAng, this.shieldDrawAng);
+        this.box.x = lj(p.box.x, this.box.x, 120);
+        this.box.y = lj(p.box.y, this.box.y, 120);
+        this.box.w = lj(p.box.w, this.box.w, 120);
+        this.box.h = lj(p.box.h, this.box.h, 120);
+        this.barX = lj(p.barX, this.barX, 80);
+        this.dmgY = lj(p.dmgY, this.dmgY, 40);
+        for (const ar of this.arrows) {
+          const pa = p.arrows.get(ar);
+          if (!pa || Math.abs(ar.dist - pa.dist) > 40) continue;
+          saved.arrows.push([ar, ar.dist, ar.orbit]);
+          ar.dist = pa.dist + (ar.dist - pa.dist) * a;
+          ar.orbit = pa.orbit + (ar.orbit - pa.orbit) * a;
+        }
+        for (const s of this.spears) {
+          const ps = p.spears.get(s);
+          if (!ps) continue;
+          saved.spears.push([s, s.x, s.y, s.drawAng, s.ang, s.rad]);
+          if (s.x !== undefined && ps.x !== undefined && Math.hypot(s.x - ps.x, s.y - ps.y) <= 80) {
+            s.x = ps.x + (s.x - ps.x) * a;
+            s.y = ps.y + (s.y - ps.y) * a;
+          }
+          if (s.rad !== undefined && ps.rad !== undefined && Math.abs(s.rad - ps.rad) <= 30) {
+            s.rad = ps.rad + (s.rad - ps.rad) * a;
+          }
+          if (s.drawAng !== undefined && ps.drawAng !== undefined) s.drawAng = la(ps.drawAng, s.drawAng);
+          if (s.ang !== undefined && ps.ang !== undefined) s.ang = la(ps.ang, s.ang);
+        }
+        return saved;
+      },
+
+      _restoreInterp(saved) {
+        if (!saved) return;
+        this.soulX = saved.soulX; this.soulY = saved.soulY;
+        this.siner = saved.siner; this.eyeTimer = saved.eyeTimer;
+        this.shieldDrawAng = saved.shieldDrawAng;
+        this.box = saved.box; this.barX = saved.barX; this.dmgY = saved.dmgY;
+        for (const [ar, d, o] of saved.arrows) { ar.dist = d; ar.orbit = o; }
+        for (const [s, x, y, drawAng, ang, rad] of saved.spears) {
+          s.x = x; s.y = y; s.drawAng = drawAng; s.ang = ang; s.rad = rad;
+        }
+      },
+
       update(keys) {
+        // 60Hz compatibility wrapper: steps 1 canonical 30fps tick every 2 calls
+        this._sub60 = (this._sub60 || 0) + 1;
+        if (this._sub60 % 2 === 1) {
+          this.step30(keys);
+          this._interpAlpha = 0.5;
+        } else {
+          this._interpAlpha = 1.0;
+        }
+      },
+
+      step30(keys) {
+        this._prevSnap = this._snapCapture();
+        this._interpAlpha = 1.0;
         this.time++;
-        this.siner += 0.7; // 1.4 @ 30fps = 0.7 @ 60fps!
-        this.eyeTimer = (this.eyeTimer + 0.5) % 40;
-        if (this.whiteAlpha > 0) this.whiteAlpha = Math.max(0, this.whiteAlpha - 0.035);
-        if (this.shake > 0) this.shake = Math.max(0, this.shake * 0.84 - 0.1);
+        this.siner += 1.4; // exact obj_undynex_body @ 30fps!
+        this.eyeTimer = (this.eyeTimer + 1) % 40;
+        if (this.whiteAlpha > 0) this.whiteAlpha = Math.max(0, this.whiteAlpha - 0.07);
+        if (this.shake > 0) this.shake = Math.max(0, this.shake * 0.70 - 0.2);
         if (this.invuln > 0) this.invuln--;
         if (this.shieldFlash > 0) this.shieldFlash--;
         if (this.smearAnim > 0) this.smearAnim--;
         if (this.bossHurtShake > 0) this.bossHurtShake--;
 
-        // Smooth shield angle interpolation
+        // Smooth shield angle interpolation @ 30fps
         const targetAng = DIR_ANG[this.shieldDir];
         let diff = targetAng - this.shieldDrawAng;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        this.shieldDrawAng += diff * 0.48;
+        this.shieldDrawAng += diff * 0.72;
 
         if (this.mode === 'intro') {
           const cur = this.L().introSpeech[this.introIdx];
-          if (cur && this.introC < cur.text.length && this.time % 2 === 0) {
+          if (cur && this.introC < cur.text.length) {
             this.introC++;
             const ch = cur.text[this.introC - 1];
             if (ch && ch !== ' ' && ch !== '\n') G.sfx.voice(this.introIdx >= 3 ? 'undying' : 'undyne');
@@ -717,7 +809,7 @@
         }
         if (this.mode === 'death') {
           const cur = this.L().deathBubbles[this.deathIdx];
-          if (cur && this.deathC < cur.length && this.time % 2 === 0) {
+          if (cur && this.deathC < cur.length) {
             this.deathC++;
             const ch = cur[this.deathC - 1];
             if (ch && ch !== ' ' && ch !== '\n') G.sfx.voice('undying');
@@ -726,14 +818,14 @@
         }
         if (this.mode !== 'battle') return;
 
-        // Smooth arena box tween (+ swaying box on obj_boxsiner!)
+        // Smooth arena box tween (+ swaying box on obj_boxsiner @ 30fps!)
         if (this.boxSway && this.sub === 'dodge') {
-          this.tBox.x = 254 + Math.sin(this.attackTimer * 0.055) * 44;
+          this.tBox.x = 254 + Math.sin(this.attackTimer * 0.11) * 44;
         }
-        this.box.x += (this.tBox.x - this.box.x) * 0.24;
-        this.box.y += (this.tBox.y - this.box.y) * 0.24;
-        this.box.w += (this.tBox.w - this.box.w) * 0.24;
-        this.box.h += (this.tBox.h - this.box.h) * 0.24;
+        this.box.x += (this.tBox.x - this.box.x) * 0.42;
+        this.box.y += (this.tBox.y - this.box.y) * 0.42;
+        this.box.w += (this.tBox.w - this.box.w) * 0.42;
+        this.box.h += (this.tBox.h - this.box.h) * 0.42;
 
         if (this.sub === 'msg') {
           const plain = stripCodes(this.msg);
@@ -745,7 +837,7 @@
           return;
         }
         if (this.sub === 'bubble') {
-          if (this.bubC < this.bubble.length && this.time % 2 === 0) {
+          if (this.bubC < this.bubble.length) {
             this.bubC++;
             const ch = this.bubble[this.bubC - 1];
             if (ch && ch !== ' ' && ch !== '\n') G.sfx.voice('undying');
@@ -753,7 +845,7 @@
           return;
         }
         if (this.sub === 'fight_bar') {
-          this.barX += this.barDir * 7.8;
+          this.barX += this.barDir * 15.6;
           if (this.barX < 38 || this.barX > 602) {
             this.lastDmg = 0; this.isCrit = false;
             this.sub = 'slice'; this.sliceTick = 18;
@@ -761,19 +853,19 @@
           return;
         }
         if (this.sub === 'slice') {
-          this.sliceTick++;
+          this.sliceTick += 2;
           if (this.sliceTick === 16 && this.lastDmg > 0) {
             G.sfx.sfx('damage', 0.85);
             this.shake = this.isCrit ? 16 : 10;
-            this.bossHurtShake = 20;
+            this.bossHurtShake = 10;
             this.bossPrevHp = this.bossHp;
             this.bossHp = Math.max(0, this.bossHp - this.lastDmg);
-            this.dmgY = 0; this.dmgVy = -7.2;
+            this.dmgY = 0; this.dmgVy = -13.5;
           }
           if (this.sliceTick > 16) {
-            this.dmgY += this.dmgVy; this.dmgVy += 0.52;
+            this.dmgY += this.dmgVy; this.dmgVy += 1.9;
             if (this.dmgY > 0) { this.dmgY = 0; this.dmgVy *= -0.35; }
-            this.bossPrevHp += (this.bossHp - this.bossPrevHp) * 0.2;
+            this.bossPrevHp += (this.bossHp - this.bossPrevHp) * 0.36;
           }
           if (this.sliceTick > 52) {
             if (this.bossHp <= 0) {
@@ -800,7 +892,7 @@
           else if (keys.down) this.shieldDir = 2;
           else if (keys.left) this.shieldDir = 3;
 
-          // Update Green Mode directional & canonical Yellow 180° Reverse arrows (obj_blockbullet & obj_blockbullet2)
+          // Update Green Mode directional & canonical Yellow 180° Reverse arrows @ 30fps
           const rem = [];
           for (const a of this.arrows) {
             if (t < a.spawnT) { rem.push(a); continue; }
@@ -814,12 +906,12 @@
             }
 
             if (a.yellow && a.part === 2) {
-              // Exact obj_blockbullet2 smooth 180-degree sinusoidal arc around the SOUL over 20 frames @ 60fps!
+              // Exact obj_blockbullet2 smooth 180-degree sinusoidal arc over 10 ticks @ 30fps!
               a.siner++;
-              const frac = Math.min(1, a.siner / 20);
+              const frac = Math.min(1, a.siner / 10);
               a.orbit = frac * Math.PI;
               a.dist = a.startDist + Math.sin(frac * Math.PI) * 26;
-              if (a.siner >= 20) {
+              if (a.siner >= 10) {
                 a.part = 3;
                 a.orbit = Math.PI;
                 a.dist = a.startDist;
@@ -831,7 +923,7 @@
             const hitDir = (a.yellow && a.part === 3) ? ((a.dir + 2) % 4) : a.dir;
             if ((!a.yellow || a.part === 3) && a.dist <= 32 && a.dist >= 10 && hitDir === this.shieldDir) {
               // BLOCKED BY SPEAR SHIELD!
-              this.shieldFlash = 6;
+              this.shieldFlash = 3;
               this.blockedCount++;
               G.sfx.sfx('arrow', 0.52, 0.96 + Math.random() * 0.08);
               continue;
@@ -847,8 +939,8 @@
           return;
         }
 
-        // RED SOUL MODE MOVEMENT (Crisp instant 1:1 Undertale speed — no touch startup lag!)
-        const spd = keys.cancel ? 1.20 : (this.seaTeaBoost ? 2.90 : 2.30);
+        // RED SOUL MODE MOVEMENT @ 30fps (Canonical 4.0px = 120px/s, Focus X = 2.0px = 60px/s, SeaTea = 5.0px)
+        const spd = (keys.cancel ? 2.0 : (this.seaTeaBoost ? 5.0 : 4.0)) * (keys.moveScale || 1.0);
         let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
         let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
         if (dx && dy) { dx *= 0.72; dy *= 0.72; }
@@ -856,8 +948,8 @@
         this.soulY = Math.max(this.box.y + 10, Math.min(this.box.y + this.box.h - 10, this.soulY + dy * spd));
 
         const kind = this.currentKind;
-        // 1. Canonical obj_risespearbulletgen: 3 exact lanes (floor & ceiling!), never repeating same lane twice!
-        if ((kind === 'r_rising' || kind === 'r_swayrise') && t < this.attackDur - 42 && t % 18 === 2) {
+        // 1. Canonical obj_risespearbulletgen @ 30fps: 3 lanes, never repeating same lane twice!
+        if ((kind === 'r_rising' || kind === 'r_swayrise') && t < this.attackDur - 21 && t % 10 === 1) {
           let col = Math.floor(Math.random() * 3);
           if (col === this._lastRiseCol) col = (col + 1 + Math.floor(Math.random() * 2)) % 3;
           this._lastRiseCol = col;
@@ -866,8 +958,8 @@
           G.sfx.sfx('spearappear', 0.32);
           this.spears.push({ type: 'rise', relX, fromTop, timer: 0 });
         }
-        // 2. Canonical obj_spearbullet_follow (spr_whitespearbullet): spins into aim, locks, accelerates straight!
-        else if (kind === 'r_homing' && t < this.attackDur - 44 && t % 16 === 2) {
+        // 2. Canonical obj_spearbullet_follow @ 30fps: spins into aim, locks, accelerates straight!
+        else if (kind === 'r_homing' && t < this.attackDur - 22 && t % 10 === 1) {
           G.sfx.sfx('spearappear', 0.40);
           const ang = Math.random() * Math.PI * 2;
           const sx = this.soulX + Math.cos(ang) * 145;
@@ -875,26 +967,26 @@
           const aim = Math.atan2(this.soulY - sy, this.soulX - sx);
           this.spears.push({
             type: 'aim', x: sx, y: sy, ang: aim, drawAng: aim + Math.PI * 1.5,
-            rotSpd: 0.34, timer: 0, spd: 2.2, vx: 0, vy: 0, fired: false,
+            rotSpd: 0.56, timer: 0, spd: 5.0, vx: 0, vy: 0, fired: false,
           });
         }
-        // 3. Canonical obj_rotspeargen_gen: 7-spear & 8-spear decelerating closing rings!
-        else if ((kind === 'r_rings' || kind === 'r_rings8') && t < this.attackDur - 65 && t % 54 === 4) {
+        // 3. Canonical obj_rotspeargen_gen @ 30fps: 7-spear & 8-spear decelerating closing rings!
+        else if ((kind === 'r_rings' || kind === 'r_rings8') && t < this.attackDur - 33 && t % 27 === 2) {
           G.sfx.sfx('spearappear', 0.48);
           const n = kind === 'r_rings8' ? 8 : 7;
           const cx = this.soulX, cy = this.soulY;
-          const spinSign = (Math.floor(t / 54) % 2 === 0) ? 1 : -1;
+          const spinSign = (Math.floor(t / 27) % 2 === 0) ? 1 : -1;
           const baseA = Math.random() * Math.PI * 2;
           const startRad = kind === 'r_rings8' ? 196 : 184;
           for (let i = 0; i < n; i++) {
             this.spears.push({
               type: 'ring', cx, cy, baseA: baseA + (i / n) * Math.PI * 2,
-              rad: startRad, rotSpd: spinSign * 0.068, rotMin: spinSign * 0.018, timer: 0,
+              rad: startRad, rotSpd: spinSign * 0.136, rotMin: spinSign * 0.036, timer: 0,
             });
           }
         }
-        // 4. Canonical obj_followspeargen_2 (type 1): 6-spear spinning burst rings around SOUL that pause & lunge!
-        else if (kind === 'r_followring' && t < this.attackDur - 64 && t % 38 === 4) {
+        // 4. Canonical obj_followspeargen_2 @ 30fps: 6-spear spinning burst rings around SOUL!
+        else if (kind === 'r_followring' && t < this.attackDur - 32 && t % 24 === 2) {
           G.sfx.sfx('spearappear', 0.46);
           const n = 6;
           const cx = this.soulX, cy = this.soulY;
@@ -906,7 +998,7 @@
             const aim = Math.atan2(cy - sy, cx - sx);
             this.spears.push({
               type: 'followring', x: sx, y: sy, ang: aim, drawAng: aim + Math.PI,
-              rotSpd: 0.30, timer: 0, fired: false, vx: Math.cos(aim) * 5.2, vy: Math.sin(aim) * 5.2,
+              rotSpd: 0.60, timer: 0, fired: false, vx: Math.cos(aim) * 8.5, vy: Math.sin(aim) * 8.5,
             });
           }
         }
@@ -916,58 +1008,58 @@
           s.timer++;
           if (s.type === 'rise') {
             const wx = this.box.x + s.relX;
-            if (s.timer === 22) G.sfx.sfx('spearrise', 0.48);
-            if (s.timer >= 22 && s.timer <= 38) {
+            if (s.timer === 11) G.sfx.sfx('spearrise', 0.48);
+            if (s.timer >= 11 && s.timer <= 19) {
               const wyTop = this.box.y;
               const wyBot = this.box.y + this.box.h;
               if (s.fromTop) {
-                if (Math.abs(this.soulX - wx) < 12 && this.soulY < wyTop + 60) this.hurt(11);
+                if (Math.abs(this.soulX - wx) < 10 && this.soulY < wyTop + 56) this.hurt(11);
               } else {
-                if (Math.abs(this.soulX - wx) < 12 && this.soulY > wyBot - 60) this.hurt(11);
+                if (Math.abs(this.soulX - wx) < 10 && this.soulY > wyBot - 56) this.hurt(11);
               }
             }
-            if (s.timer < 46) nextS.push(s);
+            if (s.timer < 23) nextS.push(s);
           } else if (s.type === 'aim') {
             if (!s.fired) {
               s.ang = Math.atan2(this.soulY - s.y, this.soulX - s.x);
-              s.rotSpd = Math.max(0, s.rotSpd - 0.015);
+              s.rotSpd = Math.max(0, s.rotSpd - 0.03);
               s.drawAng = s.ang + s.rotSpd * 8;
-              if (s.timer >= 24) {
+              if (s.timer >= 12) {
                 s.fired = true;
                 s.drawAng = s.ang;
-                s.spd = 3.2;
+                s.spd = 5.5;
                 G.sfx.sfx('arrow', 0.38);
               }
             } else {
-              s.spd = Math.min(8.6, s.spd + 0.16);
+              s.spd = Math.min(13.0, s.spd + 0.35);
               s.x += Math.cos(s.ang) * s.spd;
               s.y += Math.sin(s.ang) * s.spd;
-              if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 11) this.hurt(11);
+              if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 9.5) this.hurt(11);
             }
-            if (s.timer < 115 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
+            if (s.timer < 62 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
           } else if (s.type === 'followring') {
             if (!s.fired) {
-              s.rotSpd = Math.max(0, s.rotSpd - 0.015);
-              s.drawAng = s.ang + s.rotSpd * 9;
-              if (s.timer >= 30) {
+              s.rotSpd = Math.max(0, s.rotSpd - 0.03);
+              s.drawAng = s.ang + s.rotSpd * 8;
+              if (s.timer >= 15) {
                 s.fired = true;
                 s.drawAng = s.ang;
                 G.sfx.sfx('arrow', 0.30, 1.08);
               }
             } else {
               s.x += s.vx; s.y += s.vy;
-              if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 11) this.hurt(11);
+              if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 9.5) this.hurt(11);
             }
-            if (s.timer < 110 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
+            if (s.timer < 60 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
           } else if (s.type === 'ring') {
-            if (s.rotSpd > s.rotMin) s.rotSpd = Math.max(s.rotMin, s.rotSpd - 0.0018);
-            else if (s.rotSpd < s.rotMin) s.rotSpd = Math.min(s.rotMin, s.rotSpd + 0.0018);
+            if (s.rotSpd > s.rotMin) s.rotSpd = Math.max(s.rotMin, s.rotSpd - 0.0036);
+            else if (s.rotSpd < s.rotMin) s.rotSpd = Math.min(s.rotMin, s.rotSpd + 0.0036);
             s.baseA += s.rotSpd;
-            if (s.timer > 14) s.rad -= (s.rad < 10 ? 1.0 : 2.0);
+            if (s.timer > 7) s.rad -= (s.rad < 10 ? 2.0 : 4.0);
             const sx = s.cx + Math.cos(s.baseA) * s.rad;
             const sy = s.cy + Math.sin(s.baseA) * s.rad;
             s.x = sx; s.y = sy; s.ang = Math.atan2(s.cy - sy, s.cx - sx);
-            if (s.rad > 10 && Math.hypot(sx - this.soulX, sy - this.soulY) < 10) this.hurt(11);
+            if (s.rad > 10 && Math.hypot(sx - this.soulX, sy - this.soulY) < 9) this.hurt(11);
             if (s.rad > -14) nextS.push(s);
           }
         }
@@ -978,7 +1070,16 @@
       // =====================================================================
       // RENDERER (640x480 Canvas)
       // =====================================================================
-      render(ctx) {
+      render(ctx, interpAlpha) {
+        const _interpSaved = this._applyInterp(interpAlpha);
+        try {
+          return this._renderBody(ctx);
+        } finally {
+          this._restoreInterp(_interpSaved);
+        }
+      },
+
+      _renderBody(ctx) {
         const L = this.L(), zh = G.lang === 'zh';
         ctx.save();
         ctx.fillStyle = '#000';
@@ -1079,7 +1180,7 @@
 
         // Spear smear flash when flipping SOUL color
         if (this.smearAnim > 0) {
-          drawSprExt(ctx, 'spr_undyneb_smear', 0, 140, 65, 1.2, 1.2, 0, null, this.smearAnim / 14);
+          drawSprExt(ctx, 'spr_undyneb_smear', 0, 140, 65, 1.2, 1.2, 0, null, this.smearAnim / 7);
         }
 
         // Slash & Damage Numbers + Boss HP Bar
@@ -1120,7 +1221,7 @@
         } else if (this.sub === 'fight_bar' || this.sub === 'slice') {
           drawSpr(ctx, 'spr_target', 0, 39, 256, 1, 1);
           ctx.strokeStyle = 'rgba(255,255,0,0.45)'; ctx.lineWidth = 2; ctx.strokeRect(312, 256, 16, 128);
-          drawSpr(ctx, 'spr_targetchoice', Math.floor(this.time / 3) % 2, Math.round(this.barX - 7), 256, 1, 1);
+          drawSpr(ctx, 'spr_targetchoice', Math.floor(this.time / 2) % 2, Math.round(this.barX - 7), 256, 1, 1);
         } else if (this.sub === 'act') {
           const acts = zh ? ['* 檢查 (Check)', '* 求饒 (Plead)'] : ['* Check', '* Plead'];
           acts.forEach((a, i) => {
@@ -1212,7 +1313,7 @@
           let closest = null, minTime = 99999;
           for (const ar of this.arrows) {
             if (this.attackTimer >= ar.spawnT) {
-              const eta = ar.dist / ar.spd + (ar.yellow && ar.part < 3 ? 20 : 0);
+              const eta = ar.dist / ar.spd + (ar.yellow && ar.part < 3 ? 10 : 0);
               if (eta < minTime) { minTime = eta; closest = ar; }
             }
           }
@@ -1225,7 +1326,7 @@
 
           for (const ar of this.arrows) {
             if (this.attackTimer < ar.spawnT) continue;
-            const alpha = Math.min(1, (this.attackTimer - ar.spawnT + 1) / 10);
+            const alpha = Math.min(1, (this.attackTimer - ar.spawnT + 1) / 5);
             const ang = DIR_ANG[ar.dir] + (ar.yellow ? ar.orbit : 0);
             const ax = sx + Math.cos(ang) * ar.dist;
             const ay = sy + Math.sin(ang) * ar.dist;
@@ -1243,10 +1344,10 @@
               const wx = this.box.x + s.relX;
               const wyBot = this.box.y + this.box.h;
               const wyTop = this.box.y;
-              if (s.timer < 22) {
+              if (s.timer < 11) {
                 // Warning glow line + exclamation mark matching obj_risespearbullet telegraph
                 ctx.save();
-                ctx.fillStyle = s.timer % 4 < 2 ? '#ff3838' : '#ffff40';
+                ctx.fillStyle = s.timer % 2 === 0 ? '#ff3838' : '#ffff40';
                 if (s.fromTop) {
                   ctx.fillRect(wx - 11, wyTop + 3, 22, 5);
                   drawRichText(ctx, '!', wx - 4, wyTop + 10, 999, { size: 18, color: '#ff3838' });
@@ -1256,8 +1357,8 @@
                 }
                 ctx.restore();
               } else {
-                const lift = Math.min(58, (s.timer - 22) * 14);
-                const fadeAl = s.timer > 38 ? Math.max(0, 1 - (s.timer - 38) / 8) : 1;
+                const lift = Math.min(58, (s.timer - 11) * 28);
+                const fadeAl = s.timer > 19 ? Math.max(0, 1 - (s.timer - 19) / 4) : 1;
                 ctx.save();
                 ctx.beginPath(); ctx.rect(this.box.x + 2, this.box.y + 2, this.box.w - 4, this.box.h - 4); ctx.clip();
                 if (s.fromTop) {
@@ -1271,7 +1372,7 @@
               // Both spr_whitespearbullet & spr_followspear_2 point RIGHT (0°) natively -> exact -ang*180/PI!
               const drawA = (s.drawAng != null) ? s.drawAng : s.ang;
               const deg = -drawA * 180 / Math.PI;
-              const alpha = s.timer < 12 ? (s.timer / 12) : (s.type === 'ring' && s.rad < 8 ? Math.max(0, (s.rad + 14) / 22) : 1);
+              const alpha = s.timer < 6 ? (s.timer / 6) : (s.type === 'ring' && s.rad < 8 ? Math.max(0, (s.rad + 14) / 22) : 1);
               const sp = (s.type === 'aim') ? 'spr_whitespearbullet' : 'spr_followspear_2';
               drawSprExt(ctx, sp, 0, s.x, s.y, 1, 1, deg, null, alpha, true);
             }
@@ -1280,7 +1381,7 @@
 
         // Draw SOUL + No-Hit Shield Ring
         const soulSpr = this.soulMode === 'green' ? 'spr_heartgreen' : 'spr_heart';
-        if (!this.invuln || Math.floor(this.invuln / 3) % 2 === 0) {
+        if (!this.invuln || Math.floor(this.invuln / 2) % 2 === 0) {
           drawSpr(ctx, soulSpr, 0, Math.round(sx - 8), Math.round(sy - 8), 1, 1);
         }
         if (this.isShielded()) {

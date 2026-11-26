@@ -501,7 +501,7 @@
         this.resetEntities();
         if (entry === 'title') {
           this.mode = 'title';
-          G.sfx.playBGM('asrielback', true, 0.45);
+          G.sfx.stopBGM(); // Canonical: NO BGM before Asriel transforms!
         } else {
           this.startPhase(entry);
         }
@@ -568,13 +568,14 @@
           this.asX = 320; this.asY = 50;
           this.statusTxt = this.L().p1Status[0];
           G.sfx.stopBGM(); // Canonical: NO BGM on Turn 0 Fire Magic; Hopes and Dreams kicks in on Turn 1 reveal!
+          G.sfx.preloadBGM?.('hopes'); // Silent fetch so 20.1s beat-drop seek on Turn 1 is instant
         } else if (tag === 'hypergoner') {
           this.mode = 'p1';
           this.p1Turn = 13;
           this.p1SpecialNormal = false;
           this.p1BgAlpha = 0.5;
           this.whiteAlpha = 0.8;
-          G.sfx.playBGM('hopes', true, 0.56);
+          G.sfx.playBGM('hopes', true, 0.56, 20.1);
           this.beginBubble(this.L().p1TurnSpeech[13], () => this.launchP1Wave(13));
         } else if (tag === 'p2') {
           this.mode = 'p2';
@@ -616,7 +617,7 @@
         else if (idx === 8) this.playHisTheme();
         else if (p2Like) G.sfx.playBGM('burn', true, 0.55);
         else if (idx === 9) G.sfx.playBGM('savetheworld', true, 0.55);
-        else G.sfx.playBGM('hopes', true, 0.55);
+        else G.sfx.playBGM('hopes', true, 0.55, 20.1);
         this.launchSingleWave(idx);
       },
 
@@ -739,31 +740,32 @@
         const hard = !!opts.hard;
 
         if (kind === 'fire_magic') {
-          // Canonical ut_ref specialnormal=1 Opening Dreemurr Fire Helix (bullettype=7, border=6)
-          this.tBox = { x: 224, y: 246, w: 192, h: 144 };
-          this.attackDur = 190;
+          // Canonical ut_ref specialnormal=1 Opening Dreemurr Fire Helix (BORDER[6]: 180x135)
+          this.tBox = { x: 227, y: 250, w: 180, h: 135 };
+          this.attackDur = 140;
         } else if (kind === 'star') {
-          this.tBox = { x: 224, y: 244, w: 192, h: 148 };
-          this.attackDur = hard ? 275 : 245;
+          this.tBox = { x: 162, y: 250, w: 310, h: 135 };
+          this.attackDur = hard ? 260 : 245;
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.asExpr = 2;
           G.sfx.sfx('spellcast', 0.7);
-          this.stars = { hard, windup: 26, explodedBig: false, explodedBigMid: false };
+          this.stars = { hard, windup: 18, explodedBig: false };
         } else if (kind === 'shocker') {
-          this.tBox = { x: 215, y: 244, w: 210, h: 146 };
+          // Canonical BORDER[17]: 310px wide box so 80px-spaced full-screen sweeps only land ~4 bolts inside!
+          this.tBox = { x: 162, y: 250, w: 310, h: 135 };
           const cycles = Math.max(1, opts.cycles || 1);
-          const cycleLen = hard ? 190 : 175;
-          this.attackDur = 24 + cycles * cycleLen + 25;
+          const cycleLen = hard ? 175 : 155;
+          this.attackDur = 18 + cycles * cycleLen + 20;
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.asExpr = 2;
           G.sfx.sfx('spellcast', 0.7);
-          this.bolts = { hard, windup: 24, cycles, cycleLen, idx: 0, gigaPhase: 0, trackCnt: 0 };
+          this.bolts = { hard, windup: 18, cycles, cycleLen, idx: 0, gigaPhase: 0, trackCnt: 0 };
         } else if (kind === 'saber') {
-          // Canonical obj_asriel_swordmaster: compact square arena centered below Asriel (y=88)
-          this.tBox = { x: 245, y: 248, w: 150, h: 128 };
+          // Canonical BORDER[4]: compact 100x90 arena directly below Asriel (IMG_9414-9416)
+          this.tBox = { x: 267, y: 295, w: 100, h: 90 };
           const swings = opts.swings || (hard ? 6 : 5);
-          const period = hard ? 26 : 32;
-          this.attackDur = Math.max(hard ? 265 : 235, 24 + swings * period + 96);
+          const period = hard ? 21 : 27; // Exact GML 30fps swing interval (0.70s / 0.90s!)
+          this.attackDur = 14 + swings * period + 86;
           this.asX = 320; this.asY = 88; this.asRely = 0;
           this.armAlpha = 0;
           G.sfx.sfx('swordappear', 0.7);
@@ -775,67 +777,81 @@
             lungeX: 320,
           };
         } else if (kind === 'buster') {
-          this.tBox = { x: 215, y: 244, w: 210, h: 136 };
+          // Canonical BORDER[17]: 310px wide arena + exact GML 9-salvo schedule at 30fps!
+          this.tBox = { x: 162, y: 250, w: 310, h: 135 };
           const salvos = opts.salvos || 9;
-          this.attackDur = Math.max(hard ? 295 : 285, salvos * (hard ? 20 : 25) + 120);
+          const sched = hard
+            ? [[20, 3, 6], [12, 'r', 6], [10, 'r', 5], [10, 4, 4], [9, 3, 4], [9, 'r', 4], [8, 4, 4], [8, 4, 4], [8, 3, 8]]
+            : [[20, 3, 6], [14, 4, 6], [12, 3, 5], [12, 4, 5], [11, 3, 4], [11, 4, 4], [10, 3, 4], [10, 4, 4], [10, 3, 8]];
+          let st = 10;
+          const plan = [];
+          for (let i = 0; i < salvos; i++) {
+            const [tele, linesSpec, shots] = sched[Math.min(i, sched.length - 1)];
+            const lines = linesSpec === 'r' ? (Math.random() < 0.5 ? 3 : 4) : linesSpec;
+            plan.push({ lockAt: st, tele, fireAt: st + tele, lines, shots });
+            st += tele + shots * 2 + (hard ? 6 : 8);
+          }
+          const seqStart = st + 4;
+          this.attackDur = seqStart + 88;
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.armAlpha = 0;
           this.gun = {
             hard, t: 0, bx: 344, by: 84, thisx: 344, thisy: 84,
             relx: 24, rely: 39, angle: Math.PI / 2, recoil: 0,
-            salvo: 0, maxSalvo: salvos, fireSub: 0, lines: 3, aimFlash: 0,
+            salvo: 0, maxSalvo: salvos, plan, seqStart, curSalvo: null, shotsLeft: 0, fireCd: 0,
+            lines: 3, aimFlash: 0,
             meter: false, meterCnt: 0, spinning: false, spinSpd: 0, spinAng: 0,
             unhinge: false, unhingeFrame: 0, blasting: false, beamW: 0, beamTimer: 0,
           };
           G.sfx.sfx('segapower', 0.45);
         } else if (kind === 'hypergoner') {
-          // Canonical obj_hg_wholescreen: border expands to fill entire screen!
+          // Canonical obj_hg_wholescreen at 30fps
           this.tBox = { x: -24, y: -24, w: 688, h: 528 };
           this.soulX = 320; this.soulY = 335;
-          this.attackDur = 365;
+          this.attackDur = 285;
           this.shrug = true;
           this.goner = {
-            t: 0, alpha: 0, hgAlpha: 0, stage: 0, // 0=fadein, 1=chomp/laugh, 2=suction, 3=whiteout
+            t: 0, alpha: 0, hgAlpha: 0, stage: 0,
             faceY: 0, faceScale: 0, siner: 0, cCounter: 0, rad: 20,
             laughPlayed: false, chargePlayed: false,
           };
         } else if (kind === 'p2_comets') {
-          this.tBox = { x: 224, y: 246, w: 192, h: 144 };
-          this.attackDur = opts.weak ? 190 : 235;
+          this.tBox = { x: 162, y: 250, w: 310, h: 135 };
+          this.attackDur = opts.weak ? 140 : 155;
           this.ultTarget = { x: 320, y: 318 };
         } else if (kind === 'p2_orb_beam') {
-          this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          this.attackDur = 230;
+          this.tBox = { x: 162, y: 250, w: 310, h: 135 };
+          this.attackDur = 155;
           this.ultTarget = { x: 320, y: 318 };
         } else if (kind === 'finale_fire') {
-          // Canonical Finale Crying Weak Stray Fireballs (bullettype=9) that gently steer AWAY from SOUL!
-          this.tBox = { x: 224, y: 246, w: 192, h: 144 };
-          this.attackDur = 195;
+          // Canonical Finale Crying Weak Stray Fireballs (bullettype=9)
+          this.tBox = { x: 227, y: 250, w: 180, h: 135 };
+          this.attackDur = 125;
         } else if (kind === 'lastbeam') {
-          this.tBox = { x: 32, y: 250, w: 575, h: 140 };
-          this.attackDur = 310;
+          this.tBox = { x: 267, y: 295, w: 100, h: 90 };
+          this.attackDur = 360;
           this.p2ArmRot = 0; this.p2Shake = 0; this.p2Radi = 0; this.p2RadiAlpha = 1;
-          this.lastBeam = { t: 0, bw: 0, maxBw: 220, windup: 46, hitTick: 0 };
+          this.lastBeam = { t: 0, bw: 0, maxBw: 220, windup: 42, hitTick: 0 };
         } else if (kind === 'ls_undyne') {
           this.soulColor = 'green';
-          this.tBox = { x: 250, y: 248, w: 140, h: 140 };
-          this.soulX = 320; this.soulY = 318;
-          this.attackDur = 200;
+          this.tBox = { x: 256, y: 250, w: 128, h: 128 };
+          this.soulX = 320; this.soulY = 314;
+          this.attackDur = 145;
         } else if (kind === 'ls_alphys') {
           this.soulColor = 'yellow';
-          this.tBox = { x: 230, y: 244, w: 180, h: 148 };
-          this.soulX = 320; this.soulY = 365;
-          this.attackDur = 210;
+          this.tBox = { x: 230, y: 248, w: 180, h: 140 };
+          this.soulX = 320; this.soulY = 362;
+          this.attackDur = 150;
         } else if (kind === 'ls_skelebros') {
           this.soulColor = 'blue';
-          this.tBox = { x: 195, y: 252, w: 250, h: 136 };
+          this.tBox = { x: 195, y: 252, w: 250, h: 134 };
           this.soulX = 320; this.soulY = 374; this.soulVy = 0;
-          this.attackDur = 205;
+          this.attackDur = 150;
         } else if (kind === 'ls_parents') {
           this.soulColor = 'red';
-          this.tBox = { x: 224, y: 244, w: 192, h: 148 };
-          this.soulX = 320; this.soulY = 320;
-          this.attackDur = 195;
+          this.tBox = { x: 227, y: 250, w: 180, h: 135 };
+          this.soulX = 320; this.soulY = 318;
+          this.attackDur = 145;
         }
         this.diffLvl = this.mode === 'p1' ? Math.floor(this.p1Turn / 4)
           : this.mode === 'p2' ? Math.min(3, this.p2Turn)
@@ -942,6 +958,7 @@
             this.mode = 'transform';
             this.shrug = false;
             this.beginBubble(this.L().p1TransformSpeech.map(x => ({ ...x })), () => {
+              G.sfx.stopBGM(); // Silence during Angel of Death transformation until burn.mp3 starts!
               this.transformStretch = 0.05;
               G.sfx.sfx('spellcast', 0.7, 0.35);
               G.sfx.sfx('spellcast', 0.65, 0.55);
@@ -949,13 +966,13 @@
             });
             return;
           }
-          // Canonical Turn 0 -> Turn 1: Hopes and Dreams starts + psychedelic mosaic bursts in!
+          // Canonical Turn 0 -> Turn 1: Hopes and Dreams beat-drop bursts in alongside rainbow tunnel!
           if (this.p1Turn === 0 && this.p1SpecialNormal) {
             this.p1SpecialNormal = false;
             this.p1BgAlpha = 0.52;
             this.whiteAlpha = 1.1;
             G.sfx.sfx('create', 0.65);
-            G.sfx.playBGM('hopes', true, 0.56);
+            G.sfx.playBGM('hopes', true, 0.56, 20.1);
           }
           this.p1Turn++;
           this.sub = 'main';
@@ -1110,7 +1127,7 @@
         }
         if (this.sub === 'dodge' && this.soulColor === 'yellow') {
           G.sfx.sfx('abullet', 0.45);
-          this.playerShots.push({ x: this.soulX, y: this.soulY - 12, vy: -8 });
+          this.playerShots.push({ x: this.soulX, y: this.soulY - 12, vy: -14 });
           return;
         }
 
@@ -1176,7 +1193,7 @@
 
         if (this.sub === 'target') {
           this.sub = 'fight_bar';
-          this.barX = 48; this.barV = 8.5;
+          this.barX = 48; this.barV = 15.0;
           return;
         }
         if (this.sub === 'fight_bar') {
@@ -1404,25 +1421,132 @@
       },
 
       // =====================================================================
-      // 60FPS UPDATE LOOP
+      // 30FPS CANONICAL LOGIC LOOP + HIGH-FPS SMOOTH INTERPOLATION
       // =====================================================================
+      _snapCapture() {
+        const bMap = new Map();
+        for (const b of this.bullets) {
+          bMap.set(b, { x: b.x, y: b.y, rot: b.rot || 0, deg: b.deg || 0, sc: b.sc || 1, scX: b.scX || 1 });
+        }
+        const sMap = new Map();
+        for (const s of this.playerShots) sMap.set(s, { y: s.y });
+        return {
+          soulX: this.soulX, soulY: this.soulY,
+          asX: this.asX, asY: this.asY, asRely: this.asRely,
+          armRotL: this.armRotL, armRotR: this.armRotR, torsoRot: this.torsoRot,
+          headRot: this.headRot, headY: this.headY, p2ArmRot: this.p2ArmRot,
+          box: { ...this.box }, barX: this.barX, sliceF: this.sliceF,
+          gun: this.gun ? { bx: this.gun.bx, by: this.gun.by, angle: this.gun.angle, beamW: this.gun.beamW } : null,
+          bullets: bMap, playerShots: sMap,
+        };
+      },
+
+      _applyInterp(interpAlpha) {
+        const p = this._prevSnap;
+        const a = Math.max(0, Math.min(1, interpAlpha !== undefined ? interpAlpha : (this._interpAlpha !== undefined ? this._interpAlpha : 1)));
+        if (!p || a >= 0.999) return null;
+        const saved = {
+          soulX: this.soulX, soulY: this.soulY,
+          asX: this.asX, asY: this.asY, asRely: this.asRely,
+          armRotL: this.armRotL, armRotR: this.armRotR, torsoRot: this.torsoRot,
+          headRot: this.headRot, headY: this.headY, p2ArmRot: this.p2ArmRot,
+          box: { ...this.box }, barX: this.barX, sliceF: this.sliceF,
+          gun: this.gun ? { bx: this.gun.bx, by: this.gun.by, angle: this.gun.angle, beamW: this.gun.beamW } : null,
+          bullets: [],
+          playerShots: [],
+        };
+        const lj = (prev, cur, maxJ = 80) => Math.abs(cur - prev) > maxJ ? cur : prev + (cur - prev) * a;
+        this.soulX = lj(p.soulX, this.soulX, 60);
+        this.soulY = lj(p.soulY, this.soulY, 60);
+        this.asX = lj(p.asX, this.asX, 80);
+        this.asY = lj(p.asY, this.asY, 80);
+        this.asRely = lj(p.asRely, this.asRely, 40);
+        this.armRotL = lj(p.armRotL, this.armRotL, 90);
+        this.armRotR = lj(p.armRotR, this.armRotR, 90);
+        this.torsoRot = lj(p.torsoRot, this.torsoRot, 45);
+        this.headRot = lj(p.headRot, this.headRot, 45);
+        this.headY = lj(p.headY, this.headY, 30);
+        this.p2ArmRot = lj(p.p2ArmRot, this.p2ArmRot, 90);
+        this.box.x = lj(p.box.x, this.box.x, 120);
+        this.box.y = lj(p.box.y, this.box.y, 120);
+        this.box.w = lj(p.box.w, this.box.w, 160);
+        this.box.h = lj(p.box.h, this.box.h, 160);
+        this.barX = lj(p.barX, this.barX, 80);
+        this.sliceF = lj(p.sliceF, this.sliceF, 4);
+        if (this.gun && p.gun) {
+          this.gun.bx = lj(p.gun.bx, this.gun.bx, 120);
+          this.gun.by = lj(p.gun.by, this.gun.by, 120);
+          this.gun.beamW = lj(p.gun.beamW, this.gun.beamW, 80);
+          const da = ((this.gun.angle - p.gun.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+          if (Math.abs(da) < 1.8) this.gun.angle = p.gun.angle + da * a;
+        }
+        for (const b of this.bullets) {
+          const pb = p.bullets.get(b);
+          if (!pb || Math.hypot(b.x - pb.x, b.y - pb.y) > 80) continue;
+          saved.bullets.push([b, b.x, b.y, b.rot, b.deg, b.sc, b.scX]);
+          b.x = pb.x + (b.x - pb.x) * a;
+          b.y = pb.y + (b.y - pb.y) * a;
+          if (b.rot !== undefined && Math.abs(b.rot - pb.rot) < 90) b.rot = pb.rot + (b.rot - pb.rot) * a;
+          if (b.deg !== undefined && Math.abs(b.deg - pb.deg) < 90) b.deg = pb.deg + (b.deg - pb.deg) * a;
+          if (b.sc !== undefined) b.sc = pb.sc + (b.sc - pb.sc) * a;
+          if (b.scX !== undefined) b.scX = pb.scX + (b.scX - pb.scX) * a;
+        }
+        for (const s of this.playerShots) {
+          const ps = p.playerShots.get(s);
+          if (!ps || Math.abs(s.y - ps.y) > 40) continue;
+          saved.playerShots.push([s, s.y]);
+          s.y = ps.y + (s.y - ps.y) * a;
+        }
+        return saved;
+      },
+
+      _restoreInterp(saved) {
+        if (!saved) return;
+        this.soulX = saved.soulX; this.soulY = saved.soulY;
+        this.asX = saved.asX; this.asY = saved.asY; this.asRely = saved.asRely;
+        this.armRotL = saved.armRotL; this.armRotR = saved.armRotR; this.torsoRot = saved.torsoRot;
+        this.headRot = saved.headRot; this.headY = saved.headY; this.p2ArmRot = saved.p2ArmRot;
+        this.box = saved.box; this.barX = saved.barX; this.sliceF = saved.sliceF;
+        if (this.gun && saved.gun) {
+          this.gun.bx = saved.gun.bx; this.gun.by = saved.gun.by;
+          this.gun.angle = saved.gun.angle; this.gun.beamW = saved.gun.beamW;
+        }
+        for (const [b, x, y, rot, deg, sc, scX] of saved.bullets) {
+          b.x = x; b.y = y; b.rot = rot; b.deg = deg; b.sc = sc; b.scX = scX;
+        }
+        for (const [s, y] of saved.playerShots) s.y = y;
+      },
+
       update(keys) {
+        // 60Hz compatibility wrapper (used by Playwright harness & 60fps hosts): advances 1 canonical 30fps step every 2 ticks
+        this._sub60 = (this._sub60 || 0) + 1;
+        if (this._sub60 % 2 === 1) {
+          this.step30(keys);
+          this._interpAlpha = 0.5;
+        } else {
+          this._interpAlpha = 1.0;
+        }
+      },
+
+      step30(keys) {
+        this._prevSnap = this._snapCapture();
+        this._interpAlpha = 1.0;
         this.time++;
-        this.bgScroll = (this.bgScroll + 2) % 800;
-        this.wingRot += 0.08;
-        if (this.whiteAlpha > 0) this.whiteAlpha = Math.max(0, this.whiteAlpha - 0.032);
-        if (this.shake > 0) this.shake = Math.max(0, this.shake * 0.85 - 0.1);
+        this.bgScroll = (this.bgScroll + 4) % 800;
+        this.wingRot += 0.16;
+        if (this.whiteAlpha > 0) this.whiteAlpha = Math.max(0, this.whiteAlpha - 0.06);
+        if (this.shake > 0) this.shake = Math.max(0, this.shake * 0.72 - 0.2);
         if (this.invuln > 0) this.invuln--;
         if (this.onHitFlash > 0) this.onHitFlash--;
         if (this.mode === 'title' || this.mode === 'phase_menu' || this.mode === 'single_menu' || this.mode === 'victory') return;
 
         if (this.p2Darker > 0 && this.p2Darker < 0.88) {
-          this.p2Darker = Math.min(0.88, this.p2Darker + 0.04);
+          this.p2Darker = Math.min(0.88, this.p2Darker + 0.08);
         }
 
         // Phase 1 Transformation stretch animation (obj_asriel_body transform=1)
         if (this.mode === 'transform' && this.transformStretch > 0) {
-          this.transformStretch += 0.26;
+          this.transformStretch += 0.48;
           this.shake = Math.min(11, this.transformStretch * 1.1);
           if (this.transformStretch >= 13) {
             this.transformStretch = 0;
@@ -1439,49 +1563,47 @@
         // Finale memory panel slow fade (obj_asrielpanels)
         if (this.mode === 'finale' && this.finTurn >= 6 && this.sub === 'bubble') {
           this.panelTimer++;
-          if (this.panelTimer < 40) this.panelAlpha = Math.min(0.85, this.panelAlpha + 0.03);
+          if (this.panelTimer < 22) this.panelAlpha = Math.min(0.85, this.panelAlpha + 0.06);
         }
 
-        // Phase 1 Wide Float & Rainbow Afterimage Trail (obj_asriel_body + obj_afterimage_asriel)
+        // Phase 1 Wide Float & Rainbow Afterimage Trail (obj_asriel_body + obj_afterimage_asriel @ 30fps)
         if (this.mode === 'p1') {
           if (this.p1SpecialNormal) {
             this.asX = 320;
-            this.asY = 50 + Math.sin(this.time / 16) * 4;
+            this.asY = 50 + Math.sin(this.time / 8) * 4;
             this.asRely = 0;
           } else if (this.sub !== 'dodge' && this.sub !== 'refuse' && !this.goner) {
-            this.p1Siner += 0.5;
+            this.p1Siner += 1;
             this.asX = 320 + Math.sin(this.p1Siner / 24) * 124;
             this.asRely = Math.sin(this.p1Siner / 12) * 10;
             this.asY = 48 + Math.sin(this.p1Siner / 6) * 2.2;
-            this.torsoRot *= 0.8; this.headRot *= 0.8;
-            this.armRotL *= 0.8; this.armRotR *= 0.8;
-            if (this.time % 2 === 0) {
-              this.afterimages.push({
-                x: this.asX,
-                y: this.asY + this.asRely,
-                hue: 340,
-                alpha: 0.5,
-              });
-            }
+            this.torsoRot *= 0.65; this.headRot *= 0.65;
+            this.armRotL *= 0.65; this.armRotR *= 0.65;
+            this.afterimages.push({
+              x: this.asX,
+              y: this.asY + this.asRely,
+              hue: 340,
+              alpha: 0.5,
+            });
           }
         }
-        for (const a of this.afterimages) { a.hue = (a.hue + 9) % 360; a.alpha -= 0.015; }
+        for (const a of this.afterimages) { a.hue = (a.hue + 14) % 360; a.alpha -= 0.025; }
         this.afterimages = this.afterimages.filter(a => a.alpha > 0.04);
 
-        // Update obj_handlightning sparkles
+        // Update obj_handlightning sparkles @ 30fps
         for (const h of this.handSparks) {
-          h.x += h.vx; h.y += h.vy; h.vx *= 0.9; h.vy *= 0.9;
-          h.sc += 0.08; h.rot += 10; h.t++; h.hue = (h.hue + 8) % 360;
-          h.alpha = h.t <= 5 ? Math.min(1, h.alpha + 0.3) : h.alpha - 0.2;
+          h.x += h.vx; h.y += h.vy; h.vx *= 0.84; h.vy *= 0.84;
+          h.sc += 0.14; h.rot += 16; h.t++; h.hue = (h.hue + 14) % 360;
+          h.alpha = h.t <= 3 ? Math.min(1, h.alpha + 0.45) : h.alpha - 0.35;
         }
         this.handSparks = this.handSparks.filter(h => h.alpha > 0.02);
 
         // Update falling Finale buttons (FIGHT, ITEM, MERCY)
         if (this.finaleBtnFall) {
           for (const bi of [0, 2, 3]) {
-            this.finaleBtnVy[bi] += 0.45;
+            this.finaleBtnVy[bi] += 0.9;
             this.finaleBtnY[bi] += this.finaleBtnVy[bi];
-            this.finaleBtnAng[bi] += (bi === 0 ? -4.5 : (bi === 2 ? 3.5 : 5.2));
+            this.finaleBtnAng[bi] += (bi === 0 ? -9 : (bi === 2 ? 7 : 10));
           }
         }
 
@@ -1490,7 +1612,7 @@
           if (this.introStep >= this.L().introLines.length) {
             this.introRevealTimer++;
             const fullTitle = ' ASRIEL   DREEMURR ';
-            if (this.introWriterChar < fullTitle.length && this.time % 5 === 0) {
+            if (this.introWriterChar < fullTitle.length && this.time % 3 === 0) {
               this.introWriterChar++;
               const ch = fullTitle[this.introWriterChar - 1];
               if (ch && ch !== ' ') G.sfx.voice('asriel', 0);
@@ -1498,7 +1620,7 @@
             return;
           }
           const line = this.L().introLines[this.introStep];
-          if (line && this.introChar < line.text.length && this.time % 2 === 0) {
+          if (line && this.introChar < line.text.length) {
             this.introChar++;
             const ch = line.text[this.introChar - 1];
             if (ch && ch !== ' ' && ch !== '\n') G.sfx.voice('asriel', 0);
@@ -1507,7 +1629,7 @@
         }
         if (this.mode === 'epilogue') {
           const line = this.L().epilogueLines[this.epiIdx];
-          if (line && this.epiC < line.text.length && this.time % 2 === 0) {
+          if (line && this.epiC < line.text.length) {
             this.epiC++;
             const ch = line.text[this.epiC - 1];
             if (ch && ch !== ' ' && ch !== '\n' && ch !== '*') G.sfx.voice('asriel', 0);
@@ -1516,22 +1638,23 @@
         }
 
         // Smooth box tween
-        this.box.x += (this.tBox.x - this.box.x) * 0.24;
-        this.box.y += (this.tBox.y - this.box.y) * 0.24;
-        this.box.w += (this.tBox.w - this.box.w) * 0.24;
-        this.box.h += (this.tBox.h - this.box.h) * 0.24;
+        this.box.x += (this.tBox.x - this.box.x) * 0.42;
+        this.box.y += (this.tBox.y - this.box.y) * 0.42;
+        this.box.w += (this.tBox.w - this.box.w) * 0.42;
+        this.box.h += (this.tBox.h - this.box.h) * 0.42;
 
         if (this.sub === 'msg') {
-          if (this.mc < stripCodes(this.msg).length) {
-            this.mc++;
-            const ch = stripCodes(this.msg)[this.mc - 1];
+          const plen = stripCodes(this.msg).length;
+          if (this.mc < plen) {
+            this.mc = Math.min(plen, this.mc + 1.5);
+            const ch = stripCodes(this.msg)[Math.floor(this.mc) - 1];
             if (ch && ch !== ' ' && ch !== '\n' && ch !== '*') G.sfx.voice('narrator', 0);
           }
           return;
         }
         if (this.sub === 'bubble') {
           const b = this.bubbles[this.bubIdx];
-          if (b && this.bubC < stripCodes(b.text).length && this.time % 2 === 0) {
+          if (b && this.bubC < stripCodes(b.text).length) {
             this.bubC++;
             const ch = stripCodes(b.text)[this.bubC - 1];
             if (ch && ch !== ' ' && ch !== '\n') G.sfx.voice('asrielboss', b.expr);
@@ -1547,7 +1670,7 @@
           return;
         }
         if (this.sub === 'slice') {
-          this.sliceF += 0.22;
+          this.sliceF += 0.44;
           if (this.sliceF >= 7.5) {
             this.beginMsg(this.L().p1Act.missTxt, () => this.finishPlayerAction());
           }
@@ -1555,8 +1678,8 @@
         }
         if (this.sub === 'refuse') {
           this.refuseT++;
-          if (this.refuseT === 70) { G.sfx.sfx('break1', 0.75); this.refuseStage = 1; }
-          if (this.refuseT === 145) {
+          if (this.refuseT === 35) { G.sfx.sfx('break1', 0.75); this.refuseStage = 1; }
+          if (this.refuseT === 75) {
             this.whiteAlpha = 0.85;
             this.hp = this.maxHp;
             this.sub = 'main';
@@ -1573,33 +1696,33 @@
         this.attackTimer++;
         const bx = this.box.x + 8, by = this.box.y + 8, br = this.box.x + this.box.w - 8, bb = this.box.y + this.box.h - 8;
 
-        // 1. SOUL Movement (Crisp instant 1:1 response)
+        // 1. SOUL Movement: exact 30 FPS Undertale / c2-sans-fight speed (4 px/frame = 120 px/s, focus 2 px/frame = 60 px/s)
         if (this.soulColor === 'green') {
           if (keys.up) this.shieldDir = 0;
           else if (keys.right) this.shieldDir = 1;
           else if (keys.down) this.shieldDir = 2;
           else if (keys.left) this.shieldDir = 3;
         } else if (this.soulColor === 'blue') {
-          const spd = keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.9 : 2.35);
+          const spd = keys.cancel ? 2.0 : (this.seaTeaBoost ? 5.0 : 4.0);
           if (keys.left) this.soulX -= spd;
           if (keys.right) this.soulX += spd;
-          if (keys.up && this.soulY >= bb - 7 && this.soulVy >= 0) this.soulVy = -6.8;
-          if (!keys.up && this.soulVy < -1.5) this.soulVy *= 0.6;
-          this.soulVy = Math.min(7.2, this.soulVy + 0.31);
+          if (keys.up && this.soulY >= bb - 7 && this.soulVy >= 0) this.soulVy = -9.5;
+          if (!keys.up && this.soulVy < -2.2) this.soulVy *= 0.55;
+          this.soulVy = Math.min(11.0, this.soulVy + 0.55);
           this.soulY += this.soulVy;
           if (this.soulY > bb - 6) { this.soulY = bb - 6; this.soulVy = 0; }
           if (this.soulY < by + 6) { this.soulY = by + 6; this.soulVy = 0; }
         } else {
-          const spd = keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.95 : 2.40);
+          const spd = keys.cancel ? 2.0 : (this.seaTeaBoost ? 5.0 : 4.0);
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
           if (dx && dy) { dx *= 0.72; dy *= 0.72; }
           this.soulX += dx * spd;
           this.soulY += dy * spd;
           // Hyper Goner vortex suction pull toward (320, 235)
-          if (this.goner && this.goner.stage >= 2 && this.goner.cCounter < 210) {
+          if (this.goner && this.goner.stage >= 2 && this.goner.cCounter < 185) {
             const pullAng = Math.atan2(235 - this.soulY, 320 - this.soulX);
-            const pullSpd = this.goner.cCounter < 110 ? 1.0 : 1.75;
+            const pullSpd = this.goner.cCounter < 95 ? 1.85 : 2.85;
             this.soulX += Math.cos(pullAng) * pullSpd;
             this.soulY += Math.sin(pullAng) * pullSpd;
           }
@@ -1612,15 +1735,15 @@
           this.soulY = Math.max(by + 6, Math.min(bb - 6, this.soulY));
         }
 
-        // Update obj_ultimatarget smooth SOUL tracking + shoulder blast orbs
+        // Update obj_ultimatarget smooth SOUL tracking + shoulder blast orbs @ 30fps
         if (this.ultTarget) {
           const td = Math.hypot(this.soulX - this.ultTarget.x, this.soulY - this.ultTarget.y);
-          if (td > 1.5) {
-            this.ultTarget.x += ((this.soulX - this.ultTarget.x) / td) * 1.65;
-            this.ultTarget.y += ((this.soulY - this.ultTarget.y) / td) * 1.65;
+          if (td > 2.5) {
+            this.ultTarget.x += ((this.soulX - this.ultTarget.x) / td) * 2.8;
+            this.ultTarget.y += ((this.soulY - this.ultTarget.y) / td) * 2.8;
           }
         }
-        for (const o of this.blastOrbs) { o.sc += 0.38; o.alpha -= 0.055; }
+        for (const o of this.blastOrbs) { o.sc += 0.75; o.alpha -= 0.11; }
         this.blastOrbs = this.blastOrbs.filter(o => o.alpha > 0);
 
         for (const s of this.playerShots) s.y += s.vy;
@@ -1635,12 +1758,12 @@
           ];
           for (const sp of spots) {
             const ang = Math.random() * Math.PI * 2;
-            const spd = 1.6 + Math.random() * 1.4;
+            const spd = 2.6 + Math.random() * 1.4;
             this.handSparks.push({
               x: sp.x, y: sp.y, vx: Math.cos(ang) * spd, vy: -Math.sin(ang) * spd,
               kind: isLightning ? 'bolt' : 'star',
               deg: ang * 180 / Math.PI, sc: isLightning ? 0.35 : 0.25,
-              rot: Math.random() * 360, hue: Math.random() * 360, t: 0, alpha: 0.2,
+              rot: Math.random() * 360, hue: Math.random() * 360, t: 0, alpha: 0.3,
             });
           }
         };
@@ -1648,186 +1771,179 @@
         const kind = this.currentAtk;
         const t = this.attackTimer;
 
-        // Pattern 0: Canonical Opening Dreemurr Double-Helix Fire Magic (bullettype=7, blt_firehelix1)
+        // Pattern 0: Canonical Opening Dreemurr Double-Helix Fire Magic @ 30fps (obj_1sidegen type 7)
         if (kind === 'fire_magic') {
-          if (t < this.attackDur - 36 && t % 7 === 1) {
-            if (t % 14 === 1) G.sfx.sfx('chug', 0.26, 1.05);
-            const rDir = Math.floor(t / 7) % 2;
+          if (t < this.attackDur - 18 && t % 6 === 1) {
+            if (t % 12 === 1) G.sfx.sfx('chug', 0.26, 1.05);
+            const rDir = Math.floor(t / 6) % 2;
             this.bullets.push({
               type: 'dreemurr_fire',
               cx: this.box.x + this.box.w / 2,
               x: this.box.x + this.box.w / 2,
               y: this.box.y - 12,
-              vy: 0.5, gy: 0.045, hSign: rDir === 0 ? 1 : -1,
-              age: t * 0.5, floor: false, r: 7,
+              vy: 0.7, gy: 0.12, hSign: rDir === 0 ? 1 : -1,
+              age: t, floor: false, r: 7,
             });
           }
         }
 
-        // Pattern A: Star Blazing / Galacta Blazing (obj_asriel_body starcon + obj_stormstar_gen + obj_stormstar)
+        // Pattern A: Star Blazing / Galacta Blazing @ 30fps (exact single final Big Star!)
         else if (kind === 'star') {
           const S = this.stars;
           if (t <= S.windup) {
-            this.armRotL = -Math.min(130, t * 7.2);
-            this.armRotR = Math.min(130, t * 7.2);
-            if (t > 4 && t % 2 === 0) spawnHandSparks(false);
+            this.armRotL = -Math.min(130, t * 9.5);
+            this.armRotR = Math.min(130, t * 9.5);
+            if (t > 2) spawnHandSparks(false);
           } else {
-            if (t < this.attackDur - 30) this.asAlpha = Math.max(0, this.asAlpha - 0.06);
-            else { this.asExpr = 0; this.asAlpha = Math.min(1, this.asAlpha + 0.06); this.armRotL *= 0.85; this.armRotR *= 0.85; }
+            if (t < this.attackDur - 18) this.asAlpha = Math.max(0, this.asAlpha - 0.1);
+            else { this.asExpr = 0; this.asAlpha = Math.min(1, this.asAlpha + 0.1); this.armRotL *= 0.72; this.armRotR *= 0.72; }
           }
-          if (t >= S.windup && t < this.attackDur - 74 && t % (S.hard ? 8 : 13) === 0) {
-            if (t % 26 === 0) G.sfx.sfx('star', 0.45, 0.9 + Math.random() * 0.25);
-            const sx = S.hard && Math.random() < 0.28 ? (-40 - Math.random() * 100) : (480 + Math.random() * 420);
+          if (t >= S.windup && t < this.attackDur - 75 && t % (S.hard ? 7 : 9) === 0) {
+            if (t % 18 === 0) G.sfx.sfx('star', 0.45, 0.9 + Math.random() * 0.25);
+            const sx = S.hard && Math.random() < 0.25 ? (-40 - Math.random() * 90) : (480 + Math.random() * 420);
             const isLeft = sx < 0;
             const ang = (isLeft ? 325 : 215) * Math.PI / 180;
-            const spd = S.hard ? (8.2 + Math.random() * 2.5) : (7.0 + Math.random() * 2.4);
+            const spd = S.hard ? (11.5 + Math.random() * 3.5) : (9.5 + Math.random() * 3.2);
             this.bullets.push({
               type: 'stormstar',
-              x: sx, y: -90 - Math.random() * 70,
+              x: sx, y: -95 - Math.random() * 65,
               vx: Math.cos(ang) * spd, vy: -Math.sin(ang) * spd,
-              hue: (t * 15) % 360,
-              splitY: this.box.y + 32 + Math.random() * (this.box.h - 46),
+              hue: (t * 24) % 360,
+              splitY: this.box.y + 20 + Math.random() * (this.box.h - 46),
               big: false, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 10,
             });
           }
-          if (this.attackDur >= 380 && t === Math.floor((S.windup + this.attackDur - 120) / 2) && !S.explodedBigMid) {
-            S.explodedBigMid = true;
-            G.sfx.sfx('star', 0.7, 0.45);
-            const ang = 215 * Math.PI / 180;
-            this.bullets.push({
-              type: 'stormstar', x: 700, y: -35,
-              vx: Math.cos(ang) * 6.2, vy: -Math.sin(ang) * 6.2,
-              hue: 195, splitY: 232, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
-            });
-          }
-          if (t === Math.max(S.windup + 12, this.attackDur - 125) && !S.explodedBig) {
+          if (t === Math.max(S.windup + 10, this.attackDur - 82) && !S.explodedBig) {
             S.explodedBig = true;
             G.sfx.sfx('star', 0.7, 0.42);
             const ang = 215 * Math.PI / 180;
             this.bullets.push({
-              type: 'stormstar', x: 700, y: -35,
-              vx: Math.cos(ang) * 6.2, vy: -Math.sin(ang) * 6.2,
-              hue: 48, splitY: 232, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
+              type: 'stormstar', x: 700, y: -45,
+              vx: Math.cos(ang) * 8.2, vy: -Math.sin(ang) * 8.2,
+              hue: 48, splitY: 224, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
             });
           }
         }
 
-        // Pattern B: Shocker Breaker I & II (obj_rainbowbolt_realgen + obj_rainbowtarget + obj_rainbowbolt)
+        // Pattern B: Shocker Breaker I & II @ 30fps (obj_rainbowbolt_realgen — 80px wide screen-span sweeps!)
         else if (kind === 'shocker') {
           const B = this.bolts;
           if (t <= B.windup) {
-            this.armRotL = -Math.min(130, t * 7.2);
-            this.armRotR = Math.min(130, t * 7.2);
-            if (t > 4 && t % 2 === 0) spawnHandSparks(true);
+            this.armRotL = -Math.min(130, t * 9.5);
+            this.armRotR = Math.min(130, t * 9.5);
+            if (t > 2) spawnHandSparks(true);
           } else {
-            if (t < this.attackDur - 30) this.asAlpha = Math.max(0, this.asAlpha - 0.06);
-            else { this.asExpr = 0; this.asAlpha = Math.min(1, this.asAlpha + 0.06); this.armRotL *= 0.85; this.armRotR *= 0.85; }
+            if (t < this.attackDur - 18) this.asAlpha = Math.max(0, this.asAlpha - 0.1);
+            else { this.asExpr = 0; this.asAlpha = Math.min(1, this.asAlpha + 0.1); this.armRotL *= 0.72; this.armRotR *= 0.72; }
           }
           if (t >= B.windup) {
             const rawT = t - B.windup;
-            const cLen = B.cycleLen || (B.hard ? 190 : 175);
+            const cLen = B.cycleLen || (B.hard ? 175 : 155);
             const cyc = Math.floor(rawT / cLen);
             const localT = rawT % cLen;
             if (cyc < (B.cycles || 1)) {
               if (!B.hard) {
-                // H_MODE=0: 4 rapid 8-column sweeps (L->R, R->L, L->R, R->L) then 3 -> 2 -> 3 Giga columns!
+                // H_MODE=0: 4 screen-wide 80px-spaced sweeps (-60..500, so only ~4 non-overlapping bolts hit the 310px box) then 3 Giga waves!
                 const sweepWindows = [
-                  { s: 2, e: 18, dir: 1 }, { s: 26, e: 42, dir: -1 },
-                  { s: 50, e: 66, dir: 1 }, { s: 74, e: 90, dir: -1 },
+                  { s: 2, e: 10, dir: 1 }, { s: 22, e: 30, dir: -1 },
+                  { s: 42, e: 50, dir: 1 }, { s: 62, e: 70, dir: -1 },
                 ];
                 for (const sw of sweepWindows) {
-                  if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
-                    const step = (localT - sw.s) / 2;
+                  if (localT >= sw.s && localT < sw.e) {
+                    const step = localT - sw.s;
                     const idx = sw.dir === 1 ? step : (7 - step);
-                    const tx = this.box.x + 14 + (idx / 7) * (this.box.w - 28);
-                    G.sfx.sfx('target', 0.3);
-                    this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 20, w: 32, giga: false });
+                    const tx = -60 + idx * 80;
+                    G.sfx.sfx('target', 0.28);
+                    this.bullets.push({ type: 'warnbolt', x: tx, y: 356, timer: 20, w: 28, giga: false });
                   }
                 }
-                if (localT === 108 || localT === 144) {
+                if (localT === 90 || localT === 126) {
                   G.sfx.sfx('target', 0.5);
                   for (const gx of [200, 320, 440]) {
-                    this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+                    this.bullets.push({ type: 'warnbolt', x: gx, y: 356, timer: 20, w: 64, giga: true });
                   }
-                } else if (localT === 126) {
+                } else if (localT === 108) {
                   G.sfx.sfx('target', 0.5);
                   for (const gx of [260, 380]) {
-                    this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+                    this.bullets.push({ type: 'warnbolt', x: gx, y: 356, timer: 20, w: 64, giga: true });
                   }
                 }
               } else {
-                // H_MODE=1 (Shocker Breaker II): 3 fast sweeps, homing lock onto player X, then 5 rolling Giga bolts!
+                // H_MODE=1 (Shocker Breaker II): 3 80px-spaced sweeps, staggered aimed bolts, then 5 rolling Giga bolts!
                 const sweepWindows = [
-                  { s: 2, e: 16, dir: 1 }, { s: 22, e: 36, dir: -1 }, { s: 42, e: 56, dir: 1 },
+                  { s: 2, e: 10, dir: 1 }, { s: 18, e: 26, dir: -1 }, { s: 34, e: 42, dir: 1 },
                 ];
                 for (const sw of sweepWindows) {
-                  if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
-                    const step = (localT - sw.s) / 2;
-                    const idx = sw.dir === 1 ? step : (6 - step);
-                    const tx = this.box.x + 14 + (idx / 6) * (this.box.w - 28);
-                    G.sfx.sfx('target', 0.3);
-                    this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 18, w: 32, giga: false });
+                  if (localT >= sw.s && localT < sw.e) {
+                    const step = localT - sw.s;
+                    const idx = sw.dir === 1 ? step : (7 - step);
+                    const tx = -60 + idx * 80;
+                    G.sfx.sfx('target', 0.28);
+                    this.bullets.push({ type: 'warnbolt', x: tx, y: 356, timer: 20, w: 28, giga: false });
                   }
                 }
-                if (localT >= 64 && localT <= 92 && localT % 4 === 0) {
-                  G.sfx.sfx('target', 0.35);
-                  this.bullets.push({ type: 'warnbolt', x: this.soulX, y: 360, timer: 18, w: 32, giga: false });
+                if (localT >= 52 && localT <= 70 && (localT - 52) % 3 === 0) {
+                  G.sfx.sfx('target', 0.34);
+                  this.bullets.push({ type: 'warnbolt', x: this.soulX, y: 356, timer: 20, w: 28, giga: false });
                 }
-                const gigaTimes = [104, 118, 132, 146, 160];
+                const gigaTimes = [82, 97, 112, 127, 142];
                 const gIdx = gigaTimes.indexOf(localT);
                 if (gIdx !== -1) {
                   G.sfx.sfx('target', 0.55);
-                  this.bullets.push({ type: 'warnbolt', x: 200 + gIdx * 60, y: 360, timer: 20, w: 68, giga: true });
+                  this.bullets.push({ type: 'warnbolt', x: 200 + gIdx * 60, y: 356, timer: 20, w: 64, giga: true });
                 }
               }
             }
           }
         }
 
-        // Pattern C: Chaos Saber / Chaos Slicer (obj_asriel_swordmaster + obj_asriel_swordarm + obj_swordtwinkle)
+        // Pattern C: Chaos Saber / Chaos Slicer @ 30fps (obj_asriel_swordmaster: 27/21 frame swings!)
         else if (kind === 'saber') {
           const S = this.sabers;
           if (!S) return;
           S.t++;
-          S.smearAlpha = Math.max(0, S.smearAlpha - 0.085);
+          S.smearAlpha = Math.max(0, S.smearAlpha - 0.18);
           S.swordSpriteTimer = Math.max(0, S.swordSpriteTimer - 1);
-          this.torsoRot *= 0.8; this.headRot *= 0.85;
+          this.torsoRot *= 0.65; this.headRot *= 0.72;
           if (!S.armed) {
-            S.sOffset = Math.max(0, S.sOffset - 2);
-            if (S.sOffset <= 0) { S.armed = true; this.armAlpha = 1; G.sfx.sfx('grab', 0.6); }
+            S.sOffset = Math.max(0, S.sOffset - 4);
+            if (S.sOffset <= 0) {
+              if (!S.grabDone) { S.grabDone = true; S.armDelay = 4; this.armAlpha = 1; G.sfx.sfx('grab', 0.6); }
+              else if (--S.armDelay <= 0) { S.armed = true; }
+            }
             return;
           }
-          const period = S.hard ? 26 : 32;
+          const period = S.hard ? 21 : 27;
           if (!S.twinkleMode) {
             S.swingTimer++;
             if (S.count < S.maxSwings) {
               const local = S.swingTimer % period;
               if (local === 1) {
-                let pick = S.count === 0 ? 1 : (Math.random() < 0.5 ? 0 : 1); // Canonical: first slash is always from the right!
+                let pick = S.count === 0 ? 1 : (Math.random() < 0.5 ? 0 : 1); // Canonical: first slash ALWAYS from the right!
                 if (pick === S.prevSide && pick === S.prev2Side) pick = 1 - pick;
                 S.prev2Side = S.prevSide; S.prevSide = pick; S.curSide = pick;
                 G.sfx.sfx('pullback', 0.6);
               }
-              if (local >= 2 && local < period - 10) {
+              if (local >= 2 && local < period - 6) {
                 const dirSign = S.curSide === 0 ? -1 : 1;
                 const tgtX = 320 + dirSign * 22;
-                this.asX += (tgtX - this.asX) * 0.25;
+                this.asX += (tgtX - this.asX) * 0.4;
                 this.torsoRot = dirSign * -10;
                 this.headRot = dirSign * 14;
                 if (S.curSide === 0) this.armRotL = 28; else this.armRotR = -28;
               }
-              if (local === period - 10) {
-                this.shake = 7;
+              if (local === period - 6) {
+                this.shake = 6;
                 G.sfx.sfx('cinematiccut', 0.72);
                 S.smearAlpha = 1;
                 S.smearSide = S.curSide;
-                S.swordSpriteTimer = 8;
+                S.swordSpriteTimer = 5;
                 this.headRot = (S.curSide === 0 ? -16 : 16);
                 this.armRotL = 0; this.armRotR = 0;
-                const hx = S.curSide === 0 ? this.box.x : 320;
+                const hx = S.curSide === 0 ? this.box.x : 318;
                 this.bullets.push({
                   type: 'saberslash', side: S.curSide, x: hx, y: this.box.y,
-                  w: this.box.w / 2 + 4, h: this.box.h, life: 7,
+                  w: this.box.w / 2 + 4, h: this.box.h, life: 4,
                 });
                 S.count++;
               }
@@ -1838,369 +1954,383 @@
             }
           } else {
             S.twinkleT++;
-            this.asX += (320 - this.asX) * 0.2;
-            if (S.twinkleT < 28) {
-              this.armRotL = Math.max(-28, this.armRotL - 2);
-              this.armRotR = Math.min(28, this.armRotR + 2);
-              this.headY = -Math.min(10, S.twinkleT * 0.4);
-            } else if (S.twinkleT === 28) {
+            this.asX += (320 - this.asX) * 0.32;
+            if (S.twinkleT < 18) {
+              this.armRotL = Math.max(-28, this.armRotL - 3);
+              this.armRotR = Math.min(28, this.armRotR + 3);
+              this.headY = -Math.min(10, S.twinkleT * 0.7);
+            } else if (S.twinkleT === 18) {
               S.twinklesSpawned = true;
+              // Canonical m.b.setBorder(6): expand arena on shattering double slash!
+              this.tBox = { x: 227, y: 250, w: 180, h: 135 };
               this.armRotL = 0; this.armRotR = 0;
-              S.swordSpriteTimer = 10;
-              S.smearAlpha = 1; S.smearSide = 2; // Both arms shatter down!
-              this.shake = 10;
+              S.swordSpriteTimer = 6;
+              S.smearAlpha = 1; S.smearSide = 2;
+              this.shake = 9;
               G.sfx.sfx('cinematiccut', 0.75);
               G.sfx.sfx('sparkles', 0.7);
-              const pairs = 4;
-              for (let i = 0; i < pairs; i++) {
-                const sy = this.box.y + 18 + i * 28;
+              for (let i = 0; i < 4; i++) {
+                const sy = 256 + i * 32;
                 for (const sgn of [-1, 1]) {
                   this.bullets.push({
                     type: 'swordtwinkle',
                     x: 320 + sgn * 34, y: sy,
-                    vx: sgn * (0.4 + Math.random() * 0.4), vy: (Math.random() - 0.5) * 1.4,
-                    ax: sgn * (0.14 + Math.random() * 0.14),
-                    rot: Math.random() * 360, alpha: 1, life: 68, r: 5,
+                    vx: sgn * (0.5 + Math.random() * 0.5), vy: (Math.random() - 0.5) * 2.0,
+                    ax: sgn * (0.06 + Math.random() * 0.08),
+                    rot: Math.random() * 360, alpha: 1, life: 52, r: 4,
                   });
                 }
               }
-            } else if (S.twinkleT > 42) {
-              this.asY = Math.max(48, this.asY - 1.5);
-              this.headY *= 0.8;
+            } else if (S.twinkleT > 26) {
+              this.asY = Math.max(48, this.asY - 2.5);
+              this.headY *= 0.65;
             }
           }
         }
 
-        // Pattern D: Chaos Buster / Chaos Blaster (obj_gunarm_firepattern)
+        // Pattern D: Chaos Buster / Chaos Blaster @ 30fps (obj_gunarm_firepattern exact schedule)
         else if (kind === 'buster') {
           const gn = this.gun;
           if (!gn) return;
           gn.t++;
-          const shotInterval = gn.hard ? 20 : 25;
-          gn.bx += (gn.thisx - gn.bx) * 0.3;
-          gn.by += (gn.thisy - gn.by) * 0.3;
+          gn.bx += (gn.thisx - gn.bx) * 0.45;
+          gn.by += (gn.thisy - gn.by) * 0.45;
           const muzzleDist = 112;
           if (gn.salvo < gn.maxSalvo) {
-            const loc = gn.t % shotInterval;
-            if (loc === 1) {
+            const nextP = gn.plan[gn.salvo];
+            if (nextP && gn.t === nextP.lockAt) {
               gn.angle = Math.atan2(this.soulY - gn.by, this.soulX - gn.bx);
-              gn.lines = gn.hard ? (Math.random() < 0.5 ? 4 : 5) : (gn.salvo % 2 === 0 ? 3 : 4);
-              gn.aimFlash = 13;
+              gn.lines = nextP.lines;
+              gn.aimFlash = nextP.tele;
+              gn.curSalvo = nextP;
               G.sfx.sfx('target', 0.45);
             }
             if (gn.aimFlash > 0) gn.aimFlash--;
-            if (loc === 14) {
-              G.sfx.sfx('abullet', 0.65);
-              gn.bx -= Math.cos(gn.angle) * 10;
-              gn.by -= Math.sin(gn.angle) * 10;
-              gn.recoil = 8; gn.salvo++;
-              const n = gn.lines;
-              const spread = gn.hard ? 0.21 : 0.26;
-              const mx = gn.bx + Math.cos(gn.angle) * muzzleDist;
-              const my = gn.by + Math.sin(gn.angle) * muzzleDist;
-              for (let i = 0; i < n; i++) {
-                const a = gn.angle + (i - (n - 1) / 2) * spread;
-                this.bullets.push({
-                  type: 'gunbolt', x: mx, y: my,
-                  vx: Math.cos(a) * (gn.hard ? 7.2 : 6.4), vy: Math.sin(a) * (gn.hard ? 7.2 : 6.4),
-                  deg: -a * 180 / Math.PI, spin: (i % 2 === 0 ? 8 : -8), hue: (i * 55 + gn.t * 9) % 360, r: 5,
-                });
+            if (gn.curSalvo && gn.t === gn.curSalvo.fireAt) {
+              gn.shotsLeft = gn.curSalvo.shots;
+              gn.fireCd = 0;
+            }
+            if (gn.shotsLeft > 0) {
+              if (gn.fireCd <= 0) {
+                G.sfx.sfx('abullet', 0.65);
+                gn.bx -= Math.cos(gn.angle) * 7;
+                gn.by -= Math.sin(gn.angle) * 7;
+                gn.recoil = 6;
+                const n = gn.curSalvo.lines;
+                const spread = gn.hard ? 0.28 : 0.34; // Fan so 3-line aims center (move!), 4-line splits center (stand still!)
+                const mx = gn.bx + Math.cos(gn.angle) * muzzleDist;
+                const my = gn.by + Math.sin(gn.angle) * muzzleDist;
+                const spd = gn.hard ? 11.5 : 10.5;
+                for (let i = 0; i < n; i++) {
+                  const a = gn.angle + (i - (n - 1) / 2) * spread;
+                  this.bullets.push({
+                    type: 'gunbolt', x: mx, y: my,
+                    vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+                    deg: -a * 180 / Math.PI, spin: (i % 2 === 0 ? 12 : -12), hue: (i * 55 + gn.t * 14) % 360, r: 4,
+                  });
+                }
+                gn.shotsLeft--;
+                gn.fireCd = 2;
+                if (gn.shotsLeft <= 0) {
+                  gn.curSalvo = null;
+                  gn.salvo++;
+                }
+              } else {
+                gn.fireCd--;
               }
             }
-          } else {
+          } else if (gn.t >= gn.seqStart) {
             if (!gn.meter) {
-              gn.meter = true; gn.meterCnt = 0; gn.spinning = true; gn.spinSpd = 38; gn.spinAng = 0;
+              gn.meter = true; gn.meterCnt = 0; gn.spinning = true; gn.spinSpd = 45; gn.spinAng = 0;
               G.sfx.sfx('segapower', 0.65, 0.72);
             }
-            if (gn.meterCnt < 7) gn.meterCnt += 0.28;
+            if (gn.meterCnt < 7) gn.meterCnt += 0.5;
             if (gn.spinning) {
               gn.spinAng += gn.spinSpd;
-              gn.spinSpd -= 1.8;
+              gn.spinSpd -= 3;
               if (gn.spinSpd <= 0) {
                 gn.spinning = false;
                 gn.unhinge = true;
                 gn.angle = Math.atan2(this.soulY - gn.by, this.soulX - gn.bx);
               }
             } else if (gn.unhinge) {
-              gn.unhingeFrame = Math.min(5, gn.unhingeFrame + 0.35);
+              gn.unhingeFrame = Math.min(5, gn.unhingeFrame + 0.75);
               if (gn.unhingeFrame >= 5 && !gn.blasting) {
                 gn.blasting = true;
-                gn.beamW = 64;
+                gn.beamW = 68;
                 gn.beamTimer = 0;
                 G.sfx.sfx('rainbowbeam', 0.78);
               }
             }
             if (gn.blasting) {
               gn.beamTimer++;
-              this.shake = 5.5;
+              this.shake = 5;
               gn.bx = gn.thisx + (Math.random() - 0.5) * 6;
               gn.by = gn.thisy - Math.random() * 10 - 6;
-              // Full rainbow blast collision & optional Chaos Blaster radial stars!
               const ang = gn.angle;
               const nx = Math.cos(ang), ny = Math.sin(ang);
               const px = this.soulX - gn.bx, py = this.soulY - gn.by;
               const along = px * nx + py * ny;
               const perp = Math.abs(-px * ny + py * nx);
-              if (along > 0 && perp < gn.beamW * 0.48 && gn.beamW > 8) this.hurt(5);
+              if (along > 0 && perp < gn.beamW * 0.46 && gn.beamW > 8) this.hurt(5);
 
-              if (gn.hard && gn.beamTimer <= 14 && gn.beamTimer % 4 === 1) {
-                const rotOff = gn.beamTimer * 10;
+              // Starburst radial rings spawn ONLY on Chaos Blaster (hard=true); normal Chaos Buster has a clean beam (IMG_9418)!
+              if (gn.hard && gn.beamTimer <= 12 && gn.beamTimer % 3 === 1) {
+                const rotOff = gn.beamTimer * 12;
                 const sx0 = gn.bx + nx * muzzleDist, sy0 = gn.by + ny * muzzleDist;
                 for (let i = 0; i < 16; i++) {
                   const ra = (rotOff + i * 22.5) * Math.PI / 180;
                   this.bullets.push({
                     type: 'starburst', x: sx0, y: sy0,
-                    vx: Math.cos(ra) * 3.8, vy: -Math.sin(ra) * 3.8,
-                    accel: 0.06, hue: (i * 22 + gn.beamTimer * 12) % 360,
-                    rot: 0, spin: 8, curve: 0, r: 5, life: 90,
+                    vx: Math.cos(ra) * 5.2, vy: -Math.sin(ra) * 5.2,
+                    accel: 0.14, hue: (i * 22 + gn.beamTimer * 18) % 360,
+                    rot: 0, spin: 10, curve: 0, r: 4, life: 60,
                   });
                 }
               }
-              if (gn.beamTimer > 20) gn.beamW = Math.max(0, gn.beamW - 2.6);
+              if (gn.beamTimer > 15) gn.beamW = Math.max(0, gn.beamW - 3.6);
             }
           }
-          gn.recoil *= 0.8;
+          gn.recoil *= 0.65;
         }
 
-        // Pattern E: HYPER GONER (obj_hg_wholescreen + obj_hg_body + obj_hg_debris)
+        // Pattern E: HYPER GONER @ 30fps (obj_hg_wholescreen + obj_hg_body + obj_hg_debris)
         else if (kind === 'hypergoner') {
           const Gg = this.goner; if (!Gg) return; Gg.t++;
           if (Gg.stage === 0) {
-            this.asAlpha = Math.max(0, this.asAlpha - 0.08);
-            Gg.hgAlpha = Math.min(1, Gg.hgAlpha + 0.05);
-            if (Gg.hgAlpha >= 1 && Gg.t > 24) {
+            this.asAlpha = Math.max(0, this.asAlpha - 0.1);
+            Gg.hgAlpha = Math.min(1, Gg.hgAlpha + 0.08);
+            if (Gg.hgAlpha >= 1 && Gg.t > 16) {
               Gg.stage = 1;
               G.sfx.sfx('hg_laugh', 0.78);
             }
           } else if (Gg.stage === 1) {
             Gg.siner++;
-            Gg.faceY = Math.sin(Gg.siner / 1.5) * 14 - 8;
-            Gg.faceScale = Math.sin(Gg.siner / 1.5) * 0.25 - 0.2;
-            if (Gg.t > 92) {
+            Gg.faceY = Math.sin(Gg.siner * 1.1) * 14 - 8;
+            Gg.faceScale = Math.sin(Gg.siner * 1.1) * 0.25 - 0.2;
+            if (Gg.t > 56) {
               Gg.stage = 2;
               G.sfx.sfx('hg_charge', 0.82);
             }
           } else {
             Gg.cCounter++;
-            Gg.hgAlpha = Math.max(0.14, Gg.hgAlpha - 0.008);
-            Gg.rad = Math.max(20, (Gg.cCounter - 120) / 1.1);
+            Gg.hgAlpha = Math.max(0.14, Gg.hgAlpha - 0.012);
+            Gg.rad = Math.max(20, (Gg.cCounter - 95) * 1.45);
             this.shake = 5;
-            if (Gg.cCounter < 210 && Gg.cCounter % 3 === 0) {
+            if (Gg.cCounter < 185 && Gg.cCounter % 2 === 0) {
               const side = Math.floor(Math.random() * 4);
               const sx = side === 2 ? -30 : side === 3 ? 670 : Math.random() * 640;
               const sy = side === 0 ? -30 : side === 1 ? 510 : Math.random() * 460;
               const a = Math.atan2(240 - sy, 320 - sx);
               this.bullets.push({
                 type: 'hgdebris', x: sx, y: sy,
-                vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5,
-                sc: 1.85, r: 10,
+                vx: Math.cos(a) * 4.5, vy: Math.sin(a) * 4.5,
+                sc: 1.85, r: 9,
               });
             }
-            if (Gg.cCounter < 205 && Math.hypot(this.soulX - 320, this.soulY - 240) < Math.max(16, Gg.rad - 6)) {
+            if (Gg.cCounter < 180 && Math.hypot(this.soulX - 320, this.soulY - 240) < Math.max(16, Gg.rad - 6)) {
               this.hurt(5);
             }
-            if (Gg.cCounter > 140) {
-              this.whiteAlpha = Math.min(1.25, (Gg.cCounter - 140) / 68);
+            if (Gg.cCounter > 120) {
+              this.whiteAlpha = Math.min(1.25, (Gg.cCounter - 120) / 48);
             }
           }
         }
 
-        // Pattern F1: Phase 2 Canonical obj_ultimagen + obj_ultimabullet + obj_blastorb!
+        // Pattern F1: Phase 2 Canonical obj_ultimagen @ 30fps
         else if (kind === 'p2_comets') {
           const spawnSalvo = (side) => {
             const sx = side === 0 ? 160 : 480, sy = 128;
-            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.95, hue: (t * 14) % 360 });
+            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.95, hue: (t * 22) % 360 });
             G.sfx.sfx('segapower', 0.45, 0.84);
           };
           const spawnUltBullet = (side) => {
             const sx = side === 0 ? 160 : 480, sy = 128;
             const slow = this.attackWeak ? 0.65 : 1.0;
-            const vx = (side === 0 ? -1 : 1) * (3.8 + Math.random() * 2.6) * slow;
-            const vy = (1.4 + Math.random() * 2.2) * slow;
+            const vx = (side === 0 ? -1 : 1) * (7.2 + Math.random() * 4.8) * slow;
+            const vy = (2.8 + Math.random() * 4.2) * slow;
             this.bullets.push({
               type: 'ult_comet', side, x: sx, y: sy, vx, vy,
               hue: Math.random() * 360,
-              hist: Array.from({ length: 18 }, () => ({ x: sx, y: sy })),
-              r: 6, life: 150,
+              hist: Array.from({ length: 14 }, () => ({ x: sx, y: sy })),
+              r: 5, life: 110,
             });
           };
-          // Loop the canonical 215-frame salvo schedule so longer (durMul) turns stay dense.
-          const tc = t < 1 ? t : ((t - 1) % 215) + 1;
-          const live = t < this.attackDur - 40;
+          const tc = t < 1 ? t : ((t - 1) % 120) + 1;
+          const live = t < this.attackDur - 24;
           if (live) {
-            if (tc === 16 || tc === 96) spawnSalvo(0);
-            if (tc === 56 || tc === 136) spawnSalvo(1);
-            if (tc === 176) { spawnSalvo(0); spawnSalvo(1); }
-            if ((tc > 20 && tc < 38 && tc % 3 === 0) || (tc > 100 && tc < 118 && tc % 3 === 0)) spawnUltBullet(0);
-            if ((tc > 60 && tc < 78 && tc % 3 === 0) || (tc > 140 && tc < 158 && tc % 3 === 0)) spawnUltBullet(1);
-            if (!this.attackWeak && tc > 180 && tc < 208 && tc % 3 === 0) spawnUltBullet(Math.random() < 0.5 ? 0 : 1);
+            if (tc === 8 || tc === 48) spawnSalvo(0);
+            if (tc === 28 || tc === 68) spawnSalvo(1);
+            if (tc === 92) { spawnSalvo(0); spawnSalvo(1); }
+            if ((tc >= 10 && tc <= 18 && tc % 2 === 0) || (tc >= 50 && tc <= 58 && tc % 2 === 0)) spawnUltBullet(0);
+            if ((tc >= 30 && tc <= 38 && tc % 2 === 0) || (tc >= 70 && tc <= 78 && tc % 2 === 0)) spawnUltBullet(1);
+            if (!this.attackWeak && tc >= 94 && tc <= 108 && tc % 2 === 0) spawnUltBullet(Math.random() < 0.5 ? 0 : 1);
           }
         }
 
-        // Pattern F2: Phase 2 Canonical obj_chaosbomb + Shoulder Comet Pincers!
+        // Pattern F2: Phase 2 Chaos Bombs & Shoulder Comets @ 30fps
         else if (kind === 'p2_orb_beam') {
-          const bombInt = Math.max(26, 36 - (this.diffLvl || 0) * 3);
-          const cometInt = Math.max(36, 48 - (this.diffLvl || 0) * 4);
-          if (t < this.attackDur - 55 && t % bombInt === 4) {
+          const bombInt = Math.max(15, 22 - (this.diffLvl || 0) * 2);
+          const cometInt = Math.max(20, 28 - (this.diffLvl || 0) * 2);
+          if (t < this.attackDur - 32 && t % bombInt === 3) {
             G.sfx.sfx('spellcast', 0.48, 1.15);
             const bx2 = this.box.x + 28 + Math.random() * (this.box.w - 56);
             const by2 = this.box.y + 24 + Math.random() * (this.box.h - 48);
             this.bullets.push({
               type: 'chaosbomb', x: bx2, y: by2,
-              stage: 0, sc: 0.85, angle: 0, alpha: 1, timer: 0, hue: (t * 16) % 360, r: 14,
+              stage: 0, sc: 0.85, angle: 0, alpha: 1, timer: 0, hue: (t * 24) % 360, r: 12,
             });
           }
-          if (t < this.attackDur - 55 && t % cometInt === 20) {
+          if (t < this.attackDur - 32 && t % cometInt === 12) {
             const side = (Math.floor(t / cometInt) % 2);
             const sx = side === 0 ? 160 : 480, sy = 128;
-            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.9, hue: (t * 19) % 360 });
+            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.9, hue: (t * 26) % 360 });
             G.sfx.sfx('segapower', 0.4, 0.9);
             for (let k = 0; k < 2; k++) {
               this.bullets.push({
                 type: 'ult_comet', side, x: sx, y: sy,
-                vx: (side === 0 ? -1 : 1) * (4.0 + k * 1.2), vy: 1.8 + k * 1.1,
-                hue: (t * 13 + k * 70) % 360,
-                hist: Array.from({ length: 18 }, () => ({ x: sx, y: sy })),
-                r: 6, life: 145,
+                vx: (side === 0 ? -1 : 1) * (7.2 + k * 2.2), vy: 3.4 + k * 2.0,
+                hue: (t * 19 + k * 70) % 360,
+                hist: Array.from({ length: 14 }, () => ({ x: sx, y: sy })),
+                r: 5, life: 105,
               });
             }
           }
         }
 
-        // Pattern F3: Finale Crying Weak Stray Fireballs (bullettype=9 — curves AWAY from SOUL!)
+        // Pattern F3: Finale Crying Weak Stray Fireballs @ 30fps (steers away from SOUL)
         else if (kind === 'finale_fire') {
-          if (t < this.attackDur - 30 && t % 8 === 1) {
-            if (t % 16 === 1) G.sfx.sfx('chug', 0.22, 0.78);
+          if (t < this.attackDur - 18 && t % 5 === 1) {
+            if (t % 10 === 1) G.sfx.sfx('chug', 0.22, 0.78);
             const sx = this.box.x + 12 + Math.random() * (this.box.w - 24);
             const sy = this.box.y - 8;
             const ang = Math.atan2(this.soulY - sy, this.soulX - sx) + (Math.random() - 0.5) * 0.4;
             this.bullets.push({
               type: 'cry_fire', x: sx, y: sy,
-              vx: Math.cos(ang) * 2.1, vy: Math.sin(ang) * 2.1,
-              r: 6, life: 130,
+              vx: Math.cos(ang) * 3.8, vy: Math.sin(ang) * 3.8,
+              r: 5, life: 80,
             });
           }
         }
 
-        // Pattern G: Final Desperate Rainbow Beam (obj_afinal_body bcon=1..7 + obj_lastbeam!)
+        // Pattern G: Final Desperate Rainbow Beam @ 30fps (obj_afinal_body + obj_lastbeam)
         else if (kind === 'lastbeam') {
           const lb = this.lastBeam; if (!lb) return; lb.t++;
           const zh = G.lang === 'zh';
           if (lb.t < lb.windup) {
-            // Arms raise & tremble charging giant expanding white circles (radi) + spr_beamcircle orbs!
-            this.p2ArmRot = Math.min(148, lb.t * 4.4);
-            this.p2Shake = Math.min(6, lb.t * 0.16);
-            this.p2Radi = Math.min(60, lb.t * 1.45);
-            if (lb.t % 7 === 1) G.sfx.sfx('spellcast', 0.48, 0.5 + (lb.t / lb.windup) * 0.65);
+            this.p2ArmRot = Math.min(148, lb.t * 4.8);
+            this.p2Shake = Math.min(6, lb.t * 0.22);
+            this.p2Radi = Math.min(60, lb.t * 1.6);
+            if (lb.t % 5 === 1) G.sfx.sfx('spellcast', 0.48, 0.5 + (lb.t / lb.windup) * 0.65);
           } else if (lb.t === lb.windup) {
             this.asrielCry = 2;
             this.p2Shake = 5;
             this.p2RadiAlpha = 0;
             G.sfx.sfx('rainbowbeam', 0.8);
           } else {
-            this.shake = 7;
+            this.shake = 6;
             this.p2Shake = 6;
             const bTime = lb.t - lb.windup;
-            if (bTime < 12) lb.bw = Math.min(lb.maxBw, bTime * 20);
+            if (bTime < 8) lb.bw = Math.min(lb.maxBw, bTime * 30);
             if (bTime === 78) {
               lb.bw += 80; lb.maxBw += 80;
               this.finaleBtnShake = 1;
               this.finaleShout = zh ? '快住手！！' : 'STOP IT!!';
               G.sfx.sfx('rainbowbeam', 0.72, 1.25);
             }
-            if (bTime === 152) {
+            if (bTime === 170) {
               lb.bw += 260; lb.maxBw += 260;
               this.finaleBtnShake = 2;
               this.finaleBtnFall = true;
               this.finaleShout = zh ? '現在就給我住手！！！' : 'STOP IT NOW!!!';
               G.sfx.sfx('rainbowbeam', 0.85, 1.45);
             }
-            if (bTime > 218) {
+            if (bTime > 265) {
               this.finaleShout = '';
-              lb.bw = Math.max(0, lb.bw - 14);
+              lb.bw = Math.max(0, lb.bw - 18);
             }
-            if ([8, 48, 88, 128, 168, 208].includes(bTime)) {
+            if ([4, 44, 84, 124, 164, 204, 244].includes(bTime)) {
               this.hurt(1);
             }
           }
         }
 
-        // Pattern H: Lost Souls Mini-Waves
+        // Pattern H: Lost Souls Mini-Waves @ 30fps
         else if (kind === 'ls_undyne') {
-          const step = (this.diffLvl || 0) >= 2 ? 20 : 24;
-          if (t < this.attackDur - 28 && t % step === 2) {
+          const step = (this.diffLvl || 0) >= 2 ? 11 : 14;
+          if (t < this.attackDur - 18 && t % step === 2) {
             G.sfx.sfx('spearappear', 0.35);
-            const d = (Math.floor(t / step) + (t > 100 ? 1 : 0)) % 4;
+            const d = (Math.floor(t / step) + (t > 60 ? 1 : 0)) % 4;
             const pos = [
-              { x: 320, y: this.box.y - 110, vx: 0, vy: 3.1, dir: 0 },
-              { x: this.box.x + this.box.w + 110, y: 318, vx: -3.1, vy: 0, dir: 1 },
-              { x: 320, y: this.box.y + this.box.h + 110, vx: 0, vy: -3.1, dir: 2 },
-              { x: this.box.x - 110, y: 318, vx: 3.1, vy: 0, dir: 3 },
+              { x: 320, y: this.box.y - 110, vx: 0, vy: 5.2, dir: 0 },
+              { x: this.box.x + this.box.w + 110, y: 314, vx: -5.2, vy: 0, dir: 1 },
+              { x: 320, y: this.box.y + this.box.h + 110, vx: 0, vy: -5.2, dir: 2 },
+              { x: this.box.x - 110, y: 314, vx: 5.2, vy: 0, dir: 3 },
             ][d];
             this.bullets.push({ type: 'ls_arrow', ...pos, r: 7 });
           }
         } else if (kind === 'ls_alphys') {
-          const step = (this.diffLvl || 0) >= 2 ? 15 : 18;
-          if (t < this.attackDur - 28 && t % step === 2) {
+          const step = (this.diffLvl || 0) >= 2 ? 9 : 11;
+          if (t < this.attackDur - 18 && t % step === 2) {
             this.bullets.push({
               type: 'ls_zap',
               x: this.box.x + 22 + Math.random() * (this.box.w - 44),
-              y: this.box.y - 10, vy: 2.2 + Math.random(), r: 10, destructible: Math.random() < 0.7,
+              y: this.box.y - 10, vy: 4.0 + Math.random() * 1.5, r: 9, destructible: Math.random() < 0.7,
             });
           }
         } else if (kind === 'ls_skelebros') {
-          const step = (this.diffLvl || 0) >= 2 ? 23 : 28;
-          if (t < this.attackDur - 28 && t % step === 2) {
+          const step = (this.diffLvl || 0) >= 2 ? 14 : 18;
+          if (t < this.attackDur - 18 && t % step === 2) {
             const fromLeft = Math.floor(t / step) % 2 === 0;
-            const tall = Math.random() < 0.35 ? 50 : 28;
+            const tall = Math.random() < 0.35 ? 48 : 26;
             this.bullets.push({
               type: 'ls_bone',
               x: fromLeft ? this.box.x - 12 : this.box.x + this.box.w + 12,
               y: this.box.y + this.box.h - tall, w: 10, h: tall,
-              vx: fromLeft ? 3.3 : -3.3, vy: 0,
+              vx: fromLeft ? 5.8 : -5.8, vy: 0,
             });
           }
         } else if (kind === 'ls_parents') {
-          const step = (this.diffLvl || 0) >= 2 ? 12 : 14;
-          if (t < this.attackDur - 28 && t % step === 1) {
+          const step = (this.diffLvl || 0) >= 2 ? 7 : 9;
+          if (t < this.attackDur - 18 && t % step === 1) {
             G.sfx.sfx('chug', 0.28);
             const sx = Math.floor(t / step) % 2 === 0 ? this.box.x + 12 : this.box.x + this.box.w - 12;
             const ang = Math.atan2(this.soulY - (this.box.y + 10), this.soulX - sx);
             this.bullets.push({
               type: 'ls_fire', x: sx, y: this.box.y + 10,
-              vx: Math.cos(ang) * 3.2, vy: Math.sin(ang) * 3.2, r: 7,
+              vx: Math.cos(ang) * 5.6, vy: Math.sin(ang) * 5.6, r: 6,
             });
           }
         }
 
-        // Update bullets & check collisions
+        // Update bullets & check collisions @ 30fps (tightened fair c2-sans-fight-like hitboxes)
         const nextBullets = [];
         for (const b of this.bullets) {
           if (b.type === 'dreemurr_fire') {
-            b.age += 0.5;
+            b.age += 1;
             if (!b.floor) {
               b.vy += b.gy;
               b.y += b.vy;
-              if (b.y >= this.box.y + this.box.h - 14) {
-                b.y = this.box.y + this.box.h - 14;
+              if (b.y >= this.box.y + this.box.h - 12) {
+                b.y = this.box.y + this.box.h - 12;
                 b.vy = 0;
                 b.floor = true;
               }
             }
             b.x = b.cx + b.hSign * Math.sin(b.age / 10) * 58;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 11) this.hurt(3);
-            if (!b.floor || b.age < 120) nextBullets.push(b);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(3);
+            if (!b.floor || b.age < 75) nextBullets.push(b);
           } else if (b.type === 'stormstar') {
             b.prevs.unshift({ x: b.x, y: b.y });
-            if (b.prevs.length > 6) b.prevs.pop();
+            if (b.prevs.length > 4) b.prevs.pop();
             b.x += b.vx; b.y += b.vy; b.oo = 1 - b.oo;
             if (b.big) b.rot += 2;
             if (b.y >= b.splitY) {
               G.sfx.sfx(b.big ? 'explosion' : 'sparkles', 0.48, b.big ? 0.95 : 1.35);
-              if (b.big) this.shake = 10;
+              if (b.big) this.shake = 7;
               nextBullets.push({
                 type: 'explodestar', x: b.x, y: b.y,
-                big: b.big, hue: b.hue, sc: b.big ? 2 : 1, alpha: 1, rot: b.rot, life: 20,
+                big: b.big, hue: b.hue, sc: b.big ? 2 : 1, alpha: 1, rot: b.rot, life: 16,
               });
               const baseAng = Math.random() * 360;
               if (!b.big) {
@@ -2208,16 +2338,16 @@
                   const a = (baseAng + i * 51.42857) * Math.PI / 180;
                   nextBullets.push({
                     type: 'starburst', x: b.x, y: b.y,
-                    vx: Math.cos(a) * 1.4, vy: -Math.sin(a) * 1.4,
-                    accel: b.hard ? 0.14 : 0.11, curve: b.hard ? 0.9 : 0,
-                    hue: (b.hue + i * 51) % 360, rot: 0, spin: 5, r: 5, life: 92,
+                    vx: Math.cos(a) * 1.5, vy: -Math.sin(a) * 1.5,
+                    accel: b.hard ? 0.22 : 0.18, curve: b.hard ? 1.5 : 0,
+                    hue: (b.hue + i * 51) % 360, rot: 0, spin: 5, r: 4, life: 65,
                   });
                 }
               } else {
                 const rings = [
-                  { cnt: 20, step: 18, spd: 2.2, accel: 0.16, off: 0 },
-                  { cnt: 20, step: 18, spd: 1.2, accel: 0.12, off: 9 },
-                  { cnt: 20, step: 18, spd: 0.4, accel: 0.08, off: 4 },
+                  { cnt: 20, step: 18, spd: 2.0, accel: 0.28, off: 0 },
+                  { cnt: 20, step: 18, spd: 1.0, accel: 0.22, off: 9 },
+                  { cnt: 20, step: 18, spd: 0.3, accel: 0.16, off: 4 },
                 ];
                 for (const rg of rings) {
                   for (let i = 0; i < rg.cnt; i++) {
@@ -2225,8 +2355,8 @@
                     nextBullets.push({
                       type: 'starburst', x: b.x, y: b.y,
                       vx: Math.cos(a) * rg.spd, vy: -Math.sin(a) * rg.spd,
-                      accel: rg.accel, curve: b.hard ? 0.8 : 0,
-                      hue: (b.hue + i * 18) % 360, rot: 0, spin: 6, r: 5, life: 110,
+                      accel: rg.accel, curve: b.hard ? 1.4 : 0,
+                      hue: (b.hue + i * 18) % 360, rot: 0, spin: 6, r: 4, life: 75,
                     });
                   }
                 }
@@ -2236,8 +2366,8 @@
             nextBullets.push(b);
           } else if (b.type === 'explodestar') {
             b.life--;
-            b.alpha -= 0.05;
-            b.sc += b.big ? 0.2 : 0.1;
+            b.alpha -= 0.06;
+            b.sc += b.big ? 0.22 : 0.12;
             if (b.life > 0 && b.alpha > 0) nextBullets.push(b);
           } else if (b.type === 'starburst') {
             b.life--;
@@ -2251,34 +2381,34 @@
             if (b.accel) {
               const sp = Math.hypot(b.vx, b.vy);
               if (sp > 0.01) {
-                const nsp = Math.min(7.5, sp + b.accel);
+                const nsp = Math.min(11.0, sp + b.accel);
                 b.vx = (b.vx / sp) * nsp;
                 b.vy = (b.vy / sp) * nsp;
               }
             }
             b.x += b.vx; b.y += b.vy;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 5) this.hurt(5);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 3.5) this.hurt(5);
             if (b.life > 0 && b.x > -40 && b.x < 680 && b.y > -40 && b.y < 520) nextBullets.push(b);
           } else if (b.type === 'warnbolt') {
             b.timer--;
             if (b.timer <= 0) {
               G.sfx.sfx(b.giga ? 'lithit2' : 'lithit', 0.62, b.giga ? 0.8 : 0.65);
-              this.shake = Math.max(this.shake, b.giga ? 10 : 5);
+              this.shake = Math.max(this.shake, b.giga ? 8 : 3.5);
               nextBullets.push({
                 type: 'bolt', x: b.x, baseX: b.x, w: b.w, alpha: 1, scX: b.giga ? 4 : 2,
-                age: 0, frame: Math.random() < 0.5 ? 0 : 1, giga: b.giga, hue: (this.time * 14) % 360,
+                age: 0, frame: Math.random() < 0.5 ? 0 : 1, giga: b.giga, hue: (this.time * 22) % 360,
               });
             } else nextBullets.push(b);
           } else if (b.type === 'bolt') {
             b.age++;
-            b.hue = (b.hue + 10) % 360;
+            b.hue = (b.hue + 14) % 360;
             const jit = b.giga ? 10 : 5;
             b.x = b.baseX + (Math.random() - 0.5) * jit * 2;
-            if (b.age > (b.giga ? 5 : 3)) {
-              b.alpha -= 0.09;
-              if (b.alpha < 0.5) b.scX = Math.max(0.2, b.scX - 0.2);
+            if (b.age > (b.giga ? 3 : 2)) {
+              b.alpha -= 0.14;
+              if (b.alpha < 0.5) b.scX = Math.max(0.2, b.scX - 0.28);
             }
-            if (b.alpha > 0.75 && Math.abs(this.soulX - b.baseX) < b.w * 0.44 && this.soulY > this.box.y) this.hurt(5);
+            if (b.alpha > 0.72 && Math.abs(this.soulX - b.baseX) < b.w * 0.40 && this.soulY > this.box.y) this.hurt(5);
             if (b.alpha > 0.08) nextBullets.push(b);
           } else if (b.type === 'saberslash') {
             b.life--;
@@ -2290,68 +2420,68 @@
             b.vx += b.ax;
             b.x += b.vx; b.y += b.vy;
             b.life--;
-            if (b.life < 20) b.alpha -= 0.05;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(5);
+            if (b.life < 14) b.alpha -= 0.08;
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 7) this.hurt(5);
             if (b.alpha > 0.05 && b.x > 0 && b.x < 640) nextBullets.push(b);
           } else if (b.type === 'ult_comet') {
             const tx = this.ultTarget ? this.ultTarget.x : this.soulX;
             const ty = this.ultTarget ? this.ultTarget.y : this.soulY;
-            let hh = Math.max(-0.46, Math.min(0.46, (tx - b.x) / 30));
+            let hh = Math.max(-0.85, Math.min(0.85, (tx - b.x) / 22));
             if (b.side === 0 && hh < 0) hh = 0;
             if (b.side === 1 && hh > 0) hh = 0;
-            let vv = Math.max(-0.48, Math.min(0.32, (ty - b.y) / 28));
+            let vv = Math.max(-0.85, Math.min(0.55, (ty - b.y) / 22));
             b.vx += hh; b.vy += vv;
             const sp = Math.hypot(b.vx, b.vy);
-            const maxSp = this.attackWeak ? 5.6 : 9.4;
+            const maxSp = this.attackWeak ? 9.5 : 15.0;
             if (sp > maxSp) { b.vx = (b.vx / sp) * maxSp; b.vy = (b.vy / sp) * maxSp; }
             b.x += b.vx; b.y += b.vy;
             b.hist.unshift({ x: b.x, y: b.y });
-            if (b.hist.length > 18) b.hist.pop();
-            b.hue = (b.hue + 10) % 360;
+            if (b.hist.length > 14) b.hist.pop();
+            b.hue = (b.hue + 18) % 360;
             b.life--;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 5) this.hurt(this.attackWeak ? 1 : 4);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 3.5) this.hurt(this.attackWeak ? 1 : 4);
             if (b.life > 0 && b.x > -90 && b.x < 730 && b.y > -90 && b.y < 520) nextBullets.push(b);
           } else if (b.type === 'chaosbomb') {
-            b.angle += 6;
+            b.angle += 10;
             b.timer++;
             if (b.stage === 0) {
-              b.sc -= 0.025;
+              b.sc -= 0.045;
               if (b.sc <= 0.25) b.stage = 1;
             } else if (b.stage === 1) {
-              b.sc += 0.16;
+              b.sc += 0.28;
               if (b.sc >= 1.65) {
                 b.stage = 2;
                 G.sfx.sfx('explosion', 0.45, 1.25);
                 this.shake = Math.max(this.shake, 5);
                 for (let i = 0; i < 10; i++) {
-                  const a = (i / 10) * Math.PI * 2 + b.timer * 0.05;
+                  const a = (i / 10) * Math.PI * 2 + b.timer * 0.08;
                   nextBullets.push({
                     type: 'starburst', x: b.x, y: b.y,
-                    vx: Math.cos(a) * 3.1, vy: Math.sin(a) * 3.1,
-                    hue: (b.hue + i * 36) % 360, rot: 0, spin: 6, r: 5, life: 88,
+                    vx: Math.cos(a) * 5.2, vy: Math.sin(a) * 5.2,
+                    hue: (b.hue + i * 36) % 360, rot: 0, spin: 8, r: 4, life: 58,
                   });
                 }
               }
             } else {
-              b.sc += 0.03;
-              b.alpha -= 0.08;
+              b.sc += 0.05;
+              b.alpha -= 0.14;
             }
-            if (b.stage === 1 && Math.hypot(b.x - this.soulX, b.y - this.soulY) < 16) this.hurt(4);
+            if (b.stage === 1 && Math.hypot(b.x - this.soulX, b.y - this.soulY) < 13) this.hurt(4);
             if (b.alpha > 0.05) nextBullets.push(b);
           } else if (b.type === 'cry_fire') {
             const d = Math.hypot(b.x - this.soulX, b.y - this.soulY);
             if (d < 46 && d > 1) {
-              b.vx += ((b.x - this.soulX) / d) * 0.24;
-              b.vy += ((b.y - this.soulY) / d) * 0.24;
+              b.vx += ((b.x - this.soulX) / d) * 0.52;
+              b.vy += ((b.y - this.soulY) / d) * 0.52;
             }
             b.x += b.vx; b.y += b.vy; b.life--;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(1);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 7) this.hurt(1);
             if (b.life > 0 && b.y < this.box.y + this.box.h + 24) nextBullets.push(b);
           } else if (b.type === 'ls_arrow') {
             b.x += b.vx; b.y += b.vy;
-            const dToCenter = Math.hypot(b.x - 320, b.y - 318);
+            const dToCenter = Math.hypot(b.x - 320, b.y - 314);
             if (dToCenter < 24 && b.dir === this.shieldDir) { G.sfx.sfx('arrow', 0.45); continue; }
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(3);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 7.5) this.hurt(3);
             else if (b.x > 100 && b.x < 540 && b.y > 120 && b.y < 460) nextBullets.push(b);
           } else if (b.type === 'ls_zap') {
             b.y += b.vy;
@@ -2359,17 +2489,17 @@
             if (b.destructible) {
               for (let si = this.playerShots.length - 1; si >= 0; si--) {
                 const s = this.playerShots[si];
-                if (Math.hypot(s.x - b.x, s.y - b.y) < 15) {
+                if (Math.hypot(s.x - b.x, s.y - b.y) < 16) {
                   this.playerShots.splice(si, 1); shotHit = true; G.sfx.sfx('sparkles', 0.35); break;
                 }
               }
             }
             if (shotHit) continue;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 4) this.hurt(3);
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 2) this.hurt(3);
             if (b.y < this.box.y + this.box.h + 15) nextBullets.push(b);
           } else if (b.type === 'ls_bone') {
             b.x += b.vx;
-            if (this.soulX + 5 > b.x && this.soulX - 5 < b.x + b.w && this.soulY + 5 > b.y && this.soulY - 5 < b.y + b.h) {
+            if (this.soulX + 4 > b.x && this.soulX - 4 < b.x + b.w && this.soulY + 4 > b.y && this.soulY - 4 < b.y + b.h) {
               this.hurt(3);
             }
             if (b.x > this.box.x - 40 && b.x < this.box.x + this.box.w + 40) nextBullets.push(b);
@@ -2377,11 +2507,11 @@
             b.x += (b.vx || 0); b.y += (b.vy || 0);
             if (b.life !== undefined) { b.life--; if (b.life <= 0) continue; }
             if (b.type === 'hgdebris') {
-              b.vx *= 1.045; b.vy *= 1.045;
-              b.sc = Math.max(0.05, b.sc - 0.024);
-              if (Math.hypot(b.x - 320, b.y - 240) < 14) continue;
+              b.vx *= 1.08; b.vy *= 1.08;
+              b.sc = Math.max(0.05, b.sc - 0.04);
+              if (Math.hypot(b.x - 320, b.y - 240) < 16) continue;
             }
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < (b.r || 6) + 5) {
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < (b.r || 5) + 3.5) {
               this.hurt(this.mode === 'finale' ? 1 : (b.type === 'ls_fire' ? 3 : 5));
             }
             if (b.x > -80 && b.x < 720 && b.y > -80 && b.y < 550) nextBullets.push(b);
@@ -2395,9 +2525,18 @@
       },
 
       // =====================================================================
-      // 60FPS CANVAS RENDERER (640x480 Undertale Native)
+      // 60FPS/120FPS INTERPOLATED CANVAS RENDERER (640x480 Undertale Native)
       // =====================================================================
-      render(ctx) {
+      render(ctx, interpAlpha) {
+        const _interpSaved = this._applyInterp(interpAlpha);
+        try {
+          return this._renderBody(ctx);
+        } finally {
+          this._restoreInterp(_interpSaved);
+        }
+      },
+
+      _renderBody(ctx) {
         const L = this.L(), zh = G.lang === 'zh';
         ctx.save();
         ctx.fillStyle = '#000';
@@ -2412,9 +2551,9 @@
           this.drawPsychedelicBG(ctx, 0.32, 'p1');
           ctx.fillStyle = 'rgba(0,0,0,0.62)';
           ctx.fillRect(0, 0, 640, 480);
-          drawSprExt(ctx, 'spr_asriel_afterimager_full', 0, 520, 42 + Math.sin(this.time * 0.05) * 6, 1.5, 1.5, 0, hsvCss(this.time * 4, 80, 65), 0.35, false);
+          drawSprExt(ctx, 'spr_asriel_afterimager_full', 0, 520, 42 + Math.sin(this.time * 0.1) * 6, 1.5, 1.5, 0, hsvCss(this.time * 8, 80, 65), 0.35, false);
 
-          drawRichText(ctx, L.simTitle, 44, 28, 999, { size: 30, color: hsvCss(this.time * 4, 90, 70) });
+          drawRichText(ctx, L.simTitle, 44, 28, 999, { size: 30, color: hsvCss(this.time * 8, 90, 70) });
           drawRichText(ctx, L.simSub, 44, 64, 999, { size: 17, color: '#cccccc' });
 
           const list = this.mode === 'title'
@@ -2439,10 +2578,10 @@
         if (this.mode === 'intro') {
           if (this.introStep < L.introLines.length) {
             if (this.introStep === 0) {
-              const turnF = Math.min(9, Math.floor(this.introTick / 16));
+              const turnF = Math.min(9, Math.floor(this.introTick / 8));
               drawSpr(ctx, 'spr_kidasriel_back', turnF, 284, 136, 2, 2);
             } else {
-              drawSpr(ctx, 'spr_kidasriel_front', Math.floor(this.time / 15) % 4, 286, 130, 2, 2);
+              drawSpr(ctx, 'spr_kidasriel_front', Math.floor(this.time / 8) % 4, 286, 130, 2, 2);
             }
             const line = L.introLines[this.introStep];
             if (line) {
@@ -2452,7 +2591,7 @@
             }
           } else {
             // Canonical obj_asrielappear con>=10: Full silhouette + wide shaking ASRIEL DREEMURR text!
-            const fy = 28 + Math.sin(this.introRevealTimer / 6) * 2.5;
+            const fy = 28 + Math.sin(this.introRevealTimer / 3) * 2.5;
             drawSpr(ctx, 'spr_asriel_afterimager_full', 0, 257, fy, 2, 2);
             const fullTitle = 'ASRIEL   DREEMURR';
             const shown = fullTitle.slice(0, this.introWriterChar);
@@ -2523,12 +2662,12 @@
         if (this.sub === 'refuse') {
           ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
           if (this.refuseStage === 0) {
-            const jx = this.refuseT > 40 ? (Math.random() - 0.5) * 5 : 0;
-            const jy = this.refuseT > 40 ? (Math.random() - 0.5) * 5 : 0;
+            const jx = this.refuseT > 20 ? (Math.random() - 0.5) * 5 : 0;
+            const jy = this.refuseT > 20 ? (Math.random() - 0.5) * 5 : 0;
             drawSpr(ctx, 'spr_heartbreak', 0, 310 + jx, 224 + jy, 1.5, 1.5);
           } else {
             drawSpr(ctx, 'spr_heart', 0, 310, 224, 1.5, 1.5);
-            drawRichText(ctx, L.refused, 200, 152, Math.floor((this.refuseT - 70) / 2), { size: 28, color: '#ffffff' });
+            drawRichText(ctx, L.refused, 200, 152, Math.max(0, this.refuseT - 35), { size: 28, color: '#ffffff' });
           }
           ctx.restore();
           return;
@@ -2548,11 +2687,9 @@
           return;
         }
 
-        // 1. Canonical Prism Backgrounds (P1 obj_roundedge 3D tunnel vs P2 obj_afinal_body wings!)
-        if (this.mode === 'lost_soul') {
+        // 1. Canonical Backgrounds: P1 obj_roundedge 3D tunnel vs P2/Finale pure #000000 sky (IMG_9422)
+        if (this.mode === 'lost_soul' || this.mode === 'p2' || this.mode === 'finale') {
           ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
-        } else if (this.mode === 'p2' || this.mode === 'finale') {
-          this.drawPsychedelicBG(ctx, 0.45, 'p2');
         } else {
           if (!this.p1SpecialNormal) this.drawPsychedelicBG(ctx, Math.max(0.55, this.p1BgAlpha), 'p1');
         }
@@ -2725,10 +2862,10 @@
         ctx.restore();
       },
 
-      drawPsychedelicBG(ctx, alpha, variant = 'p1') {
+      drawPsychedelicBG(ctx, alpha, variant = 'p1', destRects = null) {
         const bg = SPR['spr_asrielbg'];
         if (!bg || !bg.img.complete || !bg.img.naturalWidth) return;
-        const hue = Math.round((this.time * 2.5) % 360);
+        const hue = Math.round((this.time * 5) % 360);
         if (!this._bgCanv) {
           this._bgCanv = document.createElement('canvas');
           this._bgCanv.width = 160; this._bgCanv.height = 96;
@@ -2766,20 +2903,25 @@
           bc.fillStyle = hsvCss(120 + hue, 92, 62);
           bc.fillRect(0, 0, 160, 96);
         } else {
-          // Canonical Phase 2 dark crimson prism behind wings (IMG_9422)
-          if ('filter' in bc) bc.filter = 'grayscale(1) contrast(1.4)';
+          // Canonical Phase 2 dark crimson/prism stained-glass mosaic clipped to wing rects (IMG_9422)
+          if ('filter' in bc) bc.filter = 'grayscale(1) contrast(1.55) brightness(1.2)';
           for (const off of [0, 80]) {
             const sx = (this.bgScroll + off) % 800;
-            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 72);
+            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 96);
             bc.save();
             bc.translate(160, 0);
             bc.scale(-1, 1);
-            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 72);
+            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 96);
             bc.restore();
           }
           bc.filter = 'none';
           bc.globalCompositeOperation = 'multiply';
-          bc.fillStyle = '#a81818';
+          const pGrad = bc.createLinearGradient(0, 0, 160, 96);
+          const hBase = 342 + Math.sin(this.time * 0.08) * 18;
+          pGrad.addColorStop(0, hsvCss(hBase, 92, 52));
+          pGrad.addColorStop(0.5, hsvCss(hBase - 22, 88, 44));
+          pGrad.addColorStop(1, hsvCss(hBase + 16, 92, 50));
+          bc.fillStyle = pGrad;
           bc.fillRect(0, 0, 160, 96);
         }
         bc.restore();
@@ -2787,12 +2929,26 @@
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         ctx.globalAlpha = alpha;
-        ctx.drawImage(this._bgCanv, 0, 0, 160, 96, 0, 0, 640, 384);
-        const grad = ctx.createLinearGradient(0, 220, 0, 384);
-        grad.addColorStop(0, 'rgba(0,0,0,0)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.92)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 220, 640, 164);
+        if (destRects) {
+          for (const rc of destRects) {
+            ctx.save();
+            if (rc.flip) {
+              ctx.translate(rc.x + rc.w, rc.y);
+              ctx.scale(-1, 1);
+              ctx.drawImage(this._bgCanv, 0, 0, 160, 96, 0, 0, rc.w, rc.h);
+            } else {
+              ctx.drawImage(this._bgCanv, 0, 0, 160, 96, rc.x, rc.y, rc.w, rc.h);
+            }
+            ctx.restore();
+          }
+        } else {
+          ctx.drawImage(this._bgCanv, 0, 0, 160, 96, 0, 0, 640, 384);
+          const grad = ctx.createLinearGradient(0, 220, 0, 384);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 220, 640, 164);
+        }
         ctx.restore();
       },
 
@@ -2807,8 +2963,8 @@
         const st = this.transformStretch;
         const x = this.asX;
         const rely = this.asRely;
-        const y = this.asY + (this.transformStretch > 0 ? Math.sin(this.time / 6) * 0.5 : 0);
-        const yoff = Math.sin(this.p1Siner / 6 || this.time / 12);
+        const y = this.asY + (this.transformStretch > 0 ? Math.sin(this.time / 3) * 0.5 : 0);
+        const yoff = Math.sin(this.p1Siner / 6 || this.time / 6);
 
         if (al > 0.02) {
           ctx.save();
@@ -2852,7 +3008,7 @@
             drawSprExt(ctx, 'spr_asrielarm_r_shrug', 0, x - 28, y + 38 + rely * 1.2, -2, 2, 0, null, al, true);
             drawSprExt(ctx, 'spr_asrielarm_r_shrug', 0, x + 30, y + 38 + rely * 1.2, 2, 2, 0, null, al, true);
           } else {
-            const idleSwing = (this.armRotL === 0 && this.armRotR === 0) ? Math.sin(this.time / 14) * 4 : 0;
+            const idleSwing = (this.armRotL === 0 && this.armRotR === 0) ? Math.sin(this.time / 7) * 4 : 0;
             drawSprExt(ctx, 'spr_asrielarm_r', 0, x - 28, y + 38 + rely * 1.2, -2 - st, 2, this.armRotL + idleSwing, null, al * this.armAlpha, true);
             drawSprExt(ctx, 'spr_asrielarm_r', 0, x + 30, y + 38 + rely * 1.2, 2 + st, 2, this.armRotR - idleSwing, null, al * this.armAlpha, true);
           }
@@ -2862,7 +3018,7 @@
           drawSprExt(ctx, 'spr_asrielcollar', 0, x, y + 22 + rely, 2 + st, 2, 0, null, al, true);
 
           if (this.shrug) {
-            drawSprExt(ctx, 'spr_asriel_headshake_sassy', Math.floor(this.time / 6) % 4, x, y + rely * 1.2 + this.headY, 2 + st, 2, this.headRot, null, al, true);
+            drawSprExt(ctx, 'spr_asriel_headshake_sassy', Math.floor(this.time / 3) % 4, x, y + rely * 1.2 + this.headY, 2 + st, 2, this.headRot, null, al, true);
           } else {
             drawSprExt(ctx, 'spr_asrielhead', this.asExpr, x, y + rely * 1.2 + this.headY, 2 + st, 2, this.headRot, null, al, true);
           }
@@ -2875,7 +3031,7 @@
           if (gn.meter) {
             const lit = Math.min(7, Math.floor(gn.meterCnt));
             for (let i = 0; i < lit; i++) {
-              const mc = hsvCss((this.time * 12 - i * 24) % 360, 88, 65);
+              const mc = hsvCss((this.time * 24 - i * 24) % 360, 88, 65);
               drawSprExt(ctx, 'spr_asriel_gunarm_meter', i, gn.bx, gn.by, 2, 2, gDeg, mc, 1, true);
             }
           }
@@ -2897,19 +3053,25 @@
 
       drawAsrielP2(ctx) {
         const x = 320, y = 112;
-        const af = Math.floor(this.time / 6);
-        const bob = Math.sin(this.time / 4);
-        const bob2 = Math.sin(this.time / 16) * 4;
+        const af = Math.floor(this.time / 3);
+        const bob = Math.sin(this.time / 2);
+        const bob2 = Math.sin(this.time / 8) * 4;
         const alpha = Math.max(0.05, 1 - this.asrielFade);
-        const armRot = this.lastBeam ? this.p2ArmRot : (this.gun ? 35 : Math.sin(this.time * 0.06) * 8);
+        const armRot = this.lastBeam ? this.p2ArmRot : (this.gun ? 35 : Math.sin(this.time * 0.12) * 8);
         const rx = (Math.random() - 0.5) * this.p2Shake * 1.4;
         const ry = (Math.random() - 0.5) * this.p2Shake * 2.4;
 
         if (alpha > 0.12) {
-          drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x + 42, y - 52 + bob2, 2, 2, 0, null, alpha, false);
-          drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x - 44, y - 52 + bob2, -2, 2, 0, null, alpha, false);
-          drawSprExt(ctx, 'spr_afinal_orbwing', af, x - 110, y - 52, 2, 2, 0, hsvCss(this.time * 5, 72, 42), alpha, false);
-          drawSprExt(ctx, 'spr_afinal_orbwing', af, x + 108, y - 52, -2, 2, 0, hsvCss(this.time * 5, 72, 42), alpha, false);
+          const wy = y - 52 + bob2;
+          // Draw animated crimson/prism stained-glass behind ONLY the two cosmoswing cutouts (pure #000000 sky!)
+          this.drawPsychedelicBG(ctx, alpha * 0.82, 'p2', [
+            { x: x - 44 - 312, y: wy, w: 312, h: 226, flip: true },
+            { x: x + 42, y: wy, w: 312, h: 226, flip: false },
+          ]);
+          drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x + 42, wy, 2, 2, 0, null, alpha, false);
+          drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x - 44, wy, -2, 2, 0, null, alpha, false);
+          drawSprExt(ctx, 'spr_afinal_orbwing', af, x - 110, y - 52, 2, 2, 0, hsvCss(this.time * 10, 72, 42), alpha, false);
+          drawSprExt(ctx, 'spr_afinal_orbwing', af, x + 108, y - 52, -2, 2, 0, hsvCss(this.time * 10, 72, 42), alpha, false);
           drawSprExt(ctx, 'spr_afinal_stem', af, x - 2, y + 146, 2, 2, 0, null, alpha, true);
           drawSprExt(ctx, 'spr_afinal_orb', af, x - 2, y + 68, 2, 2, 0, null, alpha, true);
           drawSprExt(ctx, 'spr_afinal_arm', af, x - 58 + rx, y + 56 + bob * 2 + ry, 2, 2, armRot, null, alpha, true);
@@ -2918,7 +3080,7 @@
           drawSprExt(ctx, 'spr_afinal_shoulder', af, x + 82, y + 32, -2, 2, 0, null, alpha, false);
         }
         const fSpr = this.asrielCry === 2 ? 'spr_afinal_face_cry2' : (this.asrielCry === 1 ? 'spr_afinal_face_cry' : 'spr_afinal_face');
-        drawSprExt(ctx, fSpr, Math.floor(this.time / 8), x + rx * 0.3, y + ry * 0.3, 2, 2, 0, null, 1, true);
+        drawSprExt(ctx, fSpr, Math.floor(this.time / 4), x + rx * 0.3, y + ry * 0.3, 2, 2, 0, null, 1, true);
 
         // Finale LastBeam Arm-Charge Concentric Rings + Spr_Beamcircle Orbs!
         if (this.lastBeam && this.p2RadiAlpha > 0.05 && this.p2Radi > 2) {
@@ -3045,24 +3207,11 @@
           drawSprExt(ctx, 'spr_redtarget', 0, this.ultTarget.x, this.ultTarget.y, 2, 2, 0, '#ff4040', 0.55, false);
         }
 
-        // Chaos Saber windup warning stripe
-        if (this.sabers && this.sabers.armed && !this.sabers.twinkleMode && this.sabers.count < this.sabers.maxSwings) {
-          const S = this.sabers, period = S.hard ? 26 : 32, local = S.swingTimer % period;
-          if (local >= 4 && local < period - 10) {
-            ctx.save();
-            ctx.strokeStyle = this.time % 4 < 2 ? 'rgba(255,255,255,0.65)' : 'rgba(255,220,64,0.65)';
-            ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
-            const hx = S.curSide === 0 ? this.box.x + 2 : 320;
-            ctx.strokeRect(hx, this.box.y + 2, this.box.w / 2 - 4, this.box.h - 4);
-            ctx.restore();
-          }
-        }
-
         // Chaos Saber / Slicer pure white crescent smears & blade extending into box (IMG_9415 & IMG_9416)
         if (this.mode === 'p1' && this.sabers && this.sabers.armed && this.asAlpha > 0.02) {
           const S = this.sabers;
           const ax = this.asX, al = this.asAlpha;
-          const ay = this.asY + (this.transformStretch > 0 ? Math.sin(this.time / 6) * 0.5 : 0);
+          const ay = this.asY + (this.transformStretch > 0 ? Math.sin(this.time / 3) * 0.5 : 0);
           if (S.smearAlpha > 0.05) {
             if (S.smearSide === 0 || S.smearSide === 2) {
               drawSprExt(ctx, 'spr_asriel_swordsmear', 0, ax - 14, ay - 52, -1.45, 2.02, 0, '#ffffff', S.smearAlpha, false);
@@ -3100,13 +3249,7 @@
           } else if (b.type === 'starburst') {
             drawSprExt(ctx, 'spr_regstar', 0, b.x, b.y, 0.85, 0.85, b.rot, '#ffffff', 1, true);
           } else if (b.type === 'warnbolt') {
-            ctx.save();
-            ctx.strokeStyle = this.time % 4 < 2 ? 'rgba(255,60,60,0.65)' : 'rgba(255,235,64,0.65)';
-            ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
-            ctx.strokeRect(b.x - b.w / 2, this.box.y + 4, b.w, this.box.h - 8);
-            ctx.setLineDash([]);
-            drawSprExt(ctx, 'spr_rainbowtarget', Math.floor(this.time / 4) % 2, b.x, b.y, b.giga ? 3 : 2, b.giga ? 3 : 2, 0, null, 1, true);
-            ctx.restore();
+            drawSprExt(ctx, 'spr_rainbowtarget', Math.floor(this.time / 2) % 2, b.x, b.y, b.giga ? 3 : 2, b.giga ? 3 : 2, 0, null, 1, true);
           } else if (b.type === 'bolt') {
             // Canonical obj_rainbowbolt: actual spr_rainbowbolt + pure white core flash clamped above HUD!
             const col = hsvCss(b.hue, 88, 65);
@@ -3126,7 +3269,7 @@
           } else if (b.type === 'gunbolt') {
             drawSprExt(ctx, 'spr_asriel_gunbolt', 0, b.x, b.y, 1.35, 1.35, b.deg + (this.time * (b.spin || 6)), '#ffffff', 1, true);
           } else if (b.type === 'hgdebris') {
-            drawSprExt(ctx, 'spr_hg_debris_small', 0, b.x, b.y, b.sc, b.sc, this.time * 9, '#ffffff', 0.92, true);
+            drawSprExt(ctx, 'spr_hg_debris_small', 0, b.x, b.y, b.sc, b.sc, this.time * 16, '#ffffff', 0.92, true);
           } else if (b.type === 'ult_comet') {
             const h = b.hist;
             ctx.save();
@@ -3148,7 +3291,7 @@
             drawSprExt(ctx, 'spr_chaosbomb', 0, b.x, b.y, b.sc, b.sc, b.angle, hsvCss(b.hue, 90, 70), b.alpha, true);
           } else if (b.type === 'dreemurr_fire' || b.type === 'cry_fire' || b.type === 'ls_fire') {
             const al = b.type === 'cry_fire' ? 0.72 : 1;
-            drawSprExt(ctx, 'spr_firebullet', Math.floor(this.time / 4) % 2, b.x - 8, b.y - 8, 1, 1, 0, null, al, false);
+            drawSprExt(ctx, 'spr_firebullet', Math.floor(this.time / 2) % 2, b.x - 8, b.y - 8, 1, 1, 0, null, al, false);
           } else if (b.type === 'ls_arrow') {
             drawSprExt(ctx, 'spr_spearsaver', 0, b.x, b.y, 0.45, 0.45, -b.dir * 90 + 180, '#40e8ff', 1, false);
           } else if (b.type === 'ls_zap') {
@@ -3169,7 +3312,7 @@
             ctx.strokeStyle = this.time % 3 === 0 ? '#ff3030' : (this.time % 3 === 1 ? '#ffa020' : '#ffff30');
             ctx.lineWidth = 2;
             const n = gn.lines || 3;
-            const spread = gn.hard ? 0.21 : 0.26;
+            const spread = gn.hard ? 0.28 : 0.34;
             for (let i = 0; i < n; i++) {
               const a = gn.angle + (i - (n - 1) / 2) * spread;
               ctx.beginPath(); ctx.moveTo(bx0, by0);
@@ -3184,15 +3327,15 @@
             const by1 = by0 + Math.sin(gn.angle) * 620;
             const px = -Math.sin(gn.angle), py = Math.cos(gn.angle);
             const grad = ctx.createLinearGradient(bx0, by0, bx0 + Math.cos(gn.angle) * 260, by0 + Math.sin(gn.angle) * 260);
-            grad.addColorStop(0, hsvCss((gn.beamTimer * 18) % 360, 95, 58));
-            grad.addColorStop(0.5, hsvCss((gn.beamTimer * 18 + 65) % 360, 95, 62));
-            grad.addColorStop(1, hsvCss((gn.beamTimer * 18 + 130) % 360, 95, 58));
+            grad.addColorStop(0, hsvCss((gn.beamTimer * 24) % 360, 95, 58));
+            grad.addColorStop(0.5, hsvCss((gn.beamTimer * 24 + 65) % 360, 95, 62));
+            grad.addColorStop(1, hsvCss((gn.beamTimer * 24 + 130) % 360, 95, 58));
             ctx.lineCap = 'butt';
             ctx.strokeStyle = grad;
             ctx.lineWidth = gn.beamW;
             ctx.beginPath(); ctx.moveTo(bx0, by0); ctx.lineTo(bx1, by1); ctx.stroke();
             ctx.lineWidth = gn.beamW * 0.42;
-            ctx.strokeStyle = hsvCss((gn.beamTimer * 18 + 30) % 360, 90, 74);
+            ctx.strokeStyle = hsvCss((gn.beamTimer * 24 + 30) % 360, 90, 74);
             ctx.beginPath(); ctx.moveTo(bx0 + px * 4, by0 + py * 4); ctx.lineTo(bx1 + px * 4, by1 + py * 4); ctx.stroke();
             ctx.restore();
           }
@@ -3201,10 +3344,10 @@
 
       drawFinalRainbowLaser(ctx) {
         const lb = this.lastBeam;
-        const wob = Math.sin(this.time * 0.5) * 26;
+        const wob = Math.sin(this.time) * 26;
         ctx.save();
         ctx.globalAlpha = 0.78;
-        ctx.fillStyle = hsvCss(this.time * 14, 95, 62);
+        ctx.fillStyle = hsvCss(this.time * 24, 95, 62);
         ctx.beginPath();
         ctx.moveTo(320, 128);
         ctx.lineTo(320 - lb.bw - wob, 490);
@@ -3212,7 +3355,7 @@
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = hsvCss(this.time * 14 + 60, 95, 72);
+        ctx.fillStyle = hsvCss(this.time * 24 + 60, 95, 72);
         ctx.beginPath();
         ctx.moveTo(320, 128);
         ctx.lineTo(320 - lb.bw * 0.55 + wob * 0.5, 490);
@@ -3220,7 +3363,7 @@
         ctx.closePath();
         ctx.fill();
 
-        drawSprExt(ctx, 'spr_beamcircle', 0, 320, 128, 7 + Math.sin(this.time * 0.5) * 2.5, 7 + Math.sin(this.time * 0.5) * 2.5, 0, '#ffffff', 0.85, true);
+        drawSprExt(ctx, 'spr_beamcircle', 0, 320, 128, 7 + Math.sin(this.time) * 2.5, 7 + Math.sin(this.time) * 2.5, 0, '#ffffff', 0.85, true);
         ctx.restore();
       },
     };

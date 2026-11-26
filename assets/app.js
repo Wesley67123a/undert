@@ -159,9 +159,9 @@
     } else if (G.mode === 'rpg_battle') {
       G.rpg.render(ctx, G.time);
     } else if (G.mode === 'asriel_battle') {
-      G.asriel?.render(ctx);
+      G.asriel?.render(ctx, G._battleInterp);
     } else if (G.mode === 'undyne_battle') {
-      G.undyne?.render(ctx);
+      G.undyne?.render(ctx, G._battleInterp);
     } else if (G.mode === 'finale') {
       renderFinale(ctx);
     } else {
@@ -1133,15 +1133,29 @@
     }
   });
 
-  // Crisp fixed-timestep 60fps loop (zero artificial startup lag!)
-  let lastTs = 0, acc = 0;
+  // Crisp fixed-timestep 60fps Overworld/RPG + canonical 30fps interpolated Boss Battles!
+  let lastTs = 0, acc = 0, bAcc = 0;
+  const STEP60 = 1000 / 60, STEP30 = 1000 / 30;
   function frame(ts) {
     if (!lastTs) lastTs = ts;
-    acc += Math.min(50, ts - lastTs); lastTs = ts;
-    while (acc >= 1000 / 60) {
-      G.keys.moveScale = 1.0;
-      update();
-      acc -= 1000 / 60;
+    const dt = Math.min(100, ts - lastTs); lastTs = ts;
+    if (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') {
+      bAcc += dt;
+      while (bAcc >= STEP30) {
+        G.keys.moveScale = 1.0;
+        if (G.mode === 'asriel_battle') G.asriel?.step30(G.keys);
+        else if (G.mode === 'undyne_battle') G.undyne?.step30(G.keys);
+        bAcc -= STEP30;
+      }
+      G._battleInterp = bAcc / STEP30;
+      acc = 0;
+    } else {
+      acc += dt; bAcc = 0; G._battleInterp = 1.0;
+      while (acc >= STEP60) {
+        G.keys.moveScale = 1.0;
+        update();
+        acc -= STEP60;
+      }
     }
     render();
     requestAnimationFrame(frame);

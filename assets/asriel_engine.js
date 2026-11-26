@@ -50,8 +50,7 @@
         { expr: 'kid2', text: "It's me,\nyour best\nfriend." },
       ],
       p1TurnSpeech: [
-        [], // Turn 0: Opening Dreemurr Fire Magic (specialnormal=1)
-        [], // Turn 1: Star Blazing
+        [], // Turn 0: Pre-true-battle Dreemurr Fire Magic (no BGM!)
         [{ expr: 1, text: "You know...\nI don't care about\ndestroying this\nworld anymore." }],
         [{ expr: 2, text: "After I defeat you\nand gain total control\nover the timeline...\nI just want to reset\neverything." }],
         [{ expr: 3, text: "All your progress...\nEveryone's memories.\nI'll bring them all\nback to zero!" }],
@@ -75,7 +74,6 @@
       ],
       p1Status: [
         '* It\'s the end.',
-        '* Asriel readies "STAR BLAZING."',
         '* Asriel charges "SHOCKER\n  BREAKER."',
         '* Asriel calls on "CHAOS SABER."',
         '* Asriel charges "SHOCKER\n  BREAKER."',
@@ -106,10 +104,13 @@
         "Come on...\nShow me what good\nyour DETERMINATION\nis now!",
       ],
       struggleFail: '* Can\'t move your body.\n* Nothing happened.',
-      saveAwake: [
+      struggleSteps: [
         '* Can\'t move your body.\n* Nothing happened.',
-        '* You tried to reach your SAVE file.\n* Nothing happened.',
-        '* Seems SAVING the game really is impossible.',
+        '* You tried to reach\n  your SAVE file.\n* Nothing happened.',
+        '* You tried again to reach\n  your SAVE file.\n* Nothing happened.',
+      ],
+      saveAwake: [
+        '* Seems SAVING the game\n  really is impossible.',
         '* ...\n* But...\n* Maybe, with what little power you have...\n* You can \\YSAVE\\W something else.',
       ],
       lostSouls: {
@@ -221,7 +222,6 @@
       ],
       p1TurnSpeech: [
         [],
-        [],
         [{ expr: 1, text: '你知道嗎……\n我已經不在乎摧毀這個\n世界了。' }],
         [{ expr: 2, text: '當我打敗你並徹底掌握\n時間線之後……\n我只想把一切都重置。' }],
         [{ expr: 3, text: '你所有的進度……\n大家所有的記憶。\n我會將它們通通歸零！' }],
@@ -245,7 +245,6 @@
       ],
       p1Status: [
         '* 這就是終點了。',
-        '* 艾斯利爾準備發動「群星熾燃 (STAR BLAZING)」。',
         '* 艾斯利爾正在蓄力「雷霆震擊 (SHOCKER BREAKER)」。',
         '* 艾斯利爾召喚出「混沌雙劍 (CHAOS SABER)」。',
         '* 艾斯利爾正在蓄力「雷霆震擊 (SHOCKER BREAKER)」。',
@@ -276,9 +275,12 @@
         '來吧！讓我看看你那份\n「決心」現在有什麼用！',
       ],
       struggleFail: '* 身體動彈不得。\n* 什麼事也沒發生。',
+      struggleSteps: [
+        '* 身體動彈不得。\n* 什麼事也沒發生。',
+        '* 你試著觸碰「存檔點 (SAVE)」……\n* 什麼事也沒發生。',
+        '* 你再次試著觸碰「存檔點 (SAVE)」……\n* 什麼事也沒發生。',
+      ],
       saveAwake: [
-        '* 身體動彈不得，什麼也沒發生。',
-        '* 你試著伸手觸碰「存檔點 (SAVE)」……卻構不著。',
         '* 看來在這裡「存檔」真的已經不可能了。',
         '* ……但是……\n* 也許憑你現在這份微小的力量……\n* 你可以試著去「\\Y拯救 (SAVE)\\W」別的東西！',
       ],
@@ -456,7 +458,7 @@
       transformStretch: 0,
       asX: 320, asY: 48, asRely: 0, asAlpha: 1, asExpr: 0, shrug: false,
       armRotL: 0, armRotR: 0, armAlpha: 1, torsoRot: 0, headRot: 0, headY: 0,
-      p2ArmRot: 0, p2Shake: 0, p2Radi: 0, p2RadiAlpha: 0, p2Darker: 0,
+      p2ArmRot: 0, p2Shake: 0, p2Radi: 0, p2RadiAlpha: 0, p2Darker: 0, p2BlackoutMsg: false,
       finaleBtnFall: false, finaleBtnShake: 0,
       finaleBtnY: [430, 430, 430, 430], finaleBtnVy: [0, 0, 0, 0], finaleBtnAng: [0, 0, 0, 0],
       finaleShout: '',
@@ -529,7 +531,7 @@
         this.asAlpha = 1; this.armAlpha = 1; this.armRotL = 0; this.armRotR = 0;
         this.torsoRot = 0; this.headRot = 0; this.headY = 0; this.asRely = 0;
         this.transformStretch = 0;
-        this.p2ArmRot = 0; this.p2Shake = 0; this.p2Radi = 0; this.p2RadiAlpha = 0;
+        this.p2ArmRot = 0; this.p2Shake = 0; this.p2Radi = 0; this.p2RadiAlpha = 0; this.p2BlackoutMsg = false;
         this.finaleShout = '';
         this.sub = 'main'; this.currentAtk = null;
         this.waveQueue = []; this.chainIdx = 0; this.chainTotal = 0; this.diffLvl = 0;
@@ -544,7 +546,7 @@
         this.struggles = 0; this.saveUnlocked = false;
         this.savedSouls = { undyne: false, alphys: false, skelebros: false, parents: false };
         this.asrielCry = 0; this.asrielFade = 0;
-        this.p2Darker = 0;
+        this.p2Darker = 0; this.p2BlackoutMsg = false;
         this.finaleBtnFall = false; this.finaleBtnShake = 0;
         this.finaleBtnY = [430, 430, 430, 430];
         this.finaleBtnVy = [0, 0, 0, 0];
@@ -554,7 +556,7 @@
           this.mode = 'intro';
           this.introStep = 0; this.introTick = 0; this.introChar = 0;
           this.introWriterChar = 0; this.introRevealTimer = 0;
-          G.sfx.playBGM('asrielback', true, 0.42);
+          G.sfx.stopBGM(); // Canonical: NO BGM during pre-transformation Kid Asriel dialogue!
         } else if (tag === 'p1') {
           this.mode = 'p1';
           this.sub = 'main';
@@ -565,15 +567,15 @@
           this.p1Siner = 0;
           this.asX = 320; this.asY = 50;
           this.statusTxt = this.L().p1Status[0];
-          G.sfx.playBGM('hopes', true, 0.56);
+          G.sfx.stopBGM(); // Canonical: NO BGM on Turn 0 Fire Magic; Hopes and Dreams kicks in on Turn 1 reveal!
         } else if (tag === 'hypergoner') {
           this.mode = 'p1';
-          this.p1Turn = 14;
+          this.p1Turn = 13;
           this.p1SpecialNormal = false;
           this.p1BgAlpha = 0.5;
           this.whiteAlpha = 0.8;
           G.sfx.playBGM('hopes', true, 0.56);
-          this.beginBubble(this.L().p1TurnSpeech[14], () => this.launchP1Wave(14));
+          this.beginBubble(this.L().p1TurnSpeech[13], () => this.launchP1Wave(13));
         } else if (tag === 'p2') {
           this.mode = 'p2';
           this.sub = 'main';
@@ -610,7 +612,8 @@
         this.mode = idx === 8 ? 'finale' : (p2Like ? 'p2' : 'p1');
         this.p1SpecialNormal = (idx === 0);
         this.p1BgAlpha = (idx === 0) ? 0 : 0.5;
-        if (idx === 8) this.playHisTheme();
+        if (idx === 0) G.sfx.stopBGM();
+        else if (idx === 8) this.playHisTheme();
         else if (p2Like) G.sfx.playBGM('burn', true, 0.55);
         else if (idx === 9) G.sfx.playBGM('savetheworld', true, 0.55);
         else G.sfx.playBGM('hopes', true, 0.55);
@@ -756,12 +759,12 @@
           G.sfx.sfx('spellcast', 0.7);
           this.bolts = { hard, windup: 24, cycles, cycleLen, idx: 0, gigaPhase: 0, trackCnt: 0 };
         } else if (kind === 'saber') {
-          // Canonical obj_asriel_swordmaster: border=4 (square/narrower arena), Asriel drops to y=100
-          this.tBox = { x: 230, y: 248, w: 180, h: 140 };
+          // Canonical obj_asriel_swordmaster: compact square arena centered below Asriel (y=88)
+          this.tBox = { x: 245, y: 248, w: 150, h: 128 };
           const swings = opts.swings || (hard ? 6 : 5);
           const period = hard ? 26 : 32;
           this.attackDur = Math.max(hard ? 265 : 235, 24 + swings * period + 96);
-          this.asX = 320; this.asY = 92; this.asRely = 0;
+          this.asX = 320; this.asY = 88; this.asRely = 0;
           this.armAlpha = 0;
           G.sfx.sfx('swordappear', 0.7);
           this.sabers = {
@@ -772,14 +775,14 @@
             lungeX: 320,
           };
         } else if (kind === 'buster') {
-          this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          const salvos = opts.salvos || 7;
-          this.attackDur = Math.max(hard ? 295 : 275, salvos * (hard ? 20 : 25) + 120);
+          this.tBox = { x: 215, y: 244, w: 210, h: 136 };
+          const salvos = opts.salvos || 9;
+          this.attackDur = Math.max(hard ? 295 : 285, salvos * (hard ? 20 : 25) + 120);
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.armAlpha = 0;
           this.gun = {
-            hard, t: 0, bx: 390, by: 65, thisx: 390, thisy: 65,
-            relx: 70, rely: 20, angle: Math.PI / 2, recoil: 0,
+            hard, t: 0, bx: 344, by: 84, thisx: 344, thisy: 84,
+            relx: 24, rely: 39, angle: Math.PI / 2, recoil: 0,
             salvo: 0, maxSalvo: salvos, fireSub: 0, lines: 3, aimFlash: 0,
             meter: false, meterCnt: 0, spinning: false, spinSpd: 0, spinAng: 0,
             unhinge: false, unhingeFrame: 0, blasting: false, beamW: 0, beamTimer: 0,
@@ -849,26 +852,23 @@
       },
 
       // ---------------------------------------------------------------------
-      // PACING ENGINE: each turn = ordered chain of existing attacks.
-      // Later turns chain more attacks with higher counts/hard flags so the
-      // full run lasts ~10-15 minutes instead of a few short single waves.
+      // CANONICAL TURN TIMELINE: 1 attack per turn, exact Undertale order.
       // ---------------------------------------------------------------------
       P1_TIMELINE: [
-        /* 0  */ [['fire_magic', { durMul: 2.0 }]],
-        /* 1  */ [['star', { hard: false, durMul: 1.8 }]],
-        /* 2  */ [['shocker', { hard: false, cycles: 2 }]],
-        /* 3  */ [['saber', { hard: false, swings: 10 }]],
-        /* 4  */ [['shocker', { hard: false, cycles: 2 }], ['fire_magic', { durMul: 1.6 }], ['star', { hard: false, durMul: 1.4 }]],
-        /* 5  */ [['star', { hard: false, durMul: 1.8 }], ['saber', { hard: false, swings: 10 }], ['shocker', { hard: false, cycles: 2 }]],
-        /* 6  */ [['buster', { hard: false, salvos: 12 }], ['fire_magic', { durMul: 1.6 }]],
-        /* 7  */ [['saber', { hard: false, swings: 11 }], ['shocker', { hard: false, cycles: 2 }], ['buster', { hard: false, salvos: 10 }]],
-        /* 8  */ [['buster', { hard: false, salvos: 12 }], ['star', { hard: false, durMul: 1.8 }], ['saber', { hard: false, swings: 10 }]],
-        /* 9  */ [['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 11 }], ['star', { hard: true, durMul: 1.6 }]],
-        /* 10 */ [['star', { hard: true, durMul: 2.0 }], ['buster', { hard: true, salvos: 13 }], ['shocker', { hard: true, cycles: 2 }]],
-        /* 11 */ [['saber', { hard: true, swings: 13 }], ['buster', { hard: true, salvos: 14 }], ['star', { hard: true, durMul: 1.8 }]],
-        /* 12 */ [['buster', { hard: true, salvos: 15 }], ['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 13 }], ['star', { hard: true, durMul: 1.7 }]],
-        /* 13 */ [['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 15 }], ['buster', { hard: true, salvos: 16 }], ['star', { hard: true, durMul: 2.0 }]],
-        /* 14 */ [['hypergoner', {}]],
+        /* 0  */ [['fire_magic', {}]],
+        /* 1  */ [['shocker', { hard: false }]],
+        /* 2  */ [['saber', { hard: false, swings: 5 }]],
+        /* 3  */ [['shocker', { hard: false }]],
+        /* 4  */ [['star', { hard: false }]],
+        /* 5  */ [['buster', { hard: false, salvos: 9 }]],
+        /* 6  */ [['saber', { hard: false, swings: 5 }]],
+        /* 7  */ [['buster', { hard: false, salvos: 9 }]],
+        /* 8  */ [['shocker', { hard: true }]],
+        /* 9  */ [['star', { hard: true }]],
+        /* 10 */ [['saber', { hard: true, swings: 6 }]],
+        /* 11 */ [['buster', { hard: true, salvos: 9 }]],
+        /* 12 */ [['shocker', { hard: true }]],
+        /* 13 */ [['hypergoner', {}]],
       ],
 
       runChain(chain) {
@@ -889,21 +889,12 @@
 
       launchP2Wave() {
         const n = this.p2Turn;
-        const durMul = 1.6 + Math.min(0.8, n * 0.2);
-        const a = n % 2 === 0 ? 'p2_comets' : 'p2_orb_beam';
-        const b = n % 2 === 0 ? 'p2_orb_beam' : 'p2_comets';
-        const chain = [
-          [a, { durMul }],
-          [b, { durMul }],
-          [a, { durMul: Math.max(1.25, +(durMul - 0.3).toFixed(2)) }],
-        ];
-        this.runChain(chain);
+        const kind = n % 2 === 0 ? 'p2_comets' : 'p2_orb_beam';
+        this.runChain([[kind, {}]]);
       },
 
       launchLostSoulWave() {
-        const kind = 'ls_' + this.activeLostSoul;
-        const durMul = this.lsActDone >= 2 ? 2.5 : 2.0;
-        this.runChain([[kind, { durMul }]]);
+        this.runChain([['ls_' + this.activeLostSoul, {}]]);
       },
 
       launchFinaleWave(t) {
@@ -912,10 +903,10 @@
           this.runChain([['lastbeam', {}]]);
         } else if (t <= 1) {
           this.asrielCry = 1;
-          this.runChain([['p2_comets', { weak: true, durMul: 1.6 }], ['finale_fire', { weak: true, durMul: 1.8 }]]);
+          this.runChain([['p2_comets', { weak: true }]]);
         } else {
           this.asrielCry = 2;
-          this.runChain([['finale_fire', { weak: true, durMul: +(2.2 + (t - 2) * 0.25).toFixed(2) }]]);
+          this.runChain([['finale_fire', { weak: true }]]);
         }
       },
 
@@ -958,12 +949,13 @@
             });
             return;
           }
-          // Turn 0 beat-drop whiteout reveal! (obj_roundedge ftimer==671)
+          // Canonical Turn 0 -> Turn 1: Hopes and Dreams starts + psychedelic mosaic bursts in!
           if (this.p1Turn === 0 && this.p1SpecialNormal) {
             this.p1SpecialNormal = false;
-            this.p1BgAlpha = 0.5;
+            this.p1BgAlpha = 0.52;
             this.whiteAlpha = 1.1;
             G.sfx.sfx('create', 0.65);
+            G.sfx.playBGM('hopes', true, 0.56);
           }
           this.p1Turn++;
           this.sub = 'main';
@@ -986,9 +978,10 @@
 
         if (this.mode === 'lost_soul') {
           this.sub = 'ls_act';
+          const lsTarget = this.activeLostSoul === 'parents' ? 4 : 3;
           this.statusTxt = G.lang === 'zh'
-            ? `* 繼續呼喚 ${this.L().lostSouls[this.activeLostSoul].name}！（${this.lsActDone}/3）`
-            : `* Keep calling out to ${this.L().lostSouls[this.activeLostSoul].name}! (${this.lsActDone}/3)`;
+            ? `* 繼續呼喚 ${this.L().lostSouls[this.activeLostSoul].name}！（${this.lsActDone}/${lsTarget}）`
+            : `* Keep calling out to ${this.L().lostSouls[this.activeLostSoul].name}! (${this.lsActDone}/${lsTarget})`;
           return;
         }
 
@@ -1129,11 +1122,16 @@
           }
           if (this.mode === 'p2' && !this.saveUnlocked) {
             this.struggles++;
+            this.p2BlackoutMsg = true;
+            this.tBox = { x: 132, y: 185, w: 376, h: 112 };
+            this.box = { ...this.tBox };
             if (this.struggles >= 4) {
-              this.p2Darker = 0.05; // Darkness creeps in while trying to reach SAVE file (obj_afinal_body darker=1)
               this.saveUnlocked = true;
               this.beginMsg(this.L().saveAwake.join('\n'), () => {
+                this.p2BlackoutMsg = false;
                 this.p2Darker = 0;
+                this.tBox = { x: 32, y: 250, w: 575, h: 140 };
+                this.box = { ...this.tBox };
                 this.whiteAlpha = 1.15;
                 G.sfx.sfx('abreak2', 0.75);
                 this.hp = this.maxHp;
@@ -1143,7 +1141,12 @@
                 this.statusTxt = G.lang === 'zh' ? '* 按 [ACT] (★ SAVE) 喚醒被困在艾斯利爾心中的夥伴！' : '* Select ★ SAVE to rescue your friends\' SOULs!';
               });
             } else {
-              this.beginMsg(this.L().struggleFail, () => {
+              const steps = this.L().struggleSteps || [this.L().struggleFail];
+              const msgTxt = steps[Math.min(this.struggles - 1, steps.length - 1)];
+              this.beginMsg(msgTxt, () => {
+                this.p2BlackoutMsg = false;
+                this.tBox = { x: 32, y: 250, w: 575, h: 140 };
+                this.box = { ...this.tBox };
                 const sp = this.L().p2Speech[Math.min(this.struggles - 1, this.L().p2Speech.length - 1)];
                 this.beginBubble([sp], () => this.launchP2Wave());
               });
@@ -1255,8 +1258,9 @@
           G.sfx.sfx('select', 0.6);
           const ls = this.L().lostSouls[this.activeLostSoul];
           const resTxt = ls.res[this.subCur] || ls.res[0];
+          const lsTarget = this.activeLostSoul === 'parents' ? 4 : 3;
           this.lsActDone++;
-          if (this.lsActDone >= 3) {
+          if (this.lsActDone >= lsTarget) {
             this.savedSouls[this.activeLostSoul] = true;
             this.hp = this.maxHp;
             G.sfx.sfx('heal', 0.7);
@@ -1686,24 +1690,24 @@
               big: false, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 10,
             });
           }
-          if (this.attackDur >= 380 && t === Math.floor((S.windup + this.attackDur - 70) / 2) && !S.explodedBigMid) {
+          if (this.attackDur >= 380 && t === Math.floor((S.windup + this.attackDur - 120) / 2) && !S.explodedBigMid) {
             S.explodedBigMid = true;
             G.sfx.sfx('star', 0.7, 0.45);
             const ang = 215 * Math.PI / 180;
             this.bullets.push({
-              type: 'stormstar', x: 740, y: -115,
-              vx: Math.cos(ang) * 4.4, vy: -Math.sin(ang) * 4.4,
-              hue: 195, splitY: 282, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
+              type: 'stormstar', x: 700, y: -35,
+              vx: Math.cos(ang) * 6.2, vy: -Math.sin(ang) * 6.2,
+              hue: 195, splitY: 232, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
             });
           }
-          if (t === this.attackDur - 70 && !S.explodedBig) {
+          if (t === Math.max(S.windup + 12, this.attackDur - 125) && !S.explodedBig) {
             S.explodedBig = true;
             G.sfx.sfx('star', 0.7, 0.42);
             const ang = 215 * Math.PI / 180;
             this.bullets.push({
-              type: 'stormstar', x: 740, y: -115,
-              vx: Math.cos(ang) * 4.4, vy: -Math.sin(ang) * 4.4,
-              hue: 48, splitY: 282, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
+              type: 'stormstar', x: 700, y: -35,
+              vx: Math.cos(ang) * 6.2, vy: -Math.sin(ang) * 6.2,
+              hue: 48, splitY: 232, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
             });
           }
         }
@@ -1785,7 +1789,7 @@
           const S = this.sabers;
           if (!S) return;
           S.t++;
-          S.smearAlpha = Math.max(0, S.smearAlpha - 0.16);
+          S.smearAlpha = Math.max(0, S.smearAlpha - 0.085);
           S.swordSpriteTimer = Math.max(0, S.swordSpriteTimer - 1);
           this.torsoRot *= 0.8; this.headRot *= 0.85;
           if (!S.armed) {
@@ -1799,31 +1803,31 @@
             if (S.count < S.maxSwings) {
               const local = S.swingTimer % period;
               if (local === 1) {
-                let pick = Math.random() < 0.5 ? 0 : 1;
+                let pick = S.count === 0 ? 1 : (Math.random() < 0.5 ? 0 : 1); // Canonical: first slash is always from the right!
                 if (pick === S.prevSide && pick === S.prev2Side) pick = 1 - pick;
                 S.prev2Side = S.prevSide; S.prevSide = pick; S.curSide = pick;
                 G.sfx.sfx('pullback', 0.6);
               }
               if (local >= 2 && local < period - 10) {
                 const dirSign = S.curSide === 0 ? -1 : 1;
-                const tgtX = 320 + dirSign * 30;
+                const tgtX = 320 + dirSign * 22;
                 this.asX += (tgtX - this.asX) * 0.25;
                 this.torsoRot = dirSign * -10;
                 this.headRot = dirSign * 14;
-                if (S.curSide === 0) this.armRotL = -42; else this.armRotR = 42;
+                if (S.curSide === 0) this.armRotL = 28; else this.armRotR = -28;
               }
               if (local === period - 10) {
                 this.shake = 7;
                 G.sfx.sfx('cinematiccut', 0.72);
                 S.smearAlpha = 1;
                 S.smearSide = S.curSide;
-                S.swordSpriteTimer = 6;
-                this.headRot = (S.curSide === 0 ? -18 : 18);
+                S.swordSpriteTimer = 8;
+                this.headRot = (S.curSide === 0 ? -16 : 16);
                 this.armRotL = 0; this.armRotR = 0;
                 const hx = S.curSide === 0 ? this.box.x : 320;
                 this.bullets.push({
                   type: 'saberslash', side: S.curSide, x: hx, y: this.box.y,
-                  w: this.box.w / 2 + 6, h: this.box.h, life: 7,
+                  w: this.box.w / 2 + 4, h: this.box.h, life: 7,
                 });
                 S.count++;
               }
@@ -1836,24 +1840,24 @@
             S.twinkleT++;
             this.asX += (320 - this.asX) * 0.2;
             if (S.twinkleT < 28) {
-              this.armRotL = Math.max(-35, this.armRotL - 2);
-              this.armRotR = Math.min(35, this.armRotR + 2);
+              this.armRotL = Math.max(-28, this.armRotL - 2);
+              this.armRotR = Math.min(28, this.armRotR + 2);
               this.headY = -Math.min(10, S.twinkleT * 0.4);
             } else if (S.twinkleT === 28) {
               S.twinklesSpawned = true;
               this.armRotL = 0; this.armRotR = 0;
-              S.swordSpriteTimer = 8;
+              S.swordSpriteTimer = 10;
               S.smearAlpha = 1; S.smearSide = 2; // Both arms shatter down!
               this.shake = 10;
               G.sfx.sfx('cinematiccut', 0.75);
               G.sfx.sfx('sparkles', 0.7);
               const pairs = 4;
               for (let i = 0; i < pairs; i++) {
-                const sy = this.box.y + 18 + i * 32;
+                const sy = this.box.y + 18 + i * 28;
                 for (const sgn of [-1, 1]) {
                   this.bullets.push({
                     type: 'swordtwinkle',
-                    x: 320 + sgn * 36, y: sy,
+                    x: 320 + sgn * 34, y: sy,
                     vx: sgn * (0.4 + Math.random() * 0.4), vy: (Math.random() - 0.5) * 1.4,
                     ax: sgn * (0.14 + Math.random() * 0.14),
                     rot: Math.random() * 360, alpha: 1, life: 68, r: 5,
@@ -1875,11 +1879,12 @@
           const shotInterval = gn.hard ? 20 : 25;
           gn.bx += (gn.thisx - gn.bx) * 0.3;
           gn.by += (gn.thisy - gn.by) * 0.3;
+          const muzzleDist = 112;
           if (gn.salvo < gn.maxSalvo) {
             const loc = gn.t % shotInterval;
             if (loc === 1) {
               gn.angle = Math.atan2(this.soulY - gn.by, this.soulX - gn.bx);
-              gn.lines = (gn.salvo % 2 === 0) ? (gn.hard ? 4 : 3) : (gn.hard ? 5 : 4);
+              gn.lines = gn.hard ? (Math.random() < 0.5 ? 4 : 5) : (gn.salvo % 2 === 0 ? 3 : 4);
               gn.aimFlash = 13;
               G.sfx.sfx('target', 0.45);
             }
@@ -1890,13 +1895,15 @@
               gn.by -= Math.sin(gn.angle) * 10;
               gn.recoil = 8; gn.salvo++;
               const n = gn.lines;
-              const spread = gn.hard ? 0.21 : 0.28;
+              const spread = gn.hard ? 0.21 : 0.26;
+              const mx = gn.bx + Math.cos(gn.angle) * muzzleDist;
+              const my = gn.by + Math.sin(gn.angle) * muzzleDist;
               for (let i = 0; i < n; i++) {
                 const a = gn.angle + (i - (n - 1) / 2) * spread;
                 this.bullets.push({
-                  type: 'gunbolt', x: gn.bx + Math.cos(gn.angle) * 44, y: gn.by + Math.sin(gn.angle) * 44,
-                  vx: Math.cos(a) * (gn.hard ? 9.4 : 8.4), vy: Math.sin(a) * (gn.hard ? 9.4 : 8.4),
-                  deg: -a * 180 / Math.PI, hue: (i * 55 + gn.t * 9) % 360, r: 5,
+                  type: 'gunbolt', x: mx, y: my,
+                  vx: Math.cos(a) * (gn.hard ? 7.2 : 6.4), vy: Math.sin(a) * (gn.hard ? 7.2 : 6.4),
+                  deg: -a * 180 / Math.PI, spin: (i % 2 === 0 ? 8 : -8), hue: (i * 55 + gn.t * 9) % 360, r: 5,
                 });
               }
             }
@@ -1936,14 +1943,15 @@
               const perp = Math.abs(-px * ny + py * nx);
               if (along > 0 && perp < gn.beamW * 0.48 && gn.beamW > 8) this.hurt(5);
 
-              if (gn.hard && gn.beamTimer <= 14 && gn.beamTimer % 3 === 1) {
+              if (gn.hard && gn.beamTimer <= 14 && gn.beamTimer % 4 === 1) {
                 const rotOff = gn.beamTimer * 10;
-                for (let i = 0; i < 20; i++) {
-                  const ra = (rotOff + i * 18) * Math.PI / 180;
+                const sx0 = gn.bx + nx * muzzleDist, sy0 = gn.by + ny * muzzleDist;
+                for (let i = 0; i < 16; i++) {
+                  const ra = (rotOff + i * 22.5) * Math.PI / 180;
                   this.bullets.push({
-                    type: 'starburst', x: gn.bx, y: gn.by,
+                    type: 'starburst', x: sx0, y: sy0,
                     vx: Math.cos(ra) * 3.8, vy: -Math.sin(ra) * 3.8,
-                    accel: 0.06, hue: (i * 18 + gn.beamTimer * 12) % 360,
+                    accel: 0.06, hue: (i * 22 + gn.beamTimer * 12) % 360,
                     rot: 0, spin: 8, curve: 0, r: 5, life: 90,
                   });
                 }
@@ -2443,16 +2451,19 @@
               drawRichText(ctx, line.text, 392, 118, this.introChar, { size: 18, lineH: 24, color: '#000000' });
             }
           } else {
-            // Canonical obj_asrielappear con>=10: Full rainbow afterimage silhouette + shaking ASRIEL DREEMURR text!
-            const fy = 20 + Math.sin(this.introRevealTimer / 6) * 2.5;
+            // Canonical obj_asrielappear con>=10: Full silhouette + wide shaking ASRIEL DREEMURR text!
+            const fy = 28 + Math.sin(this.introRevealTimer / 6) * 2.5;
             drawSpr(ctx, 'spr_asriel_afterimager_full', 0, 257, fy, 2, 2);
-            const shown = ' ASRIEL   DREEMURR '.slice(0, this.introWriterChar);
-            const wx = 86, wy = 288;
+            const fullTitle = 'ASRIEL   DREEMURR';
+            const shown = fullTitle.slice(0, this.introWriterChar);
             ctx.save();
-            drawRichText(ctx, shown, wx + (Math.random() - 0.5) * 4, wy + (Math.random() - 0.5) * 4, 999, { size: 40, color: 'rgba(255,255,255,0.9)' });
-            drawRichText(ctx, shown, wx + (Math.random() - 0.5) * 6, wy + (Math.random() - 0.5) * 6, 999, { size: 40, color: 'rgba(255,255,255,0.65)' });
+            ctx.font = 'bold 46px "Determination Sans", "Determination Mono", monospace';
+            const tw = ctx.measureText(fullTitle).width;
+            const wx = Math.round((640 - tw) / 2), wy = 286;
+            drawRichText(ctx, shown, wx + (Math.random() - 0.5) * 3, wy + (Math.random() - 0.5) * 3, 999, { size: 46, color: 'rgba(255,255,255,0.95)' });
+            drawRichText(ctx, shown, wx + (Math.random() - 0.5) * 5, wy + (Math.random() - 0.5) * 4, 999, { size: 46, color: 'rgba(255,255,255,0.68)' });
             for (let g = 2; g <= 5; g++) {
-              drawRichText(ctx, shown, wx + (Math.random() - 0.5) * g * 8, wy + (Math.random() - 0.5) * g * 8, 999, { size: 40, color: `rgba(255,255,255,${Math.max(0.12, 0.7 - g * 0.12)})` });
+              drawRichText(ctx, shown, wx + (Math.random() - 0.5) * g * 4.5, wy + (Math.random() - 0.5) * g * 3, 999, { size: 46, color: `rgba(255,255,255,${Math.max(0.16, 0.72 - g * 0.12)})` });
             }
             ctx.restore();
           }
@@ -2523,13 +2534,27 @@
           return;
         }
 
+        // Canonical Struggle Blackout ("You tried to reach your SAVE file. Nothing happened." - IMG_9423/9424)
+        if (this.p2BlackoutMsg) {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0, 0, 640, 480);
+          ctx.fillStyle = '#000';
+          ctx.fillRect(this.box.x, this.box.y, this.box.w, this.box.h);
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 4;
+          ctx.strokeRect(this.box.x, this.box.y, this.box.w, this.box.h);
+          drawRichText(ctx, this.msg, this.box.x + 20, this.box.y + 18, Math.floor(this.mc), { size: 20, lineH: 27, maxWidth: this.box.w - 40, maxHeight: this.box.h - 28 });
+          ctx.restore();
+          return;
+        }
+
         // 1. Canonical Prism Backgrounds (P1 obj_roundedge 3D tunnel vs P2 obj_afinal_body wings!)
         if (this.mode === 'lost_soul') {
           ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
         } else if (this.mode === 'p2' || this.mode === 'finale') {
-          this.drawPsychedelicBG(ctx, 0.52, 'p2');
+          this.drawPsychedelicBG(ctx, 0.45, 'p2');
         } else {
-          if (!this.p1SpecialNormal) this.drawPsychedelicBG(ctx, Math.max(0.5, this.p1BgAlpha), 'p1');
+          if (!this.p1SpecialNormal) this.drawPsychedelicBG(ctx, Math.max(0.55, this.p1BgAlpha), 'p1');
         }
 
         // 2. Boss Sprite Layer
@@ -2656,7 +2681,8 @@
         }
 
         // 6. Battle HUD & Buttons (with Final Laser shaking/knocking buttons offscreen!)
-        drawBattleHUD(ctx, { name: G.state.name || 'FRISK', lv: G.state.lv || 1, hp: Math.ceil(this.hp), maxHp: this.maxHp }, 398);
+        const hudName = G.state.name || (this.standalone ? 'CHARA' : 'FRISK');
+        drawBattleHUD(ctx, { name: hudName, lv: G.state.lv || 1, hp: Math.ceil(this.hp), maxHp: this.maxHp }, 398);
         if (this.hp < 1 && this.hp > 0) {
           ctx.fillStyle = '#000'; ctx.fillRect(332, 395, 180, 28);
           drawRichText(ctx, `${formatHp(this.hp)} / ${this.maxHp}`, 336, 398, 999, { size: 24, color: '#ffff00' });
@@ -2702,54 +2728,71 @@
       drawPsychedelicBG(ctx, alpha, variant = 'p1') {
         const bg = SPR['spr_asrielbg'];
         if (!bg || !bg.img.complete || !bg.img.naturalWidth) return;
-        const hue = (this.time * 4) % 360;
-        const col = hsvCss(hue, 88, 56);
+        const hue = Math.round((this.time * 2.5) % 360);
         if (!this._bgCanv) {
           this._bgCanv = document.createElement('canvas');
-          this._bgCanv.width = 640; this._bgCanv.height = 280;
+          this._bgCanv.width = 160; this._bgCanv.height = 96;
           this._bgCtx = this._bgCanv.getContext('2d');
         }
         const bc = this._bgCtx;
+        bc.save();
         bc.globalCompositeOperation = 'source-over';
-        bc.clearRect(0, 0, 640, 280);
+        bc.fillStyle = '#000';
+        bc.fillRect(0, 0, 160, 96);
+        bc.imageSmoothingEnabled = false;
 
         if (variant === 'p1') {
-          // Canonical obj_roundedge: symmetrical radiating 3D prism starburst from center!
-          const wp = 20;
-          for (let i = 1; i <= 18; i++) {
-            const sx = (i * wp + this.bgScroll) % 800;
-            const sw = Math.min(400, i * wp);
-            const dw = i * wp * 0.45;
-            const dx = 320 + i * 16 - 4;
-            const ldx = 320 - i * 16 + 4;
-            const dy = -i * 6;
-            const dh = 260;
-            bc.drawImage(bg.img, sx, 0, sw, 400, dx, dy, dw, dh);
+          // Canonical obj_roundedge: grayscale luminance mosaic * cohesive HSV multiply -> green/blue/magenta/red with pure black voids!
+          if ('filter' in bc) bc.filter = 'grayscale(1) contrast(1.65) brightness(1.35)';
+          const strips = 14;
+          for (let i = 0; i < strips; i++) {
+            const p = i / strips;
+            const sy = Math.floor((80 + i * 24) % 400);
+            const sx = Math.floor((this.bgScroll * 0.6 + i * 32) % 800);
+            const dx = Math.floor(80 + p * 74);
+            const ldx = Math.floor(80 - p * 74);
+            const dw = Math.max(4, Math.floor(6 + p * 14));
+            const dh = Math.floor(54 + p * 42);
+            const dy = Math.floor(14 - p * 14);
+            bc.drawImage(bg.img, sx, sy, 48, 120, dx, dy, dw, dh);
             bc.save();
             bc.translate(ldx, dy);
             bc.scale(-1, 1);
-            bc.drawImage(bg.img, sx, 0, sw, 400, 0, 0, dw, dh);
+            bc.drawImage(bg.img, sx, sy, 48, 120, 0, 0, dw, dh);
             bc.restore();
           }
+          bc.filter = 'none';
+          bc.globalCompositeOperation = 'multiply';
+          bc.fillStyle = hsvCss(120 + hue, 92, 62);
+          bc.fillRect(0, 0, 160, 96);
         } else {
-          // Canonical obj_afinal_body lines 46-52: 3 layered scrolling prism slabs mirrored L+R!
-          for (const off of [0, 60, 120]) {
+          // Canonical Phase 2 dark crimson prism behind wings (IMG_9422)
+          if ('filter' in bc) bc.filter = 'grayscale(1) contrast(1.4)';
+          for (const off of [0, 80]) {
             const sx = (this.bgScroll + off) % 800;
-            bc.drawImage(bg.img, sx, 0, 276, 216, 0, 0, 320, 224);
+            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 72);
             bc.save();
-            bc.translate(640, 0);
+            bc.translate(160, 0);
             bc.scale(-1, 1);
-            bc.drawImage(bg.img, sx, 0, 276, 216, 0, 0, 320, 224);
+            bc.drawImage(bg.img, sx, 20, 220, 180, 0, 0, 80, 72);
             bc.restore();
           }
+          bc.filter = 'none';
+          bc.globalCompositeOperation = 'multiply';
+          bc.fillStyle = '#a81818';
+          bc.fillRect(0, 0, 160, 96);
         }
-        bc.globalCompositeOperation = 'source-in';
-        bc.fillStyle = col;
-        bc.fillRect(0, 0, 640, 280);
+        bc.restore();
 
         ctx.save();
+        ctx.imageSmoothingEnabled = false;
         ctx.globalAlpha = alpha;
-        ctx.drawImage(this._bgCanv, 0, 0);
+        ctx.drawImage(this._bgCanv, 0, 0, 160, 96, 0, 0, 640, 384);
+        const grad = ctx.createLinearGradient(0, 220, 0, 384);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 220, 640, 164);
         ctx.restore();
       },
 
@@ -2793,14 +2836,14 @@
               if (activeSlash) {
                 if (!S.twinklesSpawned) {
                   if (S.curSide === 0) {
-                    drawSprExt(ctx, 'spr_asriel_swordarm', 0, x + 36, y + 35, -2, 2, 0, null, al, true);
+                    drawSprExt(ctx, 'spr_asriel_swordarm', 0, x + 38, y + 35, -2, 2, -14, null, al, true);
                   } else {
-                    drawSprExt(ctx, 'spr_asriel_swordarm', 0, x - 36, y + 35, 2, 2, 0, null, al, true);
+                    drawSprExt(ctx, 'spr_asriel_swordarm', 0, x - 38, y + 35, 2, 2, 14, null, al, true);
                   }
                 }
               } else {
-                drawSprExt(ctx, armSprPower, 0, x - 36 + shakeX, y + 35 + shakeY, 2, 2, this.armRotL, null, al, true);
-                drawSprExt(ctx, armSprPower, 0, x + 36 + shakeX, y + 35 + shakeY, -2, 2, this.armRotR, null, al, true);
+                drawSprExt(ctx, armSprPower, 0, x - 38 + shakeX, y + 35 + shakeY, 2, 2, this.armRotL, null, al, true);
+                drawSprExt(ctx, armSprPower, 0, x + 38 + shakeX, y + 35 + shakeY, -2, 2, this.armRotR, null, al, true);
               }
             }
           } else if (this.gun) {
@@ -2865,10 +2908,10 @@
         if (alpha > 0.12) {
           drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x + 42, y - 52 + bob2, 2, 2, 0, null, alpha, false);
           drawSprExt(ctx, 'spr_afinal_cosmoswing', af, x - 44, y - 52 + bob2, -2, 2, 0, null, alpha, false);
-          drawSprExt(ctx, 'spr_afinal_orbwing', af, x - 110, y - 52, 2, 2, 0, hsvCss(this.time * 7, 80, 70), alpha, false);
-          drawSprExt(ctx, 'spr_afinal_orbwing', af, x + 108, y - 52, -2, 2, 0, hsvCss(this.time * 7, 80, 70), alpha, false);
+          drawSprExt(ctx, 'spr_afinal_orbwing', af, x - 110, y - 52, 2, 2, 0, hsvCss(this.time * 5, 72, 42), alpha, false);
+          drawSprExt(ctx, 'spr_afinal_orbwing', af, x + 108, y - 52, -2, 2, 0, hsvCss(this.time * 5, 72, 42), alpha, false);
           drawSprExt(ctx, 'spr_afinal_stem', af, x - 2, y + 146, 2, 2, 0, null, alpha, true);
-          drawSprExt(ctx, 'spr_afinal_orb', af, x - 2, y + 68, 2, 2, 0, hsvCss(this.time * 6), alpha, true);
+          drawSprExt(ctx, 'spr_afinal_orb', af, x - 2, y + 68, 2, 2, 0, null, alpha, true);
           drawSprExt(ctx, 'spr_afinal_arm', af, x - 58 + rx, y + 56 + bob * 2 + ry, 2, 2, armRot, null, alpha, true);
           drawSprExt(ctx, 'spr_afinal_arm', af, x + 56 + rx, y + 56 + bob * 2 + ry, -2, 2, -armRot, null, alpha, true);
           drawSprExt(ctx, 'spr_afinal_shoulder', af, x - 84, y + 32, 2, 2, 0, null, alpha, false);
@@ -2900,7 +2943,8 @@
       drawLostSoulBoss(ctx) {
         const k = this.activeLostSoul;
         const jx = (Math.random() - 0.5) * 1.5;
-        const tint = this.lsActDone >= 3 ? null : '#cfcfcf';
+        const lsTarget = k === 'parents' ? 4 : 3;
+        const tint = this.lsActDone >= lsTarget ? null : '#cfcfcf';
         let faceRect = null;
         if (k === 'undyne') {
           drawSprExt(ctx, 'spr_undyneb_noanim', 0, 265 + jx, 42, 2, 2, 0, tint);
@@ -2917,11 +2961,11 @@
         } else if (k === 'parents') {
           drawSprExt(ctx, 'spr_torielboss', 0, 170 + jx, 46, 1, 1, 0, tint);
           drawSprExt(ctx, 'spr_asgore_wrap', 0, 326 + jx, 40, 1.75, 1.75, 0, tint);
-          drawSprExt(ctx, this.lsActDone >= 3 ? 'spr_asgore_wrapshock' : 'spr_asgore_wrapface', 0, 378 + jx, 52, 1.75, 1.75, 0, tint);
+          drawSprExt(ctx, this.lsActDone >= lsTarget ? 'spr_asgore_wrapshock' : 'spr_asgore_wrapface', 0, 378 + jx, 52, 1.75, 1.75, 0, tint);
           faceRect = { x: 182, y: 70, w: 46, h: 22 };
         }
-        // Canonical Lost Soul flickering dark eye-mask / static bar (removed when 3/3 Saved!)
-        if (this.lsActDone < 3 && faceRect) {
+        // Canonical Lost Soul flickering dark eye-mask / static bar (removed when Saved!)
+        if (this.lsActDone < lsTarget && faceRect) {
           const rects = [faceRect];
           if (k === 'skelebros') rects.push({ x: 384, y: 62, w: 58, h: 28 });
           if (k === 'parents') rects.push({ x: 388, y: 86, w: 58, h: 24 });
@@ -3014,28 +3058,28 @@
           }
         }
 
-        // Chaos Saber / Slicer active slash blade & smear drawn IN FRONT of Battle Box fill!
+        // Chaos Saber / Slicer pure white crescent smears & blade extending into box (IMG_9415 & IMG_9416)
         if (this.mode === 'p1' && this.sabers && this.sabers.armed && this.asAlpha > 0.02) {
           const S = this.sabers;
           const ax = this.asX, al = this.asAlpha;
           const ay = this.asY + (this.transformStretch > 0 ? Math.sin(this.time / 6) * 0.5 : 0);
           if (S.smearAlpha > 0.05) {
             if (S.smearSide === 0 || S.smearSide === 2) {
-              drawSprExt(ctx, 'spr_asriel_swordsmear', 0, ax - 36 - 40, ay + 35 - 168, 2, 2.5, 0, null, S.smearAlpha, false);
+              drawSprExt(ctx, 'spr_asriel_swordsmear', 0, ax - 14, ay - 52, -1.45, 2.02, 0, '#ffffff', S.smearAlpha, false);
             }
             if (S.smearSide === 1 || S.smearSide === 2) {
-              drawSprExt(ctx, 'spr_asriel_swordsmear', 0, ax + 36 + 40, ay + 35 - 168, -2, 2.5, 0, null, S.smearAlpha, false);
+              drawSprExt(ctx, 'spr_asriel_swordsmear', 0, ax + 14, ay - 52, 1.45, 2.02, 0, '#ffffff', S.smearAlpha, false);
             }
           }
           if (S.swordSpriteTimer > 0) {
             const bladeSpr = S.twinklesSpawned ? 'spr_asriel_swordextend_shatter' : 'spr_asriel_swordextend';
             if (S.twinklesSpawned) {
-              drawSprExt(ctx, bladeSpr, 0, ax - 36, ay + 48, 2, 2, 0, null, al, true);
-              drawSprExt(ctx, bladeSpr, 0, ax + 36, ay + 48, -2, 2, 0, null, al, true);
+              drawSprExt(ctx, bladeSpr, 0, ax - 36, ay + 46, 2, 2.05, 0, null, al, true);
+              drawSprExt(ctx, bladeSpr, 0, ax + 36, ay + 46, -2, 2.05, 0, null, al, true);
             } else if (S.curSide === 0) {
-              drawSprExt(ctx, bladeSpr, 0, ax - 36, ay + 42, 2, 2, 0, null, al, true);
+              drawSprExt(ctx, bladeSpr, 0, ax - 36, ay + 44, 2, 2.05, 0, null, al, true);
             } else {
-              drawSprExt(ctx, bladeSpr, 0, ax + 36, ay + 42, -2, 2, 0, null, al, true);
+              drawSprExt(ctx, bladeSpr, 0, ax + 36, ay + 44, -2, 2.05, 0, null, al, true);
             }
           }
         }
@@ -3045,23 +3089,16 @@
 
         for (const b of this.bullets) {
           if (b.type === 'stormstar') {
-            // Canonical obj_stormstar: 2 crisp trailing frame-1 silhouettes + big star rainbow halo!
-            const sc = b.big ? 1.45 : 0.72;
-            const col = hsvCss(b.hue, 45, 78);
+            // Canonical obj_stormstar: pastel trailing silhouettes + clean unoccluded star (IMG_9421)
+            const sc = b.big ? 0.96 : 0.64;
+            const col = hsvCss(b.hue, 50, 78);
             if (b.prevs[4]) drawSprExt(ctx, 'spr_stormstar', 1, b.prevs[4].x, b.prevs[4].y, sc, sc, b.rot, col, 0.35, true);
             if (b.prevs[2]) drawSprExt(ctx, 'spr_stormstar', 1, b.prevs[2].x, b.prevs[2].y, sc, sc, b.rot, col, 0.5, true);
             drawSprExt(ctx, b.big ? 'spr_stormstar_b' : 'spr_stormstar', 0, b.x, b.y, sc, sc, b.rot, col, 1, true);
-            if (b.big) {
-              ctx.save();
-              ctx.globalAlpha = b.oo === 0 ? 0.22 : 0.38;
-              ctx.fillStyle = col;
-              ctx.beginPath(); ctx.arc(b.x, b.y, 175 + b.oo * 15, 0, Math.PI * 2); ctx.fill();
-              ctx.restore();
-            }
           } else if (b.type === 'explodestar') {
-            drawSprExt(ctx, b.big ? 'spr_stormstar_b' : 'spr_stormstar', 0, b.x, b.y, b.sc, b.sc, b.rot, hsvCss(b.hue, 45, 82), b.alpha, true);
+            drawSprExt(ctx, b.big ? 'spr_stormstar_b' : 'spr_stormstar', 0, b.x, b.y, b.sc * 0.72, b.sc * 0.72, b.rot, '#ffffff', b.alpha, true);
           } else if (b.type === 'starburst') {
-            drawSprExt(ctx, 'spr_regstar', 0, b.x, b.y, 1, 1, b.rot, hsvCss(b.hue, 55, 76), 1, true);
+            drawSprExt(ctx, 'spr_regstar', 0, b.x, b.y, 0.85, 0.85, b.rot, '#ffffff', 1, true);
           } else if (b.type === 'warnbolt') {
             ctx.save();
             ctx.strokeStyle = this.time % 4 < 2 ? 'rgba(255,60,60,0.65)' : 'rgba(255,235,64,0.65)';
@@ -3087,24 +3124,26 @@
           } else if (b.type === 'swordtwinkle') {
             drawSprExt(ctx, 'spr_asriel_swordtwinkle', 0, b.x, b.y, 2, 2, b.rot, '#ffffff', b.alpha, true);
           } else if (b.type === 'gunbolt') {
-            drawSprExt(ctx, 'spr_asriel_gunbolt', 0, b.x, b.y, 2, 2, b.deg, hsvCss(b.hue, 90, 70), 1, true);
+            drawSprExt(ctx, 'spr_asriel_gunbolt', 0, b.x, b.y, 1.35, 1.35, b.deg + (this.time * (b.spin || 6)), '#ffffff', 1, true);
           } else if (b.type === 'hgdebris') {
             drawSprExt(ctx, 'spr_hg_debris_small', 0, b.x, b.y, b.sc, b.sc, this.time * 9, '#ffffff', 0.92, true);
           } else if (b.type === 'ult_comet') {
-            const col = hsvCss(b.hue, 88, 68);
             const h = b.hist;
             ctx.save();
-            ctx.strokeStyle = col;
             ctx.lineCap = 'round';
-            const seg = (i1, i2, w) => {
-              if (!h[i1] || !h[i2]) return;
-              ctx.lineWidth = w;
-              ctx.beginPath(); ctx.moveTo(h[i1].x, h[i1].y); ctx.lineTo(h[i2].x, h[i2].y); ctx.stroke();
-            };
-            seg(10, 14, 2); seg(7, 10, 4); seg(3, 7, 6); seg(0, 3, 8);
+            for (let i = 0; i < h.length - 1; i++) {
+              const frac = 1 - i / (h.length - 1);
+              ctx.strokeStyle = hsvCss(b.hue + i * 6, 70, 82);
+              ctx.globalAlpha = 0.25 + frac * 0.65;
+              ctx.lineWidth = Math.max(0.7, frac * 4.2);
+              ctx.beginPath();
+              ctx.moveTo(h[i].x, h[i].y);
+              ctx.lineTo(h[i + 1].x, h[i + 1].y);
+              ctx.stroke();
+            }
             ctx.restore();
             const deg = -Math.atan2(b.vy, b.vx) * 180 / Math.PI;
-            drawSprExt(ctx, 'spr_ultimabullet', 0, b.x, b.y, 1, 1, deg, col, 1, true);
+            drawSprExt(ctx, 'spr_ultimabullet', 0, b.x, b.y, 0.88, 0.88, deg, hsvCss(b.hue, 45, 90), 1, true);
           } else if (b.type === 'chaosbomb') {
             drawSprExt(ctx, 'spr_chaosbomb', 0, b.x, b.y, b.sc, b.sc, b.angle, hsvCss(b.hue, 90, 70), b.alpha, true);
           } else if (b.type === 'dreemurr_fire' || b.type === 'cry_fire' || b.type === 'ls_fire') {
@@ -3122,36 +3161,39 @@
         // Chaos Buster target laser lines + massive rainbow blast beam
         if (this.gun) {
           const gn = this.gun;
+          const mDist = 112;
+          const bx0 = gn.bx + Math.cos(gn.angle) * mDist;
+          const by0 = gn.by + Math.sin(gn.angle) * mDist;
           if (gn.aimFlash > 0) {
             ctx.save();
             ctx.strokeStyle = this.time % 3 === 0 ? '#ff3030' : (this.time % 3 === 1 ? '#ffa020' : '#ffff30');
             ctx.lineWidth = 2;
             const n = gn.lines || 3;
-            const spread = gn.hard ? 0.21 : 0.28;
+            const spread = gn.hard ? 0.21 : 0.26;
             for (let i = 0; i < n; i++) {
               const a = gn.angle + (i - (n - 1) / 2) * spread;
-              ctx.beginPath(); ctx.moveTo(gn.bx + Math.cos(gn.angle) * 56, gn.by + Math.sin(gn.angle) * 56);
-              ctx.lineTo(gn.bx + Math.cos(a) * 580, gn.by + Math.sin(a) * 580);
+              ctx.beginPath(); ctx.moveTo(bx0, by0);
+              ctx.lineTo(bx0 + Math.cos(a) * 580, by0 + Math.sin(a) * 580);
               ctx.stroke();
             }
             ctx.restore();
           }
           if (gn.blasting && gn.beamW > 1) {
             ctx.save();
-            const bx0 = gn.bx + Math.cos(gn.angle) * 56;
-            const by0 = gn.by + Math.sin(gn.angle) * 56;
-            const bx1 = gn.bx + Math.cos(gn.angle) * 620;
-            const by1 = gn.by + Math.sin(gn.angle) * 620;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = hsvCss((gn.beamTimer * 18) % 360, 88, 62);
+            const bx1 = bx0 + Math.cos(gn.angle) * 620;
+            const by1 = by0 + Math.sin(gn.angle) * 620;
+            const px = -Math.sin(gn.angle), py = Math.cos(gn.angle);
+            const grad = ctx.createLinearGradient(bx0, by0, bx0 + Math.cos(gn.angle) * 260, by0 + Math.sin(gn.angle) * 260);
+            grad.addColorStop(0, hsvCss((gn.beamTimer * 18) % 360, 95, 58));
+            grad.addColorStop(0.5, hsvCss((gn.beamTimer * 18 + 65) % 360, 95, 62));
+            grad.addColorStop(1, hsvCss((gn.beamTimer * 18 + 130) % 360, 95, 58));
+            ctx.lineCap = 'butt';
+            ctx.strokeStyle = grad;
             ctx.lineWidth = gn.beamW;
             ctx.beginPath(); ctx.moveTo(bx0, by0); ctx.lineTo(bx1, by1); ctx.stroke();
-            ctx.strokeStyle = hsvCss((gn.beamTimer * 18 + 60) % 360, 88, 72);
-            ctx.lineWidth = gn.beamW * 0.65;
-            ctx.stroke();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = gn.beamW * 0.3;
-            ctx.stroke();
+            ctx.lineWidth = gn.beamW * 0.42;
+            ctx.strokeStyle = hsvCss((gn.beamTimer * 18 + 30) % 360, 90, 74);
+            ctx.beginPath(); ctx.moveTo(bx0 + px * 4, by0 + py * 4); ctx.lineTo(bx1 + px * 4, by1 + py * 4); ctx.stroke();
             ctx.restore();
           }
         }

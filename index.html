@@ -97,6 +97,13 @@
       font-family: "Determination Mono", monospace;
     }
 
+    .mobile-quick {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
     .toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -176,68 +183,62 @@
       max-width: 640px;
       background: #000;
       border: 2px solid var(--border-dim);
-      padding: 7px 11px;
+      padding: 6px 10px;
       font-family: "Determination Mono", "PingFang TC", monospace;
-      font-size: 13px;
+      font-size: 12.5px;
       line-height: 1.35;
       color: #e4e4ec;
     }
 
-    /* Touch Gamepad + Desktop Key Legend */
+    /* Huge Simulated Keyboard Arrow Pad + Action Keys */
     .controls-deck {
       width: 100%;
       max-width: 640px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 4px 2px;
+      gap: 10px;
+      padding: 6px 0 4px;
     }
 
-    /* Unified Slideable 8-Way D-Pad */
-    .dpad-surface {
-      width: 138px;
-      height: 138px;
-      position: relative;
+    .kb-arrows {
+      display: grid;
+      grid-template-columns: repeat(3, clamp(62px, 18.8vw, 76px));
+      grid-template-rows: repeat(2, clamp(58px, 16vw, 68px));
+      gap: 6px;
       touch-action: none;
       flex-shrink: 0;
     }
 
-    .dpad-cross {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 3px;
-      pointer-events: none;
-    }
-
-    .dpad-arm {
-      background: #111116;
-      border: 2px solid rgba(255, 255, 255, 0.35);
+    .kb-key {
+      background: linear-gradient(180deg, #22222c 0%, #121218 100%);
+      border: 2.5px solid rgba(255, 255, 255, 0.55);
+      border-bottom: 5px solid rgba(255, 255, 255, 0.32);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      color: #fff;
-      transition: background 0.06s, border-color 0.06s, color 0.06s;
+      cursor: pointer;
+      touch-action: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+      transition: transform 0.04s, background 0.05s, border-color 0.05s;
     }
 
-    .dpad-arm.active {
-      background: #2b2610;
+    .kb-key.up { grid-column: 2; grid-row: 1; }
+    .kb-key.left { grid-column: 1; grid-row: 2; }
+    .kb-key.down { grid-column: 2; grid-row: 2; }
+    .kb-key.right { grid-column: 3; grid-row: 2; }
+
+    .kb-key.active {
+      background: linear-gradient(180deg, #4b3d0b 0%, #2a2104 100%);
       border-color: var(--gold);
+      border-bottom-width: 2.5px;
       color: var(--gold);
-    }
-
-    .dpad-center {
-      background: #0b0b0f;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--soul);
-      font-size: 12px;
+      transform: translateY(2px);
+      box-shadow: 0 0 14px rgba(255, 255, 0, 0.35);
     }
 
     .desktop-legend {
@@ -257,19 +258,23 @@
 
     /* Action Buttons (Z, X, C) */
     .action-cluster {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto auto;
+      grid-template-rows: auto auto;
       align-items: center;
-      gap: 10px;
+      justify-items: center;
+      gap: 8px;
       touch-action: none;
       flex-shrink: 0;
     }
 
     .act-btn {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: #0f0f15;
+      width: 58px;
+      height: 58px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #1d1d26 0%, #0f0f16 100%);
       border: 2.5px solid #fff;
+      border-bottom: 5px solid rgba(255, 255, 255, 0.45);
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -281,7 +286,7 @@
     }
 
     .act-btn .k {
-      font-size: 19px;
+      font-size: 21px;
       font-weight: 700;
       line-height: 1;
     }
@@ -293,24 +298,36 @@
     }
 
     .act-btn.z-btn {
-      width: 62px;
-      height: 62px;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      width: 68px;
+      height: 82px;
       border-color: var(--gold);
+      border-bottom-color: #9e9610;
       color: var(--gold);
-      transform: translateY(-10px);
+    }
+
+    .act-btn.x-btn {
+      grid-column: 1;
+      grid-row: 2;
+      width: 56px;
+      height: 54px;
     }
 
     .act-btn.c-btn {
-      width: 48px;
-      height: 48px;
+      grid-column: 1;
+      grid-row: 1;
+      width: 56px;
+      height: 44px;
       border-color: var(--btn-orange);
+      border-bottom-color: #9b4810;
       color: var(--btn-orange);
-      transform: translateY(-18px);
     }
 
     .act-btn.active {
       background: #2b2310;
-      transform: scale(0.92);
+      border-bottom-width: 2.5px;
+      transform: translateY(2px);
     }
 
     /* Walkthrough Drawer */
@@ -400,15 +417,30 @@
       font-family: "Determination Mono", "PingFang TC", monospace;
     }
 
-    /* Mobile Portrait Optimization */
-    @media (max-width: 640px) {
-      .app-shell { padding: 6px 6px env(safe-area-inset-bottom, 8px); gap: 6px; }
-      .topbar { padding: 6px 8px; }
-      .brand-text h1 { font-size: 13.5px; }
+    /* Mobile Portrait Optimization (Slim collapsible topbar + HUGE arrow keyboard!) */
+    @media (max-width: 680px) {
+      .app-shell { padding: 5px 6px env(safe-area-inset-bottom, 8px); gap: 5px; }
+      .topbar { padding: 5px 8px; gap: 6px; }
+      .brand { flex: 1; }
+      .brand-text h1 { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .brand-text p { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .mobile-quick { display: inline-flex; }
+      .toolbar { display: none; width: 100%; padding-top: 6px; border-top: 1px solid var(--border-dim); }
+      .toolbar.open { display: flex; }
       .desktop-legend { display: none; }
-      .ut-btn, .ut-select { font-size: 11px; padding: 4px 6px; }
-      .ut-select { max-width: 132px; }
-      .hint-bar { font-size: 12px; overflow-wrap: anywhere; }
+      .ut-btn, .ut-select { font-size: 11.5px; padding: 4px 7px; }
+      .ut-select { max-width: 155px; }
+      .hint-bar { font-size: 11.5px; padding: 5px 8px; overflow-wrap: anywhere; }
+      .controls-deck { padding: 10px 2px 6px; gap: 8px; }
+      .kb-arrows {
+        grid-template-columns: repeat(3, clamp(64px, 19.2vw, 76px));
+        grid-template-rows: repeat(2, clamp(62px, 17vw, 72px));
+        gap: 6px;
+      }
+      .kb-key { font-size: 28px; }
+      .act-btn.z-btn { width: 64px; height: 82px; }
+      .act-btn.x-btn { width: 52px; height: 52px; }
+      .act-btn.c-btn { width: 52px; height: 42px; }
     }
 
     /* Landscape Mobile & Fullscreen Immersive Mode */
@@ -419,9 +451,10 @@
       .canvas-frame { height: 96dvh; width: auto; aspect-ratio: 4 / 3; max-width: none; }
       canvas#game { height: 100%; width: auto; }
       .controls-deck {
-        position: fixed; inset: auto 12px 12px 12px; max-width: none; width: auto; pointer-events: none;
+        position: fixed; inset: auto 10px 10px 10px; max-width: none; width: auto; pointer-events: none;
       }
-      .dpad-surface, .action-cluster { pointer-events: auto; opacity: 0.86; }
+      .kb-arrows, .action-cluster { pointer-events: auto; opacity: 0.88; }
+      .kb-arrows { grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(2, 54px); }
     }
 
     body.immersive .topbar, body.immersive .hint-bar, body.immersive .desktop-legend { display: none; }
@@ -429,9 +462,9 @@
     body.immersive .canvas-frame { max-height: 92dvh; width: auto; aspect-ratio: 4 / 3; }
     body.immersive canvas#game { max-height: 91dvh; width: auto; }
     body.immersive .controls-deck {
-      position: fixed; left: 16px; right: 16px; bottom: 14px; max-width: none; width: auto; pointer-events: none;
+      position: fixed; left: 14px; right: 14px; bottom: 12px; max-width: none; width: auto; pointer-events: none;
     }
-    body.immersive .dpad-surface, body.immersive .action-cluster { pointer-events: auto; opacity: 0.85; }
+    body.immersive .kb-arrows, body.immersive .action-cluster { pointer-events: auto; opacity: 0.86; }
   </style>
 </head>
 <body>
@@ -444,7 +477,11 @@
           <p id="roomLabel">Intro Story (#1)</p>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="mobile-quick">
+        <button id="btnShieldQuick" class="ut-btn" type="button" title="Toggle No-Hit Shield">🛡</button>
+        <button id="btnMenuToggle" class="ut-btn accent" type="button" aria-label="Toggle Menu">☰ 選單</button>
+      </div>
+      <div id="topToolbar" class="toolbar">
         <select id="roomJumpSel" class="ut-select" aria-label="Jump to Scene">
           <option value="">Jump Scene ▾</option>
         </select>
@@ -471,18 +508,11 @@
       </div>
 
       <div class="controls-deck">
-        <div id="dpadZone" class="dpad-surface" aria-label="8-Way Touch Directional Pad">
-          <div class="dpad-cross">
-            <div></div>
-            <div class="dpad-arm" data-dpad="up">▲</div>
-            <div></div>
-            <div class="dpad-arm" data-dpad="left">◀</div>
-            <div class="dpad-center">♥</div>
-            <div class="dpad-arm" data-dpad="right">▶</div>
-            <div></div>
-            <div class="dpad-arm" data-dpad="down">▼</div>
-            <div></div>
-          </div>
+        <div id="kbArrows" class="kb-arrows" role="group" aria-label="Simulated Keyboard Arrow Keys">
+          <button type="button" class="kb-key up" data-dir="up" aria-label="Up Arrow">▲</button>
+          <button type="button" class="kb-key left" data-dir="left" aria-label="Left Arrow">◀</button>
+          <button type="button" class="kb-key down" data-dir="down" aria-label="Down Arrow">▼</button>
+          <button type="button" class="kb-key right" data-dir="right" aria-label="Right Arrow">▶</button>
         </div>
 
         <div class="desktop-legend">
@@ -497,7 +527,7 @@
           </button>
           <button id="btnActX" class="act-btn x-btn" type="button" aria-label="Cancel or Skip">
             <span class="k">X</span>
-            <span class="sub">SKIP</span>
+            <span class="sub">BACK</span>
           </button>
           <button id="btnActZ" class="act-btn z-btn" type="button" aria-label="Confirm or Interact">
             <span class="k">Z</span>

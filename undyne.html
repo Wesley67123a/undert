@@ -28,6 +28,7 @@
     }
     .brand h1 { font-size: 14px; letter-spacing: 0.05em; color: var(--cyan); }
     .brand p { font-size: 11px; color: var(--gold); }
+    .mobile-quick { display: none; align-items: center; gap: 6px; flex-shrink: 0; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .ut-btn, .ut-select {
       font-family: inherit; font-size: 12px; color: #fff; background: #000;
@@ -44,32 +45,72 @@
     canvas#game { display: block; width: 100%; height: auto; aspect-ratio: 4/3; image-rendering: pixelated; cursor: pointer; touch-action: none; }
     .hint-bar {
       width: 100%; max-width: 720px; border: 2px solid rgba(255,255,255,0.2); background: var(--panel);
-      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.45;
+      padding: 6px 10px; font-size: 12px; color: #e2e2ee; line-height: 1.4;
     }
     .controls-deck {
-      width: 100%; max-width: 720px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 8px 2px;
+      width: 100%; max-width: 720px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 2px 4px;
     }
-    .dpad-surface { position: relative; width: 146px; height: 146px; touch-action: none; flex-shrink: 0; }
-    .dpad-cross { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 3px; pointer-events: none; }
-    .dpad-arm {
-      display: flex; align-items: center; justify-content: center; background: #101820;
-      border: 2px solid rgba(255,255,255,0.45); color: rgba(255,255,255,0.85); font-size: 16px; border-radius: 6px;
+    .kb-arrows {
+      display: grid;
+      grid-template-columns: repeat(3, clamp(64px, 19.2vw, 78px));
+      grid-template-rows: repeat(2, clamp(60px, 16.5vw, 70px));
+      gap: 6px;
+      touch-action: none;
+      flex-shrink: 0;
     }
-    .dpad-arm.active { background: #0d3622; border-color: var(--green); color: var(--green); }
-    .dpad-center { background: #0a1016; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--green); }
+    .kb-key {
+      background: linear-gradient(180deg, #16242d 0%, #0b141a 100%);
+      border: 2.5px solid rgba(72, 232, 255, 0.55);
+      border-bottom: 5px solid rgba(72, 232, 255, 0.3);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 27px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; touch-action: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+      transition: transform 0.04s, background 0.05s, border-color 0.05s;
+    }
+    .kb-key.up { grid-column: 2; grid-row: 1; }
+    .kb-key.left { grid-column: 1; grid-row: 2; }
+    .kb-key.down { grid-column: 2; grid-row: 2; }
+    .kb-key.right { grid-column: 3; grid-row: 2; }
+    .kb-key.active {
+      background: linear-gradient(180deg, #10492c 0%, #072617 100%);
+      border-color: var(--green); border-bottom-width: 2.5px; color: var(--green);
+      transform: translateY(2px); box-shadow: 0 0 14px rgba(56, 255, 122, 0.4);
+    }
     .desktop-legend { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.6; }
     .desktop-legend kbd { border: 1px solid rgba(255,255,255,0.4); background: #131c24; padding: 1px 5px; color: #fff; }
-    .action-cluster { display: flex; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+    .action-cluster { display: flex; align-items: center; gap: 8px; flex-shrink: 0; touch-action: none; }
     .act-btn {
-      font-family: inherit; font-weight: bold; color: #fff; background: #101820; border: 2.5px solid #fff;
-      border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+      font-family: inherit; font-weight: bold; color: #fff;
+      background: linear-gradient(180deg, #18232d 0%, #0d141a 100%);
+      border: 2.5px solid #fff; border-bottom: 5px solid rgba(255,255,255,0.42);
+      border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; touch-action: none;
     }
-    .act-btn .k { font-size: 16px; } .act-btn .sub { font-size: 9px; color: var(--muted); }
-    .act-btn.z-btn { width: 66px; height: 66px; border-color: var(--gold); }
+    .act-btn .k { font-size: 20px; } .act-btn .sub { font-size: 9px; color: var(--muted); }
+    .act-btn.z-btn { width: 68px; height: 82px; border-color: var(--gold); border-bottom-color: #9e9610; }
     .act-btn.z-btn .k { color: var(--gold); }
-    .act-btn.x-btn { width: 54px; height: 54px; }
-    .act-btn.active, .act-btn:active { background: rgba(56,255,122,0.22); transform: scale(0.95); }
-    @media (max-width: 720px) { .desktop-legend { display: none; } }
+    .act-btn.x-btn { width: 56px; height: 62px; }
+    .act-btn.active, .act-btn:active { background: rgba(56,255,122,0.22); border-bottom-width: 2.5px; transform: translateY(2px); }
+    @media (max-width: 720px) {
+      .app-shell { padding: 5px 6px env(safe-area-inset-bottom, 8px); gap: 5px; }
+      .topbar { padding: 5px 8px; gap: 6px; }
+      .brand { flex: 1; min-width: 0; }
+      .brand h1 { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .brand p { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .mobile-quick { display: inline-flex; }
+      .toolbar { display: none; width: 100%; padding-top: 6px; border-top: 1px solid rgba(72,232,255,0.25); }
+      .toolbar.open { display: flex; }
+      .desktop-legend { display: none; }
+      .ut-btn, .ut-select { font-size: 11px; padding: 4px 7px; }
+      .hint-bar { font-size: 11.5px; padding: 5px 8px; }
+      .controls-deck { padding: 10px 2px 6px; gap: 8px; }
+      .act-btn.z-btn { width: 64px; height: 82px; }
+      .act-btn.x-btn { width: 52px; height: 60px; }
+    }
   </style>
 </head>
 <body>
@@ -77,12 +118,16 @@
     <header class="topbar">
       <div class="brand">
         <span class="soul-badge" aria-hidden="true">💚</span>
-        <div>
+        <div style="min-width:0">
           <h1>UNDYNE THE UNDYING — GENOCIDE BOSS</h1>
           <p>Battle Against a True Hero (1:1 Spear Shield Simulator)</p>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="mobile-quick">
+        <button id="btnShieldQuick" class="ut-btn" type="button" title="Toggle Shield">🛡</button>
+        <button id="btnMenuToggle" class="ut-btn" type="button" style="border-color:var(--green);color:var(--green)">☰ 選單</button>
+      </div>
+      <div id="topToolbar" class="toolbar">
         <select id="modeSel" class="ut-select" aria-label="Jump to Wave">
           <option value="">Jump Wave ▾</option>
           <option value="title">★ Simulator Title Menu</option>
@@ -107,15 +152,14 @@
         <canvas id="game" width="640" height="480" tabindex="0"></canvas>
       </div>
       <div class="hint-bar" id="hintBar">
-        💚 <b>Green SOUL:</b> Point your shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch out for <b>YELLOW</b> arrows that flip 180°!
+        💚 <b>Green SOUL:</b> Point your shield (Huge Arrow Pad, ↑↓←→, or tap screen sides) to block! Watch for <b>YELLOW</b> arrows that flip 180°!
       </div>
       <div class="controls-deck">
-        <div id="dpadZone" class="dpad-surface">
-          <div class="dpad-cross">
-            <div></div><div class="dpad-arm" data-dpad="up">▲</div><div></div>
-            <div class="dpad-arm" data-dpad="left">◀</div><div class="dpad-center">💚</div><div class="dpad-arm" data-dpad="right">▶</div>
-            <div></div><div class="dpad-arm" data-dpad="down">▼</div><div></div>
-          </div>
+        <div id="kbArrows" class="kb-arrows" role="group" aria-label="Simulated Keyboard Arrow Keys">
+          <button type="button" class="kb-key up" data-dir="up" aria-label="Up Arrow">▲</button>
+          <button type="button" class="kb-key left" data-dir="left" aria-label="Left Arrow">◀</button>
+          <button type="button" class="kb-key down" data-dir="down" aria-label="Down Arrow">▼</button>
+          <button type="button" class="kb-key right" data-dir="right" aria-label="Right Arrow">▶</button>
         </div>
         <div class="desktop-legend">
           <div><kbd>↑↓←→</kbd> / <kbd>WASD</kbd> Aim Spear Shield / Dodge</div>
@@ -146,12 +190,15 @@
         keys: { up: false, down: false, left: false, right: false, cancel: false, moveScale: 1 },
         onUI: () => {
           const on = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
-          const sb = document.getElementById('btnShield');
-          sb.classList.toggle('shield-on', on);
-          sb.textContent = on ? (G.lang === 'zh' ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (G.lang === 'zh' ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF');
+          for (const sid of ['btnShield', 'btnShieldQuick']) {
+            const sb = document.getElementById(sid);
+            if (!sb) continue;
+            sb.classList.toggle('shield-on', on);
+            sb.textContent = sid === 'btnShieldQuick' ? (on ? '🛡ON' : '🛡') : (on ? (G.lang === 'zh' ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (G.lang === 'zh' ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF'));
+          }
           document.getElementById('hintBar').innerHTML = G.lang === 'zh'
-            ? '💚 <b>綠魂擋矛：</b>按方向鍵、滑動十字鍵、或直接點擊畫面上下左右擋住飛矛！注意<b>黃色箭頭</b>會在接近時 180° 反轉方向！'
-            : '💚 <b>Green SOUL:</b> Point your shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch out for <b>YELLOW</b> arrows that flip 180°!';
+            ? '💚 <b>綠魂擋矛：</b>使用大型上下左右模擬鍵盤、方向鍵或點擊畫面四方擋住飛矛！注意<b>黃色箭頭</b>會在接近時 180° 反轉！'
+            : '💚 <b>Green SOUL:</b> Point your shield (Huge Arrow Pad, ↑↓←→, or tap screen sides) to block! Watch for <b>YELLOW</b> arrows that flip 180°!';
         },
       };
       const undyne = window.UTUndyneEngine.createUndyneBattle(G);
@@ -159,10 +206,10 @@
       undyne.open('title', true);
 
       const kb = {}, ts = {};
-      let touchHoldFrames = 0;
       function sync() {
         for (const k of ['up', 'down', 'left', 'right', 'cancel']) G.keys[k] = !!(kb[k] || ts[k]);
-        document.querySelectorAll('[data-dpad]').forEach(el => el.classList.toggle('active', !!G.keys[el.dataset.dpad]));
+        G.keys.moveScale = 1.0;
+        document.querySelectorAll('[data-dir]').forEach(el => el.classList.toggle('active', !!G.keys[el.dataset.dir]));
       }
       const DIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
       window.addEventListener('keydown', e => {
@@ -177,40 +224,62 @@
         else if (e.code === 'KeyX' || e.code === 'ShiftLeft') { kb.cancel = false; sync(); }
       });
 
-      // Mobile D-pad with startup movement ramp + menu repeat delay!
-      const dpad = document.getElementById('dpadZone');
-      let lastNavDir = '', navNextTs = 0;
-      function dpadPt(cx, cy) {
-        const r = dpad.getBoundingClientRect();
-        const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+      // Huge simulated keyboard arrow pad (#kbArrows) with instant multi-touch & slide!
+      const kbArrows = document.getElementById('kbArrows');
+      const activeTouches = new Map();
+      let mouseDir = null, repTimer = null, repDir = null;
+      function dirAt(x, y) { return document.elementFromPoint(x, y)?.closest?.('[data-dir]')?.dataset.dir || null; }
+      function stopRep() { if (repTimer) { clearTimeout(repTimer); clearInterval(repTimer); repTimer = null; } repDir = null; }
+      function startRep(d) {
+        stopRep(); repDir = d;
+        repTimer = setTimeout(() => {
+          repTimer = setInterval(() => {
+            if (repDir && ts[repDir] && undyne.sub !== 'dodge') undyne.onNav(repDir);
+            else if (!ts[repDir]) stopRep();
+          }, 135);
+        }, 235);
+      }
+      function recompute() {
+        const prev = { up: ts.up, down: ts.down, left: ts.left, right: ts.right };
         ts.up = ts.down = ts.left = ts.right = false;
-        if (Math.hypot(dx, dy) > 15) {
-          const deg = Math.atan2(dy, dx) * 180 / Math.PI;
-          ts.right = deg > -62 && deg < 62; ts.down = deg > 28 && deg < 152;
-          ts.left = deg > 118 || deg < -118; ts.up = deg > -152 && deg < -28;
-          const p = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-          const now = performance.now();
-          if (p !== lastNavDir) {
-            lastNavDir = p; navNextTs = now + 220;
-            undyne.onNav(p);
-          } else if (now >= navNextTs) {
-            navNextTs = now + 135;
-            undyne.onNav(p);
-          }
-        } else { lastNavDir = ''; }
+        for (const d of activeTouches.values()) if (d) ts[d] = true;
+        if (mouseDir) ts[mouseDir] = true;
+        for (const d of ['up', 'down', 'left', 'right']) {
+          if (ts[d] && !prev[d]) { undyne.onNav(d); startRep(d); }
+        }
+        if (!ts.up && !ts.down && !ts.left && !ts.right) stopRep();
         sync();
       }
-      dpad.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); touchHoldFrames = 0; dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-      dpad.addEventListener('touchmove', e => { e.preventDefault(); dpadPt(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-      dpad.addEventListener('touchend', e => { e.preventDefault(); ts.up = ts.down = ts.left = ts.right = false; lastNavDir = ''; touchHoldFrames = 0; sync(); }, { passive: false });
-      dpad.addEventListener('mousedown', e => { sfx.unlock(); touchHoldFrames = 0; dpadPt(e.clientX, e.clientY); });
-      window.addEventListener('mouseup', () => { ts.up = ts.down = ts.left = ts.right = false; lastNavDir = ''; touchHoldFrames = 0; sync(); });
+      kbArrows.addEventListener('touchstart', e => {
+        e.preventDefault(); sfx.unlock();
+        for (const t of e.changedTouches) {
+          const d = t.target?.closest?.('[data-dir]')?.dataset.dir || dirAt(t.clientX, t.clientY);
+          if (d) activeTouches.set(t.identifier, d);
+        }
+        recompute();
+      }, { passive: false });
+      kbArrows.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (!activeTouches.has(t.identifier)) continue;
+          const d = dirAt(t.clientX, t.clientY);
+          if (d) activeTouches.set(t.identifier, d); else activeTouches.delete(t.identifier);
+        }
+        recompute();
+      }, { passive: false });
+      const endT = e => { e.preventDefault(); for (const t of e.changedTouches) activeTouches.delete(t.identifier); recompute(); };
+      kbArrows.addEventListener('touchend', endT, { passive: false });
+      kbArrows.addEventListener('touchcancel', endT, { passive: false });
+      kbArrows.addEventListener('mousedown', e => { const d = e.target?.closest?.('[data-dir]')?.dataset.dir; if (!d) return; e.preventDefault(); sfx.unlock(); mouseDir = d; recompute(); });
+      window.addEventListener('mousemove', e => { if (!mouseDir) return; const d = dirAt(e.clientX, e.clientY); if (d && d !== mouseDir) { mouseDir = d; recompute(); } });
+      window.addEventListener('mouseup', () => { if (mouseDir) { mouseDir = null; recompute(); } });
 
       const bindBtn = (id, fnD, fnU) => {
         const el = document.getElementById(id);
-        el.addEventListener('touchstart', e => { e.preventDefault(); el.classList.add('active'); fnD(); }, { passive: false });
+        el.addEventListener('touchstart', e => { e.preventDefault(); sfx.unlock(); el.classList.add('active'); fnD(); }, { passive: false });
         el.addEventListener('touchend', e => { e.preventDefault(); el.classList.remove('active'); fnU?.(); }, { passive: false });
-        el.addEventListener('mousedown', () => { el.classList.add('active'); fnD(); });
+        el.addEventListener('touchcancel', e => { e.preventDefault(); el.classList.remove('active'); fnU?.(); }, { passive: false });
+        el.addEventListener('mousedown', () => { sfx.unlock(); el.classList.add('active'); fnD(); });
         el.addEventListener('mouseup', () => { el.classList.remove('active'); fnU?.(); });
       };
       bindBtn('btnZ', () => undyne.onConfirm());
@@ -220,13 +289,16 @@
         const r = canvas.getBoundingClientRect();
         undyne.onCanvasTap(((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 480);
       });
+      document.getElementById('btnMenuToggle').addEventListener('click', () => document.getElementById('topToolbar').classList.toggle('open'));
       document.getElementById('modeSel').addEventListener('change', e => {
         const v = e.target.value; e.target.value = ''; sfx.unlock();
         if (!v) return;
+        document.getElementById('topToolbar').classList.remove('open');
         if (v === 'title' || v === 'phase_menu' || v === 'single_menu') { undyne.clearBullets(); undyne.mode = v; undyne.menuCursor = 0; }
         else undyne.startPhase(v);
       });
       document.getElementById('btnShield').addEventListener('click', () => { sfx.unlock(); undyne.toggleNoHit(); });
+      document.getElementById('btnShieldQuick').addEventListener('click', () => { sfx.unlock(); undyne.toggleNoHit(); });
       document.getElementById('btnLang').addEventListener('click', () => { G.lang = G.lang === 'en' ? 'zh' : 'en'; G.onUI(); });
       document.getElementById('btnMute').addEventListener('click', e => { sfx.unlock(); sfx.setMuted(!sfx.muted); e.currentTarget.textContent = sfx.muted ? '🔇 Muted' : '🔊 Audio'; });
 
@@ -235,14 +307,7 @@
         if (!last) last = now;
         acc += Math.min(50, now - last); last = now;
         while (acc >= 1000 / 60) {
-          const anyTouchDir = ts.up || ts.down || ts.left || ts.right;
-          if (anyTouchDir) {
-            touchHoldFrames++;
-            G.keys.moveScale = touchHoldFrames <= 2 ? 0.28 : (touchHoldFrames <= 5 ? 0.62 : 1.0);
-          } else {
-            touchHoldFrames = 0;
-            G.keys.moveScale = 1.0;
-          }
+          G.keys.moveScale = 1.0;
           undyne.update(G.keys);
           acc -= 1000 / 60;
         }

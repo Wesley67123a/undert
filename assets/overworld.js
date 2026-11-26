@@ -212,7 +212,7 @@
       } else if (id >= 6 && id <= 31) {
         sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'ruins');
       } else if (id >= 32 && id <= 37) {
-        sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'home');
+        sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : ((fl.torBasement || fl.torielDone) ? 'home_box' : 'home'));
       } else if (id >= 38 && id <= 41) {
         if (fl.torielDone) sfx.stopBGM();
         else sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'fallendown');
@@ -227,7 +227,7 @@
         else sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'town');
       } else if (id === 81) {
         if (fl.papyrusDone) sfx.stopBGM();
-        else sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'nyeh');
+        else sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'wind');
       }
 
       // Setup dynamic rocks & XO puzzle tiles
@@ -495,8 +495,11 @@
           const pr = G.D().snowdinShopGenoPrompt;
           G.say([{ who: 'narrator', text: pr.text, choices: pr.choices, choiceKey: 'shopGeno' }]);
         } else {
+          sfx.playBGM('shop');
           const pr = G.D().snowdinShopPrompt;
-          G.say([{ who: 'narrator', text: pr.text, choices: pr.choices, choiceKey: 'shopBuy' }]);
+          G.say([{ who: 'narrator', text: pr.text, choices: pr.choices, choiceKey: 'shopBuy' }], () => {
+            sfx.playBGM('town');
+          });
         }
         return true;
       }

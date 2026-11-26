@@ -40,7 +40,7 @@ window.UT_MONSTERS = {
     ]
   },
   whimsun: {
-    nameEn: "Whimsun", nameZh: "微風妖", spr: "spr_whimsun", hp: 10, maxHp: 10, atk: 4, def: 0, exp: 2, gold: 2, bgm: "battle", spareStart: true,
+    nameEn: "Whimsun", nameZh: "微風妖", spr: "spr_whimsun", hurtSpr: "spr_whimsunhurt", hp: 10, maxHp: 10, atk: 4, def: 0, exp: 2, gold: 2, bgm: "battle", spareStart: true,
     encounterEn: "* Whimsun appeared meekly.", encounterZh: "* Whimsun 怯生生地出現了。",
     idleEn: ["* Whimsun keeps muttering\n  'I'm sorry' under its breath.", "* Whimsun avoids eye contact.", "* Whimsun is hyperventilating."],
     idleZh: ["* Whimsun 小聲喃喃著\n  「對不起……」。", "* Whimsun 不敢直視你的眼睛。", "* Whimsun 緊張得快喘不過氣。"],
@@ -142,7 +142,7 @@ window.UT_MONSTERS = {
   lesserdog: {
     nameEn: "Lesser Dog", nameZh: "小犬座衛兵", spr: "spr_lesserdoge", hurtSpr: "spr_lesserdogehurt", hp: 60, maxHp: 60, atk: 6, def: 0, exp: 18, gold: 15, bgm: "battle",
     encounterEn: "* Lesser Dog appears.", encounterZh: "* 小犬座衛兵出現了！",
-    idleEn: ["* Lesser Dog is barking\n  excitedly!", "* Lesser Dog's neck keeps\n  growing longer with excitement!", "* Lesser Dog isGoing where no\n  dog has gone before."],
+    idleEn: ["* Lesser Dog is barking\n  excitedly!", "* Lesser Dog's neck keeps\n  growing longer with excitement!", "* Lesser Dog is going where no\n  dog has gone before."],
     idleZh: ["* 小犬座興奮地汪汪叫！", "* 小犬座因為太開心，脖子越伸越長！", "* 小犬座的脖子已經突破天際了！"],
     acts: [
       { id: "check",  en: "Check",  zh: "查看" },
@@ -162,7 +162,7 @@ window.UT_MONSTERS = {
     ]
   },
   doggo: {
-    nameEn: "Doggo", nameZh: "道格 (盲劍犬)", spr: "spr_movedoge", hp: 70, maxHp: 70, atk: 6, def: 1, exp: 30, gold: 30, bgm: "dogsong",
+    nameEn: "Doggo", nameZh: "道格 (盲劍犬)", spr: "spr_movedoge", hp: 70, maxHp: 70, atk: 6, def: 1, exp: 30, gold: 30, bgm: "battle",
     encounterEn: "* Doggo blocks the way!", encounterZh: "* 哨兵道格 (Doggo) 擋住了去路！",
     idleEn: ["* Doggo is looking around\n  suspiciously. (Don't move\n  during \\BBLUE\\W attacks!)", "* Doggo's ears twitch.\n  (Tip: Stand still for \\BBLUE\\W,\n  then choose ACT -> Pet!)", "* Doggo is trembling because\n  something petted him!"],
     idleZh: ["* 道格警惕地四處張望。\n  (看到\\B藍色攻擊\\W時請保持靜止不動！)", "* 道格的耳朵動了動。\n  (躲過藍刃後選擇 ACT -> 撫摸！)", "* 道格因為被摸了頭而激動發抖！"],
@@ -196,7 +196,7 @@ window.UT_MONSTERS = {
     ]
   },
   papyrus: {
-    nameEn: "Papyrus", nameZh: "帕派瑞斯", spr: "spr_papyrusboss", hp: 680, maxHp: 680, atk: 8, def: 2, exp: 200, gold: 0, bgm: "bonetrousle",
+    nameEn: "Papyrus", nameZh: "帕派瑞斯", spr: "spr_papyrusboss", hp: 680, maxHp: 680, atk: 8, def: 2, exp: 200, gold: 0, bgm: "nyeh",
     encounterEn: "* Papyrus blocks the way!", encounterZh: "* 偉大的帕派瑞斯擋住了去路！",
     idleEn: [
       "* Papyrus is preparing a bone\n  attack! (Press \\B[UP]\\W to jump\n  when your SOUL is \\BBLUE\\W!)",

@@ -31,12 +31,14 @@
         '< Back to Title Menu',
       ],
       singleOpts: [
+        '* Opening Fire Magic (Dreemurr Flames)',
         '* Star Blazing / Galacta Blazing',
         '* Shocker Breaker I & II',
         '* Chaos Saber / Chaos Slicer',
         '* Chaos Buster / Chaos Blaster',
         '* Hyper Goner Vortex',
-        '* Angel of Death: Comets & Beam',
+        '* Angel of Death: Rainbow Comets',
+        '* Angel of Death: Chaos Bombs & Orbs',
         '* Final Rainbow Hyper-Beam',
         '* Lost Souls Rush (All 4 Friends)',
         '< Back to Title Menu',
@@ -48,7 +50,8 @@
         { expr: 'kid2', text: "It's me,\nyour best\nfriend." },
       ],
       p1TurnSpeech: [
-        [], // Turn 0: no speech before Star Blazing
+        [], // Turn 0: Opening Dreemurr Fire Magic (specialnormal=1)
+        [], // Turn 1: Star Blazing
         [{ expr: 1, text: "You know...\nI don't care about\ndestroying this\nworld anymore." }],
         [{ expr: 2, text: "After I defeat you\nand gain total control\nover the timeline...\nI just want to reset\neverything." }],
         [{ expr: 3, text: "All your progress...\nEveryone's memories.\nI'll bring them all\nback to zero!" }],
@@ -71,6 +74,7 @@
         { expr: 2, text: "Let's see what good\nyour DETERMINATION\nis against THIS!!" },
       ],
       p1Status: [
+        '* It\'s the end.',
         '* Asriel readies "STAR BLAZING."',
         '* Asriel charges "SHOCKER\n  BREAKER."',
         '* Asriel calls on "CHAOS SABER."',
@@ -197,12 +201,14 @@
         '< 返回主選單',
       ],
       singleOpts: [
-        '* 群星熾燃 / 銀河爆裂 (Star Blazing)',
+        '* 開場火焰魔法 (Dreemurr Fire Magic)',
+        '* 群星熾燃 / 銀河爆裂 (Star / Galacta Blazing)',
         '* 雷霆震擊 I & II (Shocker Breaker)',
-        '* 混沌雙劍 / 混沌斬擊 (Chaos Saber)',
-        '* 混沌殲滅砲 / 彩虹光束 (Chaos Buster)',
+        '* 混沌雙劍 / 混沌斬擊 (Chaos Saber / Slicer)',
+        '* 混沌殲滅砲 / 混沌巨砲 (Chaos Buster / Blaster)',
         '* 終極噬滅者漩渦 (Hyper Goner)',
-        '* 死亡天使：彩虹彗星連彈',
+        '* 死亡天使：彩虹追尾彗星 (Rainbow Comets)',
+        '* 死亡天使：混沌爆彈＆光球 (Chaos Bombs)',
         '* 絕望最終彩虹鐳射 (Final Laser)',
         '* 失落靈魂連戰 (4 組好友彈幕)',
         '< 返回主選單',
@@ -214,6 +220,7 @@
         { expr: 'kid2', text: '是我呀，\n你最好的朋友。' },
       ],
       p1TurnSpeech: [
+        [],
         [],
         [{ expr: 1, text: '你知道嗎……\n我已經不在乎摧毀這個\n世界了。' }],
         [{ expr: 2, text: '當我打敗你並徹底掌握\n時間線之後……\n我只想把一切都重置。' }],
@@ -237,6 +244,7 @@
         { expr: 2, text: '就讓我看看你的「決心」\n能不能撐過這一擊！！' },
       ],
       p1Status: [
+        '* 這就是終點了。',
         '* 艾斯利爾準備發動「群星熾燃 (STAR BLAZING)」。',
         '* 艾斯利爾正在蓄力「雷霆震擊 (SHOCKER BREAKER)」。',
         '* 艾斯利爾召喚出「混沌雙劍 (CHAOS SABER)」。',
@@ -483,10 +491,20 @@
         }
       },
 
+      playHisTheme() {
+        G.sfx.playBGM('histheme', false, 0.55);
+        const a = G.sfx.bgmAudio;
+        if (a) {
+          a.onended = () => {
+            if (G.sfx.bgmName === 'histheme') G.sfx.playBGM('histheme_loop', true, 0.55);
+          };
+        }
+      },
+
       resetEntities() {
         this.bullets = []; this.beams = []; this.stars = []; this.bolts = [];
         this.playerShots = []; this.sabers = null; this.gun = null; this.goner = null;
-        this.lastBeam = null; this.afterimages = [];
+        this.lastBeam = null; this.afterimages = []; this.blastOrbs = []; this.ultTarget = null;
         this.soulColor = 'red'; this.soulVy = 0; this.shieldDir = 0;
         this.box = { x: 32, y: 250, w: 575, h: 140 };
         this.tBox = { x: 32, y: 250, w: 575, h: 140 };
@@ -518,10 +536,10 @@
           G.sfx.playBGM('hopes', true, 0.56);
         } else if (tag === 'hypergoner') {
           this.mode = 'p1';
-          this.p1Turn = 13;
+          this.p1Turn = 14;
           this.whiteAlpha = 0.8;
           G.sfx.playBGM('hopes', true, 0.56);
-          this.beginBubble(this.L().p1TurnSpeech[13], () => this.launchP1Wave(13));
+          this.beginBubble(this.L().p1TurnSpeech[14], () => this.launchP1Wave(14));
         } else if (tag === 'p2') {
           this.mode = 'p2';
           this.sub = 'main';
@@ -542,7 +560,7 @@
           this.finTurn = 0;
           this.asrielCry = 1;
           this.whiteAlpha = 1;
-          G.sfx.playBGM('histheme', true, 0.55);
+          this.playHisTheme();
           this.beginBubble([this.L().finaleBubble[0]], () => this.launchFinaleWave(0));
         }
       },
@@ -552,34 +570,39 @@
         this.singleWaveIdx = idx;
         this.resetEntities();
         this.hp = 20;
-        const p2Like = idx === 5 || idx === 6;
-        this.mode = idx === 6 ? 'finale' : (p2Like ? 'p2' : 'p1');
-        if (idx === 5 || idx === 6) G.sfx.playBGM(idx === 6 ? 'histheme' : 'burn', true, 0.55);
-        else if (idx === 7) G.sfx.playBGM('savetheworld', true, 0.55);
+        const p2Like = idx === 6 || idx === 7;
+        this.mode = idx === 8 ? 'finale' : (p2Like ? 'p2' : 'p1');
+        if (idx === 8) this.playHisTheme();
+        else if (p2Like) G.sfx.playBGM('burn', true, 0.55);
+        else if (idx === 9) G.sfx.playBGM('savetheworld', true, 0.55);
         else G.sfx.playBGM('hopes', true, 0.55);
         this.launchSingleWave(idx);
       },
 
       launchSingleWave(idx) {
         this.resetEntities();
-        const L = this.L();
         if (idx === 0) {
           this.asX = 320; this.asY = 46;
-          this.spawnAttack('star', { hard: this.time % 2 === 1 });
+          this.spawnAttack('fire_magic', {});
         } else if (idx === 1) {
-          this.spawnAttack('shocker', { hard: true });
+          this.asX = 320; this.asY = 46;
+          this.spawnAttack('star', { hard: true });
         } else if (idx === 2) {
-          this.spawnAttack('saber', { hard: true });
+          this.spawnAttack('shocker', { hard: true });
         } else if (idx === 3) {
-          this.spawnAttack('buster', { hard: true });
+          this.spawnAttack('saber', { hard: true });
         } else if (idx === 4) {
-          this.spawnAttack('hypergoner', {});
+          this.spawnAttack('buster', { hard: true });
         } else if (idx === 5) {
-          this.spawnAttack('p2_comets', {});
+          this.spawnAttack('hypergoner', {});
         } else if (idx === 6) {
+          this.spawnAttack('p2_comets', {});
+        } else if (idx === 7) {
+          this.spawnAttack('p2_orb_beam', {});
+        } else if (idx === 8) {
           this.asrielCry = 1;
           this.spawnAttack('lastbeam', {});
-        } else if (idx === 7) {
+        } else if (idx === 9) {
           const cycle = ['undyne', 'alphys', 'skelebros', 'parents'][(Math.floor(this.time / 10) % 4)];
           this.mode = 'lost_soul';
           this.activeLostSoul = cycle;
@@ -641,12 +664,7 @@
         }
         this.hp = Math.max(0, this.hp - realDmg);
         if (this.hp <= 0) {
-          if (this.singlePractice) {
-            // Instant restart prompt / refuse in single practice
-            this.triggerRefuse();
-          } else {
-            this.triggerRefuse();
-          }
+          this.triggerRefuse();
         }
       },
 
@@ -656,6 +674,7 @@
         this.refuseStage = 0;
         this.refusals++;
         this.bullets = []; this.beams = []; this.stars = []; this.bolts = [];
+        this.blastOrbs = []; this.ultTarget = null;
         this.sabers = null; this.gun = null; this.goner = null; this.lastBeam = null;
         G.sfx.sfx('break1', 0.7);
       },
@@ -667,28 +686,33 @@
         this.sub = 'dodge';
         this.currentAtk = kind;
         this.attackTimer = 0;
-        this.hopeActive = this.hopeActive; // preserved for the wave
+        this.attackWeak = !!opts.weak;
         this.bullets = []; this.beams = []; this.stars = []; this.bolts = [];
+        this.blastOrbs = []; this.ultTarget = null;
         this.playerShots = []; this.sabers = null; this.gun = null; this.goner = null; this.lastBeam = null;
         const hard = !!opts.hard;
 
-        if (kind === 'star') {
+        if (kind === 'fire_magic') {
+          // Canonical ut_ref specialnormal=1 Opening Dreemurr Fire Magic (bullettype=7)
+          this.tBox = { x: 224, y: 246, w: 192, h: 144 };
+          this.attackDur = 215;
+        } else if (kind === 'star') {
           this.tBox = { x: 224, y: 244, w: 192, h: 148 };
-          this.attackDur = hard ? 255 : 230;
-          this.stars = { hard, explodedBig: false };
+          this.attackDur = hard ? 275 : 235;
+          this.stars = { hard, explodedBig: false, explodedBig2: false };
         } else if (kind === 'shocker') {
           this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          this.attackDur = hard ? 235 : 205;
+          this.attackDur = hard ? 245 : 205;
           this.bolts = { hard, idx: 0, gigaFired: false };
         } else if (kind === 'saber') {
           this.tBox = { x: 230, y: 248, w: 180, h: 140 };
-          this.attackDur = hard ? 280 : 250;
+          this.attackDur = hard ? 285 : 250;
           this.asY = 92;
           G.sfx.sfx('swordappear', 0.65);
           this.sabers = { hard, step: 0, phase: 'swing', count: 0, maxSwings: hard ? 6 : 5, curSide: 0, twinklesSpawned: false, timer: 0 };
         } else if (kind === 'buster') {
           this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          this.attackDur = hard ? 260 : 240;
+          this.attackDur = hard ? 265 : 240;
           this.gun = {
             hard, t: 0, stage: 'aim', salvo: 0, maxSalvo: hard ? 7 : 5,
             angle: 270, recoil: 0, meter: 0, beamTimer: 0, bx: 320, by: 120,
@@ -701,9 +725,15 @@
           this.goner = { t: 0, alpha: 0, jawOpen: 0, laughPlayed: false, chargePlayed: false, faceY: 0, debris: [] };
         } else if (kind === 'p2_comets') {
           this.tBox = { x: 224, y: 246, w: 192, h: 144 };
-          this.attackDur = 210;
+          this.attackDur = opts.weak ? 190 : 245;
+          this.ultTarget = { x: 320, y: 318 };
         } else if (kind === 'p2_orb_beam') {
           this.tBox = { x: 215, y: 244, w: 210, h: 146 };
+          this.attackDur = 230;
+          this.ultTarget = { x: 320, y: 318 };
+        } else if (kind === 'finale_fire') {
+          // Canonical Finale Crying Weak Stray Fireballs (bullettype=9) that gently steer AWAY from SOUL!
+          this.tBox = { x: 224, y: 246, w: 192, h: 144 };
           this.attackDur = 195;
         } else if (kind === 'lastbeam') {
           this.tBox = { x: 32, y: 250, w: 575, h: 140 };
@@ -737,24 +767,28 @@
       launchP1Wave(t) {
         const L = this.L();
         this.statusTxt = L.p1Status[Math.min(t, L.p1Status.length - 1)] || L.p1Status[0];
-        if (t === 0 || t === 4) this.spawnAttack('star', { hard: false });
-        else if (t === 9) this.spawnAttack('star', { hard: true });
-        else if (t === 1 || t === 3) this.spawnAttack('shocker', { hard: false });
-        else if (t === 8 || t === 12) this.spawnAttack('shocker', { hard: true });
-        else if (t === 2 || t === 6) this.spawnAttack('saber', { hard: false });
-        else if (t === 10) this.spawnAttack('saber', { hard: true });
-        else if (t === 5 || t === 7) this.spawnAttack('buster', { hard: false });
-        else if (t === 11) this.spawnAttack('buster', { hard: true });
-        else if (t >= 13) this.spawnAttack('hypergoner', {});
+        if (t === 0) this.spawnAttack('fire_magic', {});
+        else if (t === 1 || t === 5) this.spawnAttack('star', { hard: false });
+        else if (t === 10) this.spawnAttack('star', { hard: true });
+        else if (t === 2 || t === 4) this.spawnAttack('shocker', { hard: false });
+        else if (t === 9 || t === 13) this.spawnAttack('shocker', { hard: true });
+        else if (t === 3 || t === 7) this.spawnAttack('saber', { hard: false });
+        else if (t === 11) this.spawnAttack('saber', { hard: true });
+        else if (t === 6 || t === 8) this.spawnAttack('buster', { hard: false });
+        else if (t === 12) this.spawnAttack('buster', { hard: true });
+        else if (t >= 14) this.spawnAttack('hypergoner', {});
       },
 
       launchFinaleWave(t) {
         if (t >= 6) {
+          this.asrielCry = 2;
           this.spawnAttack('lastbeam', {});
-        } else if (t % 2 === 0) {
+        } else if (t <= 1) {
+          this.asrielCry = 1;
           this.spawnAttack('p2_comets', { weak: true });
         } else {
-          this.spawnAttack('star', { hard: false, weak: true });
+          this.asrielCry = 2;
+          this.spawnAttack('finale_fire', { weak: true });
         }
       },
 
@@ -763,10 +797,10 @@
         this.asX = 320; this.asY = 46;
         this.tBox = { x: 32, y: 250, w: 575, h: 140 };
         this.soulColor = 'red';
-        this.bullets = []; this.beams = []; this.sabers = null; this.gun = null; this.goner = null; this.lastBeam = null;
+        this.bullets = []; this.beams = []; this.blastOrbs = []; this.ultTarget = null;
+        this.sabers = null; this.gun = null; this.goner = null; this.lastBeam = null;
 
         if (this.singlePractice) {
-          // Reloop cleanly for continuous Single-Attack training (c2-sans-fight style!)
           this.launchSingleWave(this.singleWaveIdx);
           return;
         }
@@ -851,8 +885,8 @@
         }
         if (this.mode === 'single_menu') {
           G.sfx.sfx('select', 0.6);
-          if (this.menuCursor === 8) { this.noHitMode = !this.noHitMode; return; }
-          if (this.menuCursor === 9) { this.mode = 'title'; this.menuCursor = 0; return; }
+          if (this.menuCursor === 10) { this.noHitMode = !this.noHitMode; return; }
+          if (this.menuCursor === 11) { this.mode = 'title'; this.menuCursor = 0; return; }
           this.startSingleWave(this.menuCursor);
           return;
         }
@@ -1020,7 +1054,7 @@
             this.beginMsg(this.L().saveAsrielLine, () => {
               this.whiteAlpha = 1.2;
               G.sfx.sfx('abreak2', 0.75);
-              G.sfx.playBGM('histheme', true, 0.55);
+              this.playHisTheme();
               this.mode = 'finale';
               this.finTurn = 0; this.asrielCry = 1;
               this.beginBubble([this.L().finaleBubble[0]], () => this.launchFinaleWave(0));
@@ -1097,7 +1131,6 @@
           const n = 5;
           if (dir === 'up') this.menuCursor = (this.menuCursor + n - 1) % n;
           else if (dir === 'down') this.menuCursor = (this.menuCursor + 1) % n;
-          else if (dir === 'left' || dir === 'right') { /* toggle lang quickly */ }
           G.sfx.sfx('squeak', 0.4);
           return;
         }
@@ -1109,7 +1142,7 @@
           return;
         }
         if (this.mode === 'single_menu') {
-          const n = 10;
+          const n = 12;
           if (dir === 'up') this.menuCursor = (this.menuCursor + n - 1) % n;
           else if (dir === 'down') this.menuCursor = (this.menuCursor + 1) % n;
           G.sfx.sfx('squeak', 0.4);
@@ -1128,7 +1161,7 @@
         }
         if (this.sub === 'dodge' && this.soulColor === 'blue' && dir === 'up') {
           if (this.soulY >= this.box.y + this.box.h - 14) {
-            this.soulVy = -7.2;
+            this.soulVy = -7.0;
           }
           return;
         }
@@ -1162,9 +1195,9 @@
       onCanvasTap(cx, cy) {
         G.sfx.unlock();
         if (this.mode === 'title' || this.mode === 'phase_menu' || this.mode === 'single_menu') {
-          const startY = this.mode === 'title' ? 210 : (this.mode === 'phase_menu' ? 118 : 102);
-          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 44 : 33);
-          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 10);
+          const startY = this.mode === 'title' ? 210 : (this.mode === 'phase_menu' ? 118 : 96);
+          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 44 : 27);
+          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 12);
           const idx = Math.floor((cy - startY) / rowH);
           if (idx >= 0 && idx < n) { this.menuCursor = idx; this.onConfirm(); }
           return;
@@ -1285,15 +1318,14 @@
         this.attackTimer++;
         const bx = this.box.x + 8, by = this.box.y + 8, br = this.box.x + this.box.w - 8, bb = this.box.y + this.box.h - 8;
 
-        // 1. SOUL Movement
+        // 1. SOUL Movement (Crisp instant 1:1 response — no startup delay lag!)
         if (this.soulColor === 'green') {
           if (keys.up) this.shieldDir = 0;
           else if (keys.right) this.shieldDir = 1;
           else if (keys.down) this.shieldDir = 2;
           else if (keys.left) this.shieldDir = 3;
         } else if (this.soulColor === 'blue') {
-          const ramp = keys.moveScale != null ? keys.moveScale : 1;
-          const spd = (keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.9 : 2.3)) * ramp;
+          const spd = keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.9 : 2.35);
           if (keys.left) this.soulX -= spd;
           if (keys.right) this.soulX += spd;
           if (keys.up && this.soulY >= bb - 7 && this.soulVy >= 0) this.soulVy = -6.8;
@@ -1303,15 +1335,13 @@
           if (this.soulY > bb - 6) { this.soulY = bb - 6; this.soulVy = 0; }
           if (this.soulY < by + 6) { this.soulY = by + 6; this.soulVy = 0; }
         } else {
-          const ramp = keys.moveScale != null ? keys.moveScale : 1;
-          const spd = (keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.95 : 2.35)) * ramp;
+          const spd = keys.cancel ? 1.2 : (this.seaTeaBoost ? 2.95 : 2.40);
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-          if (dx && dy) { dx *= 0.75; dy *= 0.75; }
+          if (dx && dy) { dx *= 0.72; dy *= 0.72; }
           this.soulX += dx * spd;
           this.soulY += dy * spd;
           if (this.goner && this.goner.t > 80 && this.goner.t < 290) {
-            // Hyper Goner suction force pulling SOUL up into the roaring jaws!
             const pullAng = Math.atan2(180 - this.soulY, 320 - this.soulX);
             this.soulX += Math.cos(pullAng) * 1.05;
             this.soulY += Math.sin(pullAng) * 1.45;
@@ -1320,6 +1350,17 @@
         this.soulX = Math.max(bx + 6, Math.min(br - 6, this.soulX));
         this.soulY = Math.max(by + 6, Math.min(bb - 6, this.soulY));
 
+        // Update obj_ultimatarget smooth SOUL tracking + shoulder blast orbs
+        if (this.ultTarget) {
+          const td = Math.hypot(this.soulX - this.ultTarget.x, this.soulY - this.ultTarget.y);
+          if (td > 1.5) {
+            this.ultTarget.x += ((this.soulX - this.ultTarget.x) / td) * 1.65;
+            this.ultTarget.y += ((this.soulY - this.ultTarget.y) / td) * 1.65;
+          }
+        }
+        for (const o of this.blastOrbs) { o.sc += 0.38; o.alpha -= 0.055; }
+        this.blastOrbs = this.blastOrbs.filter(o => o.alpha > 0);
+
         // Yellow shooter SOUL projectiles (Lost Soul Alphys)
         for (const s of this.playerShots) s.y += s.vy;
         this.playerShots = this.playerShots.filter(s => s.y > this.box.y - 10);
@@ -1327,29 +1368,55 @@
         const kind = this.currentAtk;
         const t = this.attackTimer;
 
+        // Pattern 0: Canonical Opening Dreemurr Fire Magic (specialnormal=1, bullettype=7)
+        if (kind === 'fire_magic') {
+          if (t < this.attackDur - 40 && t % 12 === 1) {
+            G.sfx.sfx('chug', 0.28, 1.05);
+            const fromLeft = (Math.floor(t / 12) % 2 === 0);
+            const yWave = this.box.y + 18 + ((Math.sin(t * 0.14) + 1) * 0.5) * (this.box.h - 36);
+            this.bullets.push({
+              type: 'dreemurr_fire',
+              x: fromLeft ? this.box.x - 10 : this.box.x + this.box.w + 10,
+              y: yWave,
+              vx: fromLeft ? 2.8 : -2.8,
+              vy: Math.cos(t * 0.14) * 1.15,
+              r: 7,
+            });
+          }
+        }
+
         // Pattern A: Star Blazing / Galacta Blazing
-        if (kind === 'star') {
+        else if (kind === 'star') {
           const hard = this.stars.hard;
-          if (t < this.attackDur - 55 && t % (hard ? 11 : 14) === 1) {
+          if (t < this.attackDur - 58 && t % (hard ? 9 : 14) === 1) {
             if (t % 28 === 1) G.sfx.sfx('star', 0.45, 0.9 + Math.random() * 0.25);
-            const fromLeft = Math.random() < 0.35;
+            const fromLeft = hard ? (Math.random() < 0.48) : (Math.random() < 0.22);
             this.bullets.push({
               type: 'stormstar',
-              x: fromLeft ? -40 : 420 + Math.random() * 280,
+              x: fromLeft ? (-35 - Math.random() * 60) : (420 + Math.random() * 260),
               y: -30 - Math.random() * 40,
-              vx: fromLeft ? (4.5 + Math.random() * 2) : (-5.2 - Math.random() * 2.5),
-              vy: 4.5 + Math.random() * 2,
+              vx: fromLeft ? (4.6 + Math.random() * 2.1) : (-5.2 - Math.random() * 2.4),
+              vy: 4.5 + Math.random() * 2.0,
               hue: (t * 17) % 360,
-              splitY: this.box.y + 40 + Math.random() * (this.box.h - 45),
+              splitY: this.box.y + 38 + Math.random() * (this.box.h - 46),
               big: false, trail: [], r: 10,
             });
           }
-          if (t === this.attackDur - 58 && !this.stars.explodedBig) {
+          if (t === this.attackDur - 64 && !this.stars.explodedBig) {
             this.stars.explodedBig = true;
             G.sfx.sfx('star', 0.65, 0.55);
             this.bullets.push({
               type: 'stormstar', x: 660, y: -60, vx: -5.2, vy: 4.3,
-              hue: 50, splitY: 270, big: true, trail: [], r: 22,
+              hue: 50, splitY: 274, big: true, trail: [], r: 22,
+            });
+          }
+          // Galacta Blazing fires a SECOND giant star from top-left!
+          if (hard && t === this.attackDur - 42 && !this.stars.explodedBig2) {
+            this.stars.explodedBig2 = true;
+            G.sfx.sfx('star', 0.65, 0.52);
+            this.bullets.push({
+              type: 'stormstar', x: -20, y: -60, vx: 5.2, vy: 4.3,
+              hue: 210, splitY: 292, big: true, trail: [], r: 22,
             });
           }
         }
@@ -1357,22 +1424,24 @@
         // Pattern B: Shocker Breaker I & II
         else if (kind === 'shocker') {
           const hard = this.bolts.hard;
-          const step = hard ? 14 : 18;
-          if (t < 150 && t % step === 2) {
+          const step = hard ? 13 : 18;
+          if (t < 146 && t % step === 2) {
             const lane = (this.bolts.idx % 5);
             const reverse = Math.floor(this.bolts.idx / 5) % 2 === 1;
             const col = reverse ? (4 - lane) : lane;
             const lx = this.box.x + 22 + col * ((this.box.w - 44) / 4);
             this.bolts.idx++;
             G.sfx.sfx('target', 0.35);
-            this.bullets.push({ type: 'warnbolt', x: lx, y: this.box.y + this.box.h / 2, timer: 22, w: 32, giga: false });
+            this.bullets.push({ type: 'warnbolt', x: lx, y: this.box.y + this.box.h / 2, timer: hard ? 20 : 22, w: 32, giga: false });
           }
-          if (hard && t === 165 && !this.bolts.gigaFired) {
+          if (hard && t === 162 && !this.bolts.gigaFired) {
             this.bolts.gigaFired = true;
-            G.sfx.sfx('target', 0.5);
-            for (const xOff of [-70, 70]) {
-              this.bullets.push({ type: 'warnbolt', x: 320 + xOff, y: this.box.y + this.box.h / 2, timer: 26, w: 66, giga: true });
+            G.sfx.sfx('target', 0.55);
+            // Shocker Breaker II: twin outer Giga columns followed by center Giga column!
+            for (const xOff of [-68, 68]) {
+              this.bullets.push({ type: 'warnbolt', x: 320 + xOff, y: this.box.y + this.box.h / 2, timer: 24, w: 62, giga: true });
             }
+            this.bullets.push({ type: 'warnbolt', x: 320, y: this.box.y + this.box.h / 2, timer: 46, w: 72, giga: true });
           }
         }
 
@@ -1380,7 +1449,7 @@
         else if (kind === 'saber') {
           const S = this.sabers;
           S.timer++;
-          const period = S.hard ? 26 : 32;
+          const period = S.hard ? 24 : 32;
           if (S.count < S.maxSwings) {
             const local = S.timer % period;
             if (local === 1) {
@@ -1391,7 +1460,6 @@
             if (local === period - 10) {
               this.shake = 6;
               G.sfx.sfx('swipe', 0.7);
-              // Deadly half-arena slash hitbox
               const hx = S.curSide === 0 ? this.box.x : 320;
               this.bullets.push({
                 type: 'saberslash', side: S.curSide, x: hx, y: this.box.y,
@@ -1404,14 +1472,24 @@
             this.asX = 320; this.shake = 10;
             G.sfx.sfx('cinematiccut', 0.7);
             G.sfx.sfx('sparkles', 0.65);
-            // Cross-box closing smash + exploding diamond twinkles!
-            for (let i = 0; i < 16; i++) {
-              const ang = (i / 16) * Math.PI * 2;
+            const cnt = S.hard ? 20 : 14;
+            for (let i = 0; i < cnt; i++) {
+              const ang = (i / cnt) * Math.PI * 2;
               this.bullets.push({
                 type: 'starburst', x: 320, y: 315,
-                vx: Math.cos(ang) * 3.1, vy: Math.sin(ang) * 3.1,
-                hue: i * 22, r: 5, life: 70,
+                vx: Math.cos(ang) * 3.2, vy: Math.sin(ang) * 3.2,
+                hue: i * (360 / cnt), r: 5, life: 74,
               });
+            }
+            if (S.hard) {
+              for (let i = 0; i < 12; i++) {
+                const ang = (i / 12) * Math.PI * 2 + 0.15;
+                this.bullets.push({
+                  type: 'starburst', x: 320, y: 315,
+                  vx: Math.cos(ang) * 2.1, vy: Math.sin(ang) * 2.1,
+                  hue: (i * 30 + 90) % 360, r: 5, life: 82,
+                });
+              }
             }
           }
         }
@@ -1424,31 +1502,30 @@
           if (gn.salvo < gn.maxSalvo) {
             if (gn.t % shotInterval === 1) {
               gn.angle = Math.atan2(this.soulY - gn.by, this.soulX - gn.bx);
-              gn.lines = (gn.salvo % 2 === 0) ? 3 : (gn.hard ? 5 : 4);
+              gn.lines = (gn.salvo % 2 === 0) ? (gn.hard ? 5 : 3) : (gn.hard ? 6 : 4);
               G.sfx.sfx('target', 0.45);
             }
             if (gn.t % shotInterval === 14) {
               G.sfx.sfx('abullet', 0.6);
               gn.recoil = 8; gn.salvo++;
               const n = gn.lines;
-              const spread = gn.hard ? 0.24 : 0.28;
+              const spread = gn.hard ? 0.22 : 0.28;
               for (let i = 0; i < n; i++) {
                 const a = gn.angle + (i - (n - 1) / 2) * spread;
                 this.bullets.push({
                   type: 'gunbolt', x: gn.bx, y: gn.by,
-                  vx: Math.cos(a) * 8.5, vy: Math.sin(a) * 8.5,
+                  vx: Math.cos(a) * (gn.hard ? 9.0 : 8.2), vy: Math.sin(a) * (gn.hard ? 9.0 : 8.2),
                   deg: -a * 180 / Math.PI, hue: (i * 55 + gn.t * 9) % 360, r: 5,
                 });
               }
             }
           } else {
-            // Final Rainbow Buster Beam!
             if (gn.beamTimer === 0) G.sfx.sfx('rainbowbeam', 0.75);
             gn.beamTimer++;
             this.shake = 7;
-            if (gn.beamTimer < 45) {
-              const ang = gn.angle + Math.sin(gn.beamTimer * 0.25) * 0.35;
-              this.beams.push({ x: gn.bx, y: gn.by, angle: ang, w: 34, hue: (this.time * 18) % 360, life: 2 });
+            if (gn.beamTimer < 46) {
+              const ang = gn.angle + Math.sin(gn.beamTimer * 0.25) * (gn.hard ? 0.44 : 0.34);
+              this.beams.push({ x: gn.bx, y: gn.by, angle: ang, w: gn.hard ? 42 : 34, hue: (this.time * 18) % 360, life: 2 });
             }
           }
           gn.recoil *= 0.8;
@@ -1478,27 +1555,73 @@
           if (Gg.t > 295) this.whiteAlpha = Math.min(1.2, (Gg.t - 295) / 22);
         }
 
-        // Pattern F: Phase 2 Rainbow Homing Comets & Blast Orbs
+        // Pattern F1: Phase 2 Canonical obj_ultimagen + obj_ultimabullet + obj_blastorb!
         else if (kind === 'p2_comets') {
-          if (t < this.attackDur - 35 && t % 7 === 1) {
-            const side = (Math.floor(t / 7) % 2);
-            if (t % 14 === 1) G.sfx.sfx('segapower', 0.45, 0.85);
-            const sx = side === 0 ? 150 : 490, sy = 155;
-            const ang = Math.atan2(this.soulY - sy, this.soulX - sx) + (Math.random() - 0.5) * 0.4;
+          const spawnSalvo = (side) => {
+            const sx = side === 0 ? 160 : 480, sy = 128;
+            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.95, hue: (t * 14) % 360 });
+            G.sfx.sfx('segapower', 0.45, 0.84);
+          };
+          const spawnUltBullet = (side) => {
+            const sx = side === 0 ? 160 : 480, sy = 128;
+            const slow = this.attackWeak ? 0.65 : 1.0;
+            const vx = (side === 0 ? -1 : 1) * (3.8 + Math.random() * 2.6) * slow;
+            const vy = (1.4 + Math.random() * 2.2) * slow;
             this.bullets.push({
-              type: 'comet', x: sx, y: sy,
-              vx: Math.cos(ang) * 5.8, vy: Math.sin(ang) * 5.8,
-              hue: (t * 21) % 360, hist: [], r: 6,
+              type: 'ult_comet', side, x: sx, y: sy, vx, vy,
+              hue: Math.random() * 360,
+              hist: Array.from({ length: 18 }, () => ({ x: sx, y: sy })),
+              r: 6, life: 150,
+            });
+          };
+          if (t === 16 || t === 96) spawnSalvo(0);
+          if (t === 56 || t === 136) spawnSalvo(1);
+          if (t === 176) { spawnSalvo(0); spawnSalvo(1); }
+          if ((t > 20 && t < 38 && t % 3 === 0) || (t > 100 && t < 118 && t % 3 === 0)) spawnUltBullet(0);
+          if ((t > 60 && t < 78 && t % 3 === 0) || (t > 140 && t < 158 && t % 3 === 0)) spawnUltBullet(1);
+          if (!this.attackWeak && t > 180 && t < 208 && t % 3 === 0) spawnUltBullet(Math.random() < 0.5 ? 0 : 1);
+        }
+
+        // Pattern F2: Phase 2 Canonical obj_chaosbomb + Shoulder Comet Pincers!
+        else if (kind === 'p2_orb_beam') {
+          if (t < this.attackDur - 55 && t % 36 === 4) {
+            G.sfx.sfx('spellcast', 0.48, 1.15);
+            const bx2 = this.box.x + 28 + Math.random() * (this.box.w - 56);
+            const by2 = this.box.y + 24 + Math.random() * (this.box.h - 48);
+            this.bullets.push({
+              type: 'chaosbomb', x: bx2, y: by2,
+              stage: 0, sc: 0.85, angle: 0, alpha: 1, timer: 0, hue: (t * 16) % 360, r: 14,
             });
           }
-        } else if (kind === 'p2_orb_beam') {
-          if (t < this.attackDur - 40 && t % 22 === 1) {
-            G.sfx.sfx('star', 0.45, 1.2);
-            const cx = 320 + Math.cos(t * 0.1) * 140;
-            for (let i = 0; i < 6; i++) {
-              const a = (i / 6) * Math.PI * 2 + t * 0.05;
-              this.bullets.push({ type: 'starburst', x: cx, y: 200, vx: Math.cos(a) * 3.5, vy: Math.sin(a) * 3.5, hue: i * 60 + t, r: 5, life: 95 });
+          if (t < this.attackDur - 55 && t % 48 === 20) {
+            const side = (Math.floor(t / 48) % 2);
+            const sx = side === 0 ? 160 : 480, sy = 128;
+            this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.9, hue: (t * 19) % 360 });
+            G.sfx.sfx('segapower', 0.4, 0.9);
+            for (let k = 0; k < 2; k++) {
+              this.bullets.push({
+                type: 'ult_comet', side, x: sx, y: sy,
+                vx: (side === 0 ? -1 : 1) * (4.0 + k * 1.2), vy: 1.8 + k * 1.1,
+                hue: (t * 13 + k * 70) % 360,
+                hist: Array.from({ length: 18 }, () => ({ x: sx, y: sy })),
+                r: 6, life: 145,
+              });
             }
+          }
+        }
+
+        // Pattern F3: Finale Crying Weak Stray Fireballs (bullettype=9 — curves AWAY from SOUL!)
+        else if (kind === 'finale_fire') {
+          if (t < this.attackDur - 30 && t % 9 === 1) {
+            if (t % 18 === 1) G.sfx.sfx('chug', 0.22, 0.78);
+            const sx = this.box.x + 12 + Math.random() * (this.box.w - 24);
+            const sy = this.box.y - 8;
+            const ang = Math.atan2(this.soulY - sy, this.soulX - sx) + (Math.random() - 0.5) * 0.45;
+            this.bullets.push({
+              type: 'cry_fire', x: sx, y: sy,
+              vx: Math.cos(ang) * 2.1, vy: Math.sin(ang) * 2.1,
+              r: 6, life: 130,
+            });
           }
         }
 
@@ -1509,7 +1632,6 @@
           if (lb.t >= 15) {
             this.shake = 7;
             lb.bw = Math.min(lb.maxBw, (lb.t - 15) * 14);
-            // Hits center triangle regardless to enact canonical 1 -> 0.0001 scene, or dodgeable at far edges!
             const halfW = lb.bw * (Math.max(0.2, (this.soulY - 120) / 360));
             if (Math.abs(this.soulX - 320) < halfW && lb.t > 24) this.hurt(1);
           }
@@ -1517,14 +1639,14 @@
 
         // Pattern H: Lost Souls Mini-Waves
         else if (kind === 'ls_undyne') {
-          if (t % 22 === 2) {
+          if (t % 24 === 2) {
             G.sfx.sfx('spearappear', 0.35);
-            const d = (Math.floor(t / 22) + (t > 100 ? 1 : 0)) % 4;
+            const d = (Math.floor(t / 24) + (t > 100 ? 1 : 0)) % 4;
             const pos = [
-              { x: 320, y: this.box.y - 110, vx: 0, vy: 4.1, dir: 0 },
-              { x: this.box.x + this.box.w + 110, y: 318, vx: -4.1, vy: 0, dir: 1 },
-              { x: 320, y: this.box.y + this.box.h + 110, vx: 0, vy: -4.1, dir: 2 },
-              { x: this.box.x - 110, y: 318, vx: 4.1, vy: 0, dir: 3 },
+              { x: 320, y: this.box.y - 110, vx: 0, vy: 3.1, dir: 0 },
+              { x: this.box.x + this.box.w + 110, y: 318, vx: -3.1, vy: 0, dir: 1 },
+              { x: 320, y: this.box.y + this.box.h + 110, vx: 0, vy: -3.1, dir: 2 },
+              { x: this.box.x - 110, y: 318, vx: 3.1, vy: 0, dir: 3 },
             ][d];
             this.bullets.push({ type: 'ls_arrow', ...pos, r: 7 });
           }
@@ -1533,18 +1655,18 @@
             this.bullets.push({
               type: 'ls_zap',
               x: this.box.x + 22 + Math.random() * (this.box.w - 44),
-              y: this.box.y - 10, vy: 2.3 + Math.random(), r: 10, destructible: Math.random() < 0.7,
+              y: this.box.y - 10, vy: 2.2 + Math.random(), r: 10, destructible: Math.random() < 0.7,
             });
           }
         } else if (kind === 'ls_skelebros') {
           if (t % 28 === 2) {
             const fromLeft = (t / 28) % 2 === 0;
-            const tall = Math.random() < 0.35 ? 52 : 28;
+            const tall = Math.random() < 0.35 ? 50 : 28;
             this.bullets.push({
               type: 'ls_bone',
               x: fromLeft ? this.box.x - 12 : this.box.x + this.box.w + 12,
-              y: this.box.y + this.box.h - tall, w: 12, h: tall,
-              vx: fromLeft ? 3.5 : -3.5, vy: 0,
+              y: this.box.y + this.box.h - tall, w: 10, h: tall,
+              vx: fromLeft ? 3.3 : -3.3, vy: 0,
             });
           }
         } else if (kind === 'ls_parents') {
@@ -1554,7 +1676,7 @@
             const ang = Math.atan2(this.soulY - (this.box.y + 10), this.soulX - sx);
             this.bullets.push({
               type: 'ls_fire', x: sx, y: this.box.y + 10,
-              vx: Math.cos(ang) * 3.4, vy: Math.sin(ang) * 3.4, r: 8,
+              vx: Math.cos(ang) * 3.2, vy: Math.sin(ang) * 3.2, r: 7,
             });
           }
         }
@@ -1572,7 +1694,7 @@
               if (b.big) this.shake = 10;
               for (let i = 0; i < cnt; i++) {
                 const a = (i / cnt) * Math.PI * 2;
-                const spd = b.big ? 4.1 : 3.2;
+                const spd = b.big ? 4.0 : 3.1;
                 nextBullets.push({
                   type: 'starburst', x: b.x, y: b.y,
                   vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
@@ -1587,7 +1709,7 @@
             if (b.timer <= 0) {
               G.sfx.sfx(b.giga ? 'lithit2' : 'lithit', 0.6);
               this.shake = Math.max(this.shake, b.giga ? 11 : 6);
-              nextBullets.push({ type: 'bolt', x: b.x, w: b.w, life: 13, giga: b.giga, hue: (this.time * 15) % 360 });
+              nextBullets.push({ type: 'bolt', x: b.x, w: b.w, life: 14, giga: b.giga, hue: (this.time * 15) % 360 });
             } else nextBullets.push(b);
           } else if (b.type === 'bolt') {
             b.life--;
@@ -1599,23 +1721,67 @@
               this.hurt(5);
             }
             if (b.life > 0) nextBullets.push(b);
-          } else if (b.type === 'comet') {
-            b.hist.push({ x: b.x, y: b.y });
-            if (b.hist.length > 12) b.hist.shift();
-            // Gentle homing curve toward player
-            b.vx += Math.max(-0.18, Math.min(0.18, (this.soulX - b.x) * 0.008));
-            b.vy += Math.max(-0.18, Math.min(0.18, (this.soulY - b.y) * 0.008));
+          } else if (b.type === 'ult_comet') {
+            // Exact ut_ref obj_ultimabullet physics: curves smoothly through the battle box toward obj_ultimatarget!
+            const tx = this.ultTarget ? this.ultTarget.x : this.soulX;
+            const ty = this.ultTarget ? this.ultTarget.y : this.soulY;
+            let hh = Math.max(-0.46, Math.min(0.46, (tx - b.x) / 30));
+            if (b.side === 0 && hh < 0) hh = 0;
+            if (b.side === 1 && hh > 0) hh = 0;
+            let vv = Math.max(-0.48, Math.min(0.32, (ty - b.y) / 28));
+            b.vx += hh; b.vy += vv;
             const sp = Math.hypot(b.vx, b.vy);
-            if (sp > 7.5) { b.vx = (b.vx / sp) * 7.5; b.vy = (b.vy / sp) * 7.5; }
+            const maxSp = this.attackWeak ? 5.6 : 9.4;
+            if (sp > maxSp) { b.vx = (b.vx / sp) * maxSp; b.vy = (b.vy / sp) * maxSp; }
             b.x += b.vx; b.y += b.vy;
-            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 5) this.hurt(4);
-            if (b.x > -40 && b.x < 680 && b.y > -40 && b.y < 520) nextBullets.push(b);
+            b.hist.unshift({ x: b.x, y: b.y });
+            if (b.hist.length > 18) b.hist.pop();
+            b.hue = (b.hue + 10) % 360;
+            b.life--;
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < b.r + 5) this.hurt(this.attackWeak ? 1 : 4);
+            if (b.life > 0 && b.x > -90 && b.x < 730 && b.y > -90 && b.y < 520) nextBullets.push(b);
+          } else if (b.type === 'chaosbomb') {
+            // Exact ut_ref obj_chaosbomb shrink -> expand -> detonate into rainbow ring!
+            b.angle += 6;
+            b.timer++;
+            if (b.stage === 0) {
+              b.sc -= 0.025;
+              if (b.sc <= 0.25) b.stage = 1;
+            } else if (b.stage === 1) {
+              b.sc += 0.16;
+              if (b.sc >= 1.65) {
+                b.stage = 2;
+                G.sfx.sfx('explosion', 0.45, 1.25);
+                this.shake = Math.max(this.shake, 5);
+                for (let i = 0; i < 10; i++) {
+                  const a = (i / 10) * Math.PI * 2 + b.timer * 0.05;
+                  nextBullets.push({
+                    type: 'starburst', x: b.x, y: b.y,
+                    vx: Math.cos(a) * 3.1, vy: Math.sin(a) * 3.1,
+                    hue: (b.hue + i * 36) % 360, r: 5, life: 88,
+                  });
+                }
+              }
+            } else {
+              b.sc += 0.03;
+              b.alpha -= 0.08;
+            }
+            if (b.stage === 1 && Math.hypot(b.x - this.soulX, b.y - this.soulY) < 16) this.hurt(4);
+            if (b.alpha > 0.05) nextBullets.push(b);
+          } else if (b.type === 'cry_fire') {
+            // Crying weak fireballs gently veer AWAY when close to the SOUL!
+            const d = Math.hypot(b.x - this.soulX, b.y - this.soulY);
+            if (d < 46 && d > 1) {
+              b.vx += ((b.x - this.soulX) / d) * 0.22;
+              b.vy += ((b.y - this.soulY) / d) * 0.22;
+            }
+            b.x += b.vx; b.y += b.vy; b.life--;
+            if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(1);
+            if (b.life > 0 && b.y < this.box.y + this.box.h + 24) nextBullets.push(b);
           } else if (b.type === 'ls_arrow') {
             b.x += b.vx; b.y += b.vy;
             const dToCenter = Math.hypot(b.x - 320, b.y - 318);
-            if (dToCenter < 22) {
-              if (b.dir === this.shieldDir) { G.sfx.sfx('arrow', 0.45); continue; } // Blocked!
-            }
+            if (dToCenter < 24 && b.dir === this.shieldDir) { G.sfx.sfx('arrow', 0.45); continue; }
             if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < 9) this.hurt(3);
             else if (b.x > 100 && b.x < 540 && b.y > 120 && b.y < 460) nextBullets.push(b);
           } else if (b.type === 'ls_zap') {
@@ -1646,7 +1812,7 @@
               if (Math.hypot(b.x - 320, b.y - 175) < 16) continue;
             }
             if (Math.hypot(b.x - this.soulX, b.y - this.soulY) < (b.r || 6) + 5) {
-              this.hurt(this.mode === 'finale' ? 1 : (b.type === 'ls_fire' ? 3 : 5));
+              this.hurt(this.mode === 'finale' ? 1 : (b.type === 'ls_fire' || b.type === 'dreemurr_fire' ? 3 : 5));
             }
             if (b.x > -80 && b.x < 720 && b.y > -80 && b.y < 550) nextBullets.push(b);
           }
@@ -1688,26 +1854,25 @@
           this.drawPsychedelicBG(ctx, 0.28);
           ctx.fillStyle = 'rgba(0,0,0,0.62)';
           ctx.fillRect(0, 0, 640, 480);
-          // Floating hyperdeath silhouette
           drawSprExt(ctx, 'spr_asriel_afterimager_full', 0, 520, 42 + Math.sin(this.time * 0.05) * 6, 1.5, 1.5, 0, hsvCss(this.time * 4, 80, 65), 0.35, false);
 
-          drawRichText(ctx, L.simTitle, 44, 34, 999, { size: 32, color: hsvCss(this.time * 4, 90, 70) });
-          drawRichText(ctx, L.simSub, 44, 72, 999, { size: 18, color: '#cccccc' });
+          drawRichText(ctx, L.simTitle, 44, 28, 999, { size: 30, color: hsvCss(this.time * 4, 90, 70) });
+          drawRichText(ctx, L.simSub, 44, 64, 999, { size: 17, color: '#cccccc' });
 
           const list = this.mode === 'title'
             ? L.menuOpts
-            : (this.mode === 'phase_menu' ? L.phaseOpts : [...L.singleOpts.slice(0, 8), L.noHitToggle + (this.noHitMode ? ' [ON]' : ' [OFF]'), L.singleOpts[8]]);
-          const startY = this.mode === 'title' ? 210 : (this.mode === 'phase_menu' ? 118 : 102);
-          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 44 : 33);
+            : (this.mode === 'phase_menu' ? L.phaseOpts : [...L.singleOpts.slice(0, 10), L.noHitToggle + (this.noHitMode ? ' [ON]' : ' [OFF]'), L.singleOpts[10]]);
+          const startY = this.mode === 'title' ? 210 : (this.mode === 'phase_menu' ? 118 : 96);
+          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 44 : 27);
 
           list.forEach((lbl, idx) => {
             const sel = this.menuCursor === idx;
             const y = startY + idx * rowH;
-            if (sel) drawSpr(ctx, 'spr_heart', 0, 48, y + 4, 1, 1);
-            drawRichText(ctx, lbl, 78, y, 999, { size: this.mode === 'single_menu' ? 18 : 22, color: sel ? '#ffff00' : '#ffffff' });
+            if (sel) drawSpr(ctx, 'spr_heart', 0, 46, y + 3, 1, 1);
+            drawRichText(ctx, lbl, 74, y, 999, { size: this.mode === 'single_menu' ? 16 : 21, color: sel ? '#ffff00' : '#ffffff', maxWidth: 540, maxHeight: rowH - 2 });
           });
 
-          drawRichText(ctx, zh ? '↑↓ 選擇  ·  Z / 點擊確認  ·  X 返回' : '↑↓ Select · Z / Click Confirm · X Back', 44, 446, 999, { size: 16, color: '#888888' });
+          drawRichText(ctx, zh ? '↑↓ 選擇  ·  Z / 點擊確認  ·  X 返回' : '↑↓ Select · Z / Click Confirm · X Back', 44, 448, 999, { size: 15, color: '#888888' });
           ctx.restore();
           return;
         }
@@ -2018,17 +2183,17 @@
         const k = this.activeLostSoul;
         const jx = (Math.random() - 0.5) * 1.5;
         if (k === 'undyne') {
-          drawSprExt(ctx, 'spr_undyneb_noanim', 0, 270 + jx, 60, 2.3, 2.3, 0, '#dddddd');
+          drawSprExt(ctx, 'spr_undyneb_noanim', 0, 265 + jx, 42, 2, 2, 0, '#dddddd');
         } else if (k === 'alphys') {
-          drawSprExt(ctx, 'spr_alphyshelper_a', Math.floor(this.time / 12) % 2, 255 + jx, 82, 2.2, 2.2, 0, '#dddddd');
+          drawSprExt(ctx, 'spr_alphyshelper_a', Math.floor(this.time / 12) % 2, 255 + jx, 82, 2, 2, 0, '#dddddd');
         } else if (k === 'skelebros') {
           drawSprExt(ctx, 'spr_sansb_legs', 0, 210 + jx, 165, 2, 2, 0, '#dddddd', 1, true);
           drawSprExt(ctx, 'spr_sansb_torso', 0, 210 + jx, 128, 2, 2, 0, '#dddddd', 1, true);
           drawSprExt(ctx, 'spr_sansb_face', 0, 210 + jx, 96, 2, 2, 0, '#dddddd', 1, true);
-          drawSprExt(ctx, 'spr_papyrusboss', 0, 395 + jx, 54, 1.7, 1.7, 0, '#dddddd');
+          drawSprExt(ctx, 'spr_papyrusboss', 0, 355 + jx, 38, 1, 1, 0, '#dddddd');
         } else if (k === 'parents') {
-          drawSprExt(ctx, 'spr_torielboss', 0, 175 + jx, 52, 1.7, 1.7, 0, '#dddddd');
-          drawSprExt(ctx, 'spr_asgore_flashsilhouette', 0, 325 + jx, 42, 1.4, 1.4, 0, '#dddddd');
+          drawSprExt(ctx, 'spr_torielboss', 0, 170 + jx, 46, 1, 1, 0, '#dddddd');
+          drawSprExt(ctx, 'spr_asgore_flashsilhouette', 0, 325 + jx, 36, 1, 1, 0, '#dddddd');
         }
       },
 
@@ -2043,9 +2208,18 @@
       },
 
       drawBulletsAndBeams(ctx) {
+        // Shoulder Blast Orbs (obj_blastorb -> spr_beamcircle)
+        for (const o of this.blastOrbs) {
+          drawSprExt(ctx, 'spr_beamcircle', 0, o.x, o.y, o.sc, o.sc, 0, hsvCss(o.hue, 95, 70), o.alpha, true);
+        }
+        // Subtle obj_ultimatarget reticle
+        if (this.ultTarget && this.currentAtk === 'p2_comets') {
+          drawSprExt(ctx, 'spr_redtarget', 0, this.ultTarget.x, this.ultTarget.y, 2, 2, 0, '#ff4040', 0.55, false);
+        }
+
         // Chaos Saber windup warning stripe
         if (this.sabers && !this.sabers.twinklesSpawned) {
-          const S = this.sabers, period = S.hard ? 26 : 32, local = S.timer % period;
+          const S = this.sabers, period = S.hard ? 24 : 32, local = S.timer % period;
           if (local >= 4 && local < period - 10) {
             ctx.save();
             ctx.strokeStyle = this.time % 4 < 2 ? 'rgba(255,255,255,0.65)' : 'rgba(255,220,64,0.65)';
@@ -2075,11 +2249,20 @@
             drawSpr(ctx, 'spr_rainbowtarget', Math.floor(this.time / 4), b.x - 10, this.box.y + 12, 1.3, 1.3);
             ctx.restore();
           } else if (b.type === 'bolt') {
+            // Authentic Shocker Breaker using spr_shockpart jagged lightning + spr_shockfinal impact flash!
             ctx.save();
-            ctx.fillStyle = hsvCss(b.hue, 95, 70);
-            ctx.fillRect(b.x - b.w * 0.42, 0, b.w * 0.84, 400);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(b.x - b.w * 0.2, 0, b.w * 0.4, 400);
+            const sc = b.giga ? 2.1 : 1.15;
+            const col = hsvCss(b.hue, 95, 72);
+            ctx.fillStyle = col;
+            ctx.globalAlpha = 0.35;
+            ctx.fillRect(b.x - b.w * 0.42, 0, b.w * 0.84, this.box.y + this.box.h);
+            ctx.globalAlpha = 1;
+            const endY = this.box.y + this.box.h - 10;
+            for (let sy = 16; sy < endY; sy += 24) {
+              const jx = (Math.sin(sy * 0.25 + this.time * 1.3) * (b.giga ? 9 : 4));
+              drawSprExt(ctx, 'spr_shockpart', (Math.floor(this.time / 2 + sy / 20)) % 3, b.x + jx, sy, sc, sc, 90, col, 0.95, true);
+            }
+            drawSprExt(ctx, 'spr_shockfinal', Math.floor(this.time / 2) % 2, b.x - 10 * sc, endY - 12 * sc, sc, sc, 0, '#ffffff', 1, false);
             ctx.restore();
           } else if (b.type === 'saberslash') {
             ctx.fillStyle = 'rgba(255,255,255,0.45)';
@@ -2088,39 +2271,46 @@
             drawSprExt(ctx, 'spr_asriel_gunbolt', 0, b.x, b.y, 1.5, 1.5, b.deg, hsvCss(b.hue, 90, 70), 1, true);
           } else if (b.type === 'hgdebris') {
             drawSprExt(ctx, 'spr_hg_debris_small', 0, b.x, b.y, b.sc, b.sc, this.time * 9, '#ffffff', 0.9, true);
-          } else if (b.type === 'comet') {
+          } else if (b.type === 'ult_comet') {
+            // Exact ut_ref obj_ultimabullet: 4-tier tapering rainbow trail + rotated spr_ultimabullet!
+            const col = hsvCss(b.hue, 88, 68);
+            const h = b.hist;
             ctx.save();
-            ctx.strokeStyle = hsvCss(b.hue, 95, 65);
-            ctx.lineWidth = 6; ctx.lineCap = 'round';
-            if (b.hist.length > 1) {
-              ctx.beginPath(); ctx.moveTo(b.hist[0].x, b.hist[0].y);
-              for (const p of b.hist) ctx.lineTo(p.x, p.y);
-              ctx.lineTo(b.x, b.y); ctx.stroke();
-            }
-            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = col;
+            ctx.lineCap = 'round';
+            const seg = (i1, i2, w) => {
+              if (!h[i1] || !h[i2]) return;
+              ctx.lineWidth = w;
+              ctx.beginPath(); ctx.moveTo(h[i1].x, h[i1].y); ctx.lineTo(h[i2].x, h[i2].y); ctx.stroke();
+            };
+            seg(10, 14, 2); seg(7, 10, 4); seg(3, 7, 6); seg(0, 3, 8);
             ctx.restore();
+            const deg = -Math.atan2(b.vy, b.vx) * 180 / Math.PI;
+            drawSprExt(ctx, 'spr_ultimabullet', 0, b.x, b.y, 1, 1, deg, col, 1, true);
+          } else if (b.type === 'chaosbomb') {
+            drawSprExt(ctx, 'spr_chaosbomb', 0, b.x, b.y, b.sc, b.sc, b.angle, hsvCss(b.hue, 90, 70), b.alpha, true);
+          } else if (b.type === 'dreemurr_fire' || b.type === 'cry_fire' || b.type === 'ls_fire') {
+            const al = b.type === 'cry_fire' ? 0.72 : 1;
+            drawSprExt(ctx, 'spr_firebullet', Math.floor(this.time / 4) % 2, b.x - 8, b.y - 8, 1, 1, 0, null, al, false);
           } else if (b.type === 'ls_arrow') {
             drawSprExt(ctx, 'spr_spearsaver', 0, b.x, b.y, 0.45, 0.45, -b.dir * 90 + 180, '#40e8ff', 1, false);
           } else if (b.type === 'ls_zap') {
-            ctx.fillStyle = b.destructible ? '#ffe840' : '#ff4040';
-            ctx.fillRect(b.x - 8, b.y - 8, 16, 16);
+            drawSprExt(ctx, 'spr_litsaver', 0, b.x - 7, b.y - 12, 0.6, 0.25, 0, b.destructible ? '#ffe840' : '#ff4040', 1, false);
           } else if (b.type === 'ls_bone') {
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(b.x, b.y, b.w, b.h);
-            ctx.fillRect(b.x - 3, b.y, b.w + 6, 6);
-          } else if (b.type === 'ls_fire') {
-            drawSpr(ctx, 'spr_torielflame', Math.floor(this.time / 4), b.x - 10, b.y - 10, 1.2, 1.2);
+            drawSprExt(ctx, 'spr_s_bonewall', 0, b.x, b.y, 1, b.h / 50, 0, '#ffffff', 1, false);
           }
         }
 
         // Chaos Buster aim line + active Rainbow Beams
         if (this.gun && this.gun.salvo < this.gun.maxSalvo) {
           const gn = this.gun;
-          if (gn.t % 25 > 1 && gn.t % 25 < 14) {
+          const shotInterval = gn.hard ? 20 : 25;
+          if (gn.t % shotInterval > 1 && gn.t % shotInterval < 14) {
             ctx.save();
             ctx.strokeStyle = this.time % 3 === 0 ? '#ff3030' : (this.time % 3 === 1 ? '#ffa020' : '#ffff30');
             ctx.lineWidth = 2;
             const n = gn.lines || 3;
-            const spread = gn.hard ? 0.24 : 0.28;
+            const spread = gn.hard ? 0.22 : 0.28;
             for (let i = 0; i < n; i++) {
               const a = gn.angle + (i - (n - 1) / 2) * spread;
               ctx.beginPath(); ctx.moveTo(gn.bx, gn.by);

@@ -242,6 +242,8 @@
     obj_snowdrakenpc: 24, obj_chilldrakenpc: 24,
     obj_librarynpc_jumbler: 30, obj_librarynpc_lizard1: 30,
     obj_librarynpc_lizard2: 30, obj_librarynpc_wordsearch: 30,
+    obj_icecap_npcb: 24, obj_icecap_npcg: 24, obj_icecap_npcr: 24,
+    obj_icecube_room: 18,
   };
   // Explicit sprite overrides where .room.gmx default differs or needs state
   const SNOW_SPR_OVERRIDE = {
@@ -252,10 +254,12 @@
     obj_xoxocontroller1: 'spr_groundswitch1',
   };
   const SNOW_FLOOR_OBJS = new Set([
-    'obj_xoxocontroller1', 'obj_golfhole', 'obj_snowdinlogo', 'obj_crossword', 'obj_spagnot'
+    'obj_xoxocontroller1', 'obj_golfhole', 'obj_snowdinlogo', 'obj_crossword', 'obj_spagnot', 'obj_icecube_room'
   ]);
   const SNOW_SKIP_OBJS = new Set([
-    'obj_kitchenchecker', 'obj_xoxo', 'obj_grillbynpc_sansdate'
+    'obj_kitchenchecker', 'obj_xoxo', 'obj_grillbynpc_sansdate',
+    'obj_shockblock', 'obj_snoozer', 'obj_trashnado',
+    'obj_iceevent', 'obj_specialdrophole', 'obj_superdrophole',
   ]);
 
   function renderOverworld(ctx) {
@@ -291,17 +295,20 @@
       const o = inst.obj, x = inst.x, y = inst.y;
       if (o === 'obj_nastrytree_bottom') drawSpr(ctx, 'spr_nastytreebottom', 0, x, y);
       else if (o === 'obj_downstairs') drawSpr(ctx, 'spr_downstairs', 0, x, y);
+      else if (o === 'obj_solidrailing') drawList.push({ y: y + 13, draw: () => drawSpr(ctx, 'spr_railing', 0, x, y) });
+      else if (o === 'obj_solidrailing2') drawList.push({ y: y + 75, draw: () => drawSpr(ctx, 'spr_railing2', 0, x, y) });
+      else if (o === 'obj_solidrailing3') drawList.push({ y: y + 46, draw: () => drawSpr(ctx, 'spr_railingpiece1', 0, x, y) });
       else if (o === 'obj_ruinsdoor1' && !fl.r7_done) drawSpr(ctx, 'spr_ruinsdoor1', 0, x, y);
       else if (o === 'obj_finaldoor' && !fl.torielDone) drawSpr(ctx, 'spr_ruinsdoor1', 0, x, y);
       else if (o === 'obj_floorswitch1') {
         const pressed = fl.r7_done && (x === 180 || x === 220);
         drawSpr(ctx, 'spr_groundswitch1', pressed ? 1 : 0, x, y);
       }
-      else if (o === 'obj_wallswitchcut1') drawSpr(ctx, 'spr_switch', fl.r7_done ? 1 : 0, x - 6, y);
-      else if (o === 'obj_plotswitch1') drawSpr(ctx, 'spr_switch', fl.r8_sw1 ? 1 : 0, x - 6, y);
-      else if (o === 'obj_plotswitch2') drawSpr(ctx, 'spr_switch', fl.r8_sw2 ? 1 : 0, x - 6, y);
-      else if (o === 'obj_plotswitch3') drawSpr(ctx, 'spr_switch', fl.r22_sw ? 1 : 0, x - 6, y);
-      else if (o === 'obj_readable_switch1') drawSpr(ctx, 'spr_switch', 0, x - 6, y);
+      else if (o === 'obj_wallswitchcut1') drawSpr(ctx, 'spr_switch', fl.r7_done ? 1 : 0, x, y, 1, 1, true);
+      else if (o === 'obj_plotswitch1') drawSpr(ctx, 'spr_switch', fl.r8_sw1 ? 1 : 0, x, y, 1, 1, true);
+      else if (o === 'obj_plotswitch2') drawSpr(ctx, 'spr_switch', fl.r8_sw2 ? 1 : 0, x, y, 1, 1, true);
+      else if (o === 'obj_plotswitch3') drawSpr(ctx, 'spr_switch', fl.r22_sw ? 1 : 0, x, y, 1, 1, true);
+      else if (o === 'obj_readable_switch1') drawSpr(ctx, 'spr_switch', 0, x, y, 1, 1, true);
       else if (o === 'obj_switchadvice1' || o === 'obj_switchadvice2') drawSpr(ctx, 'spr_tornote', 0, x, y);
       else if (o === 'obj_blueswitch_1') drawSpr(ctx, 'spr_colorswitch', 0, x, y);
       else if (o === 'obj_redswitch_1') drawSpr(ctx, 'spr_colorswitch', 1, x, y);
@@ -369,6 +376,60 @@
         if ((o === 'obj_sans_room' || o === 'obj_doublesans') && (G.sans?.vis || genoSnow)) continue;
         if ((o === 'obj_papyrus_houseoutside' || o === 'obj_papyrus_guide' || o === 'obj_papyrus_hisroom') && (G.pap?.vis || fl.papyrusKilled || genoSnow)) continue;
 
+        // Room 61 Lesser Dog Snow Sculptures (exact obj_dogpillarparent logic: only show extra snow dogs if petted!)
+        if (o === 'obj_dogpillarparent') {
+          if (fl.lesserDogKilled || genoSnow) {
+            drawList.push({ y: y + 43, draw: () => drawSpr(ctx, 'spr_dogmush', 0, x, y + 20) });
+          } else if (!fl.lesserDogPet) {
+            drawList.push({ y: y + 66, draw: () => drawSpr(ctx, 'spr_lessdogsnow', 0, x, y + 30) });
+          } else {
+            drawList.push({ y: y + 56, draw: () => drawSpr(ctx, 'spr_dogpillar1', 0, x, y) });
+          }
+          continue;
+        }
+        if ((o.startsWith('obj_dogpillar') || o.startsWith('obj_dogneck')) && !fl.lesserDogPet) continue;
+
+        // Room 64 Ice Cave Wall + shimmering animated ice gleam (obj_icecavewall)
+        if (o === 'obj_icecavewall') {
+          const ct = (G.time * 0.5 + x) % 350;
+          const al = ct >= 100 && ct < 150 ? (ct - 100) / 50 : (ct >= 150 && ct < 300 ? 1 : (ct >= 300 ? Math.max(0, 1 - (ct - 300) / 50) : 0));
+          drawList.push({
+            y: y + 23,
+            draw: () => {
+              drawSpr(ctx, 'spr_icecavewall', 0, x, y);
+              if (al > 0.02) {
+                ctx.save(); ctx.globalAlpha = al;
+                drawSpr(ctx, 'spr_icecavewall_2', Math.floor(Math.abs(Math.sin(ct / 15) * 2.8)) % 2, x + Math.sin(ct / 7), y + Math.cos(ct / 8));
+                ctx.restore();
+              }
+            }
+          });
+          continue;
+        }
+
+        // Room 69 Animated Ice Conveyor Belt + Silo + Moving Ice Block (obj_iceconveyorbelt)
+        if (o === 'obj_iceconveyorbelt') {
+          drawList.push({
+            y: y + 16,
+            draw: () => {
+              drawSpr(ctx, 'spr_silo2', 0, 368 + 58, -10 + 68);
+              drawSpr(ctx, 'spr_conveyorbelt_single', Math.floor(G.time / 6), x, y);
+              if (!genoSnow) {
+                const icex = -45 + ((G.time * 0.25) % 85);
+                drawSpr(ctx, 'spr_iceblock', 0, x + icex, y - 30);
+              }
+            }
+          });
+          continue;
+        }
+
+        // Room 76 Sans's Dirty Sock + Room 78 Sans's Treadmill (obj_npc_room)
+        if (o === 'obj_npc_room') {
+          if (id === 76) drawList.push({ y: y + 22, draw: () => drawSpr(ctx, 'spr_signsock', 0, x, y) });
+          else if (id === 78) drawList.push({ y: y + 27, draw: () => drawSpr(ctx, 'spr_treadmill', Math.floor(G.time / 8) % 2, x, y) });
+          continue;
+        }
+
         if (o === 'obj_stick') {
           drawSpr(ctx, 'spr_stick', fl.r45_branch ? 1 : 0, x, y);
         } else if (o === 'obj_creeptree1' || o === 'obj_creeptree_stickbreak') {
@@ -376,19 +437,21 @@
           drawList.push({ y: 9999, draw: () => drawSpr(ctx, 'spr_treeshadow', 0, px, y) });
         } else if (o === 'obj_switch') {
           drawSpr(ctx, 'spr_specialswitch', fl.r60_sw ? 1 : 0, x, y);
+        } else if (o === 'obj_snowdecahedron') {
+          drawList.push({ y: y + 6, draw: () => drawSpr(ctx, 'spr_rollsnow', 0, x, y, 1, 1, true) });
         } else {
           let sp = SNOW_SPR_OVERRIDE[o] || inst.spr;
           if (o === 'obj_nicesnowman') sp = (fl.snowmanPieces >= 3) ? 'spr_sadsnowman' : 'spr_regsnowman';
           if (o === 'obj_nicecreamguy') sp = genoSnow ? 'spr_icecreamguy_sad' : 'spr_icecreamguy_happy';
           if (!sp || sp === 'spr_interactable' || sp === 'spr_event' || sp === 'spr_pixwht' || !SPR[sp]) continue;
+          const animRate = SNOW_ANIM[o] || 0;
+          const frame = animRate ? Math.floor(G.time / animRate) : 0;
           if (SNOW_FLOOR_OBJS.has(o)) {
-            drawSpr(ctx, sp, 0, x, y);
+            drawSpr(ctx, sp, frame, x, y);
           } else {
             const s = SPR[sp];
             const h = s ? s.h : 24;
             const sortY = o === 'obj_dogehouseback' ? (y + 18) : (y + h);
-            const animRate = SNOW_ANIM[o] || 0;
-            const frame = animRate ? Math.floor(G.time / animRate) : 0;
             drawList.push({ y: sortY, draw: () => drawSpr(ctx, sp, frame, x, y) });
           }
         }
@@ -776,19 +839,19 @@
   }
 
   // =========================================================================
-  // KEYBOARD + SLIDEABLE MULTI-TOUCH VIRTUAL D-PAD & ACTION BUTTONS
+  // KEYBOARD + HUGE SIMULATED KEYBOARD ARROW PAD & MULTI-TOUCH ACTION KEYS
   // =========================================================================
   const kbState = {};
-  let touchHoldFrames = 0;
-  let kbHoldFrames = 0;
+  const touchState = { up: false, down: false, left: false, right: false, cancel: false };
   function syncKeys() {
-    G.keys.up    = !!(kbState.up    || touchState.up);
-    G.keys.down  = !!(kbState.down  || touchState.down);
-    G.keys.left  = !!(kbState.left  || touchState.left);
-    G.keys.right = !!(kbState.right || touchState.right);
+    G.keys.up     = !!(kbState.up     || touchState.up);
+    G.keys.down   = !!(kbState.down   || touchState.down);
+    G.keys.left   = !!(kbState.left   || touchState.left);
+    G.keys.right  = !!(kbState.right  || touchState.right);
     G.keys.cancel = !!(kbState.cancel || touchState.cancel);
-    document.querySelectorAll('[data-dpad]').forEach(el => {
-      el.classList.toggle('active', !!G.keys[el.dataset.dpad]);
+    G.keys.moveScale = 1.0;
+    document.querySelectorAll('[data-dir]').forEach(el => {
+      el.classList.toggle('active', !!G.keys[el.dataset.dir]);
     });
   }
 
@@ -806,68 +869,95 @@
     else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { kbState.cancel = false; syncKeys(); }
   });
 
-  // Slideable 8-way Multi-Touch D-Pad Surface with mobile startup ramp & menu repeat debounce
-  const touchState = { up: false, down: false, left: false, right: false, cancel: false };
-  const dpadZone = document.getElementById('dpadZone');
-  let lastTouchNav = '';
-  let touchNavNextTs = 0;
+  // Huge discrete keyboard arrow pad (#kbArrows): instant frame-0 press, multi-touch diagonals, smooth thumb-slide across keys!
+  const kbArrows = document.getElementById('kbArrows');
+  const activeKeyTouches = new Map(); // touchId -> dir
+  let mouseHeldDir = null;
+  let menuNavRepeatTimer = null;
+  let menuNavRepeatDir = null;
 
-  function updateDpadFromPoint(clientX, clientY) {
-    const rect = dpadZone.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-    const dx = clientX - cx, dy = clientY - cy;
-    const dist = Math.hypot(dx, dy);
-    const dead = Math.max(15, rect.width * 0.14);
+  function recomputeArrowTouches() {
+    const prev = { up: touchState.up, down: touchState.down, left: touchState.left, right: touchState.right };
     touchState.up = touchState.down = touchState.left = touchState.right = false;
-    if (dist > dead) {
-      const ang = Math.atan2(dy, dx); // -PI..PI
-      if (ang > -Math.PI * 0.80 && ang < -Math.PI * 0.20) touchState.up = true;
-      if (ang >  Math.PI * 0.20 && ang <  Math.PI * 0.80) touchState.down = true;
-      if (Math.abs(ang) > Math.PI * 0.64) touchState.left = true;
-      if (Math.abs(ang) < Math.PI * 0.36) touchState.right = true;
-
-      const primary = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-      const now = performance.now();
-      if (primary !== lastTouchNav) {
-        lastTouchNav = primary;
-        touchNavNextTs = now + 225;
-        navDir(primary);
-      } else if (now >= touchNavNextTs) {
-        touchNavNextTs = now + 135;
-        navDir(primary);
+    for (const d of activeKeyTouches.values()) { if (d) touchState[d] = true; }
+    if (mouseHeldDir) touchState[mouseHeldDir] = true;
+    for (const d of ['up', 'down', 'left', 'right']) {
+      if (touchState[d] && !prev[d]) {
+        navDir(d);
+        startMenuRepeat(d);
       }
-    } else lastTouchNav = '';
+    }
+    if (!touchState.up && !touchState.down && !touchState.left && !touchState.right) stopMenuRepeat();
     syncKeys();
   }
 
-  if (dpadZone) {
-    let mouseDown = false;
-    dpadZone.addEventListener('touchstart', (e) => {
-      e.preventDefault(); G.sfx.unlock();
-      touchHoldFrames = 0;
-      const t = e.targetTouches[0];
-      if (t) updateDpadFromPoint(t.clientX, t.clientY);
-    }, { passive: false });
-    dpadZone.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const t = e.targetTouches[0];
-      if (t) updateDpadFromPoint(t.clientX, t.clientY);
-    }, { passive: false });
-    const clearDpad = (e) => {
-      e.preventDefault();
-      if (!e.targetTouches || e.targetTouches.length === 0) {
-        touchState.up = touchState.down = touchState.left = touchState.right = false;
-        lastTouchNav = ''; touchHoldFrames = 0; syncKeys();
-      }
-    };
-    dpadZone.addEventListener('touchend', clearDpad, { passive: false });
-    dpadZone.addEventListener('touchcancel', clearDpad, { passive: false });
+  function startMenuRepeat(dir) {
+    stopMenuRepeat();
+    menuNavRepeatDir = dir;
+    menuNavRepeatTimer = setTimeout(() => {
+      menuNavRepeatTimer = setInterval(() => {
+        if (menuNavRepeatDir && touchState[menuNavRepeatDir]) {
+          // Only auto-repeat in menus, not during Green SOUL shield holding
+          if (G.mode !== 'explore' && !(G.mode === 'undyne_battle' && G.undyne?.sub === 'dodge') && !(G.mode === 'asriel_battle' && G.asriel?.sub === 'dodge')) {
+            navDir(menuNavRepeatDir);
+          }
+        } else stopMenuRepeat();
+      }, 135);
+    }, 240);
+  }
+  function stopMenuRepeat() {
+    if (menuNavRepeatTimer) { clearTimeout(menuNavRepeatTimer); clearInterval(menuNavRepeatTimer); menuNavRepeatTimer = null; }
+    menuNavRepeatDir = null;
+  }
 
-    // Mouse fallback on desktop
-    dpadZone.addEventListener('mousedown', (e) => { mouseDown = true; touchHoldFrames = 0; G.sfx.unlock(); updateDpadFromPoint(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', (e) => { if (mouseDown) updateDpadFromPoint(e.clientX, e.clientY); });
+  function dirAtPoint(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const btn = el?.closest?.('[data-dir]');
+    return btn ? btn.dataset.dir : null;
+  }
+
+  if (kbArrows) {
+    kbArrows.addEventListener('touchstart', (e) => {
+      e.preventDefault(); G.sfx.unlock();
+      for (const t of e.changedTouches) {
+        const d = t.target?.closest?.('[data-dir]')?.dataset.dir || dirAtPoint(t.clientX, t.clientY);
+        if (d) activeKeyTouches.set(t.identifier, d);
+      }
+      recomputeArrowTouches();
+    }, { passive: false });
+    kbArrows.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (!activeKeyTouches.has(t.identifier)) continue;
+        const d = dirAtPoint(t.clientX, t.clientY);
+        if (d) activeKeyTouches.set(t.identifier, d);
+        else activeKeyTouches.delete(t.identifier);
+      }
+      recomputeArrowTouches();
+    }, { passive: false });
+    const endTouch = (e) => {
+      e.preventDefault();
+      for (const t of e.changedTouches) activeKeyTouches.delete(t.identifier);
+      recomputeArrowTouches();
+    };
+    kbArrows.addEventListener('touchend', endTouch, { passive: false });
+    kbArrows.addEventListener('touchcancel', endTouch, { passive: false });
+
+    // Mouse support for desktop click-and-hold / drag on virtual arrow keys
+    kbArrows.addEventListener('mousedown', (e) => {
+      const d = e.target?.closest?.('[data-dir]')?.dataset.dir;
+      if (!d) return;
+      e.preventDefault(); G.sfx.unlock();
+      mouseHeldDir = d;
+      recomputeArrowTouches();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!mouseHeldDir) return;
+      const d = dirAtPoint(e.clientX, e.clientY);
+      if (d && d !== mouseHeldDir) { mouseHeldDir = d; recomputeArrowTouches(); }
+    });
     window.addEventListener('mouseup', () => {
-      if (mouseDown) { mouseDown = false; touchState.up = touchState.down = touchState.left = touchState.right = false; lastTouchNav = ''; touchHoldFrames = 0; syncKeys(); }
+      if (mouseHeldDir) { mouseHeldDir = null; recomputeArrowTouches(); }
     });
   }
 
@@ -875,7 +965,7 @@
   function bindActionBtn(id, onDown, onUp) {
     const el = document.getElementById(id);
     if (!el) return;
-    const down = (e) => { e.preventDefault(); el.classList.add('active'); onDown(); };
+    const down = (e) => { e.preventDefault(); G.sfx.unlock(); el.classList.add('active'); onDown(); };
     const up = (e) => { e.preventDefault(); el.classList.remove('active'); if (onUp) onUp(); };
     el.addEventListener('touchstart', down, { passive: false });
     el.addEventListener('touchend', up, { passive: false });
@@ -904,7 +994,6 @@
   // =========================================================================
   function jumpToWalkthroughRoom(roomId) {
     G.sfx.unlock();
-    // Auto-configure helpful story flags when jumping directly to later rooms
     const fl = G.state.flags;
     if (roomId >= 6) fl.floweyDone = true;
     if (roomId >= 12) { G.state.hasPhone = true; fl.r11_done = true; }
@@ -961,11 +1050,14 @@
     const lbl = document.getElementById('roomLabel');
     if (lbl) lbl.textContent = (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') ? rName : `${rName} (#${G.state.room})`;
 
-    const sb = document.getElementById('btnShield');
-    if (sb) {
-      const shOn = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
+    const shOn = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
+    for (const sid of ['btnShield', 'btnShieldQuick']) {
+      const sb = document.getElementById(sid);
+      if (!sb) continue;
       sb.classList.toggle('shield-on', shOn);
-      sb.textContent = shOn ? (zh ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (zh ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF');
+      sb.textContent = sid === 'btnShieldQuick'
+        ? (shOn ? '🛡ON' : '🛡')
+        : (shOn ? (zh ? '🛡 無傷護盾 ON' : '🛡 Shield ON') : (zh ? '🛡 無傷護盾 OFF' : '🛡 Shield OFF'));
     }
 
     const gb = document.getElementById('btnGeno');
@@ -982,15 +1074,25 @@
       hint.textContent = G.mode === 'asriel_battle'
         ? (zh ? '★ 艾斯利爾 (7 個靈魂)：選「完整決戰」或「單一招式練習」；方向鍵閃躲，[Z] 確認 / 黃魂射擊！' : '★ ASRIEL DREEMURR (7 SOULs): Play Normal Mode, Phase Select, or Single Attack Practice! Arrows move, [Z] Confirm.')
         : G.mode === 'undyne_battle'
-          ? (zh ? '💚 不滅的安黛因：方向鍵 / 滑動十字鍵 / 點擊畫面四方轉動長矛盾牌擋住飛矛！注意黃色反轉箭頭！' : '💚 UNDYNE THE UNDYING: Point your spear shield (↑↓←→, D-Pad, or tap screen sides) to block! Watch for yellow reverse arrows!')
+          ? (zh ? '💚 不滅的安黛因：方向鍵 / 大型鍵盤十字鍵 / 點擊畫面四方擋住飛矛！注意黃色反轉箭頭！' : '💚 UNDYNE THE UNDYING: Point your spear shield (Arrow Keys or tap screen sides) to block! Watch for yellow reverse arrows!')
           : `♥ ${zh ? step.tipZh : step.tipEn}`;
     }
     renderWalkthroughList();
   };
 
+  const toggleShield = () => {
+    G.sfx.unlock();
+    window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
+    G.noHitShield = window.UT_NO_HIT_SHIELD;
+    G.sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
+    G.onUI();
+  };
+  document.getElementById('btnMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('topToolbar')?.classList.toggle('open');
+  });
   document.getElementById('roomJumpSel')?.addEventListener('change', (e) => {
     const r = parseInt(e.target.value, 10); e.target.value = '';
-    if (r) jumpToWalkthroughRoom(r);
+    if (r) { jumpToWalkthroughRoom(r); document.getElementById('topToolbar')?.classList.remove('open'); }
   });
   document.getElementById('btnGeno')?.addEventListener('click', () => {
     G.sfx.unlock();
@@ -999,18 +1101,13 @@
     G.onUI();
   });
   document.getElementById('btnAsriel')?.addEventListener('click', () => {
-    G.startAsriel('title');
+    G.startAsriel('title'); document.getElementById('topToolbar')?.classList.remove('open');
   });
   document.getElementById('btnUndyne')?.addEventListener('click', () => {
-    G.startUndyne('title');
+    G.startUndyne('title'); document.getElementById('topToolbar')?.classList.remove('open');
   });
-  document.getElementById('btnShield')?.addEventListener('click', () => {
-    G.sfx.unlock();
-    window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
-    G.noHitShield = window.UT_NO_HIT_SHIELD;
-    G.sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
-    G.onUI();
-  });
+  document.getElementById('btnShield')?.addEventListener('click', toggleShield);
+  document.getElementById('btnShieldQuick')?.addEventListener('click', toggleShield);
   document.getElementById('btnLang')?.addEventListener('click', () => {
     G.lang = G.lang === 'en' ? 'zh' : 'en';
     G.onUI();
@@ -1022,6 +1119,7 @@
   });
   document.getElementById('btnWalkthrough')?.addEventListener('click', () => {
     document.getElementById('wtDrawer')?.classList.toggle('open');
+    document.getElementById('topToolbar')?.classList.remove('open');
   });
   document.getElementById('btnCloseWt')?.addEventListener('click', () => {
     document.getElementById('wtDrawer')?.classList.remove('open');
@@ -1035,27 +1133,13 @@
     }
   });
 
-  // Fixed-timestep 60fps loop with smooth mobile movement startup delay
+  // Crisp fixed-timestep 60fps loop (zero artificial startup lag!)
   let lastTs = 0, acc = 0;
   function frame(ts) {
     if (!lastTs) lastTs = ts;
     acc += Math.min(50, ts - lastTs); lastTs = ts;
     while (acc >= 1000 / 60) {
-      const anyTouch = touchState.up || touchState.down || touchState.left || touchState.right;
-      const anyKb = kbState.up || kbState.down || kbState.left || kbState.right;
-      if (anyTouch) {
-        touchHoldFrames++;
-        // Startup delay ramp on touch: gentle turn/micro-step on quick tap, smooth ramp to 1:1 speed
-        G.keys.moveScale = touchHoldFrames <= 4 ? 0.18 : (touchHoldFrames <= 9 ? 0.58 : 1.0);
-      } else if (anyKb) {
-        touchHoldFrames = 0;
-        kbHoldFrames++;
-        G.keys.moveScale = kbHoldFrames <= 1 ? 0.65 : 1.0;
-      } else {
-        touchHoldFrames = 0;
-        kbHoldFrames = 0;
-        G.keys.moveScale = 1.0;
-      }
+      G.keys.moveScale = 1.0;
       update();
       acc -= 1000 / 60;
     }

@@ -28,14 +28,16 @@
         '< Back to Title Menu',
       ],
       singleOpts: [
-        '* Green 1: 4-Way Spear Cadence',
-        '* Green 2: Yellow 180-Deg Reverse Arrows',
-        '* Green 3: High-Speed Spear Storm',
-        '* Green 4: Slow-Tightening Spear Tunnel',
-        '* Green 5: 360-Deg Spiral + Reverse Mix',
-        '* Red 1: Narrow Box Rising Floor Spears',
-        '* Red 2: Aimed Homing Spear Barrage',
-        '* Red 3: Closing 6-Spear Hexagon Rings',
+        '* Green 1: Wave 1 Opening Cadence (3 Slow + Flurry)',
+        '* Green 2: Overtaking Fast & Slow Staggered Spears',
+        '* Green 3: Yellow 180-Deg Reverse Arrows',
+        '* Green 4: Double Blue + Yellow Reverse Trap',
+        '* Green 5: 24-Spear Ultra-Slow Dense Web',
+        '* Red 1: Narrow 3-Lane Rising Floor Spears',
+        '* Red 2: Aimed Spinning Spear Barrage',
+        '* Red 3: 7 & 8-Spear Rotating Closing Rings',
+        '* Red 4: 6-Spear Spinning Chasing Burst Rings',
+        '* Red 5: Swaying Box Rising Floor Spears',
         '< Back to Title Menu',
       ],
       introSpeech: [
@@ -86,22 +88,24 @@
       ],
       phaseOpts: [
         '1. 開場覺醒：「但大地拒絕死去」變身劇情',
-        '2. 第 1-3 波：綠魂長矛盾牌 & 黃色反轉箭登場',
-        '3. 第 4-5 波：紅魂地刺突襲 & 追蹤魔槍陣',
-        '4. 第 6-9 波：雙向黃色迴旋箭 & 六角縮圈魔槍',
-        '5. 第 10-13 波：極速暴風槍雨 & 慢速密集隧道',
+        '2. 第 1-3 波：原版慢速開場與三向藍矛',
+        '3. 第 4-6 波：紅魂鎖定飛矛 & 窄框三道地刺',
+        '4. 第 7-10 波：快慢超車矛 & 黃色反轉迴旋箭',
+        '5. 第 11-15 波：七/八角縮圈 & 6 矛追蹤爆裂陣',
         '6. 終章謝幕：決心融化與最後的微笑',
         '< 返回主選單',
       ],
       singleOpts: [
-        '* 綠魂 1：四向節奏藍矛基礎陣',
-        '* 綠魂 2：180度黃色反轉迴旋箭特訓',
-        '* 綠魂 3：超高速狂暴四向槍雨',
-        '* 綠魂 4：慢速高密度逼近長矛陣',
-        '* 綠魂 5：360度螺旋連擊 + 黃箭混搭',
-        '* 紅魂 1：窄框地板竄升地刺陣',
-        '* 紅魂 2：鎖定追蹤飛矛連射',
-        '* 紅魂 3：六角包圍收縮魔槍陣',
+        '* 綠魂 1：原版第 1 波（3 慢矛＋十連擊）',
+        '* 綠魂 2：快慢交錯超車長矛陣',
+        '* 綠魂 3：180 度黃色反轉迴旋箭',
+        '* 綠魂 4：藍黃雙向陷阱連擊',
+        '* 綠魂 5：24 矛超慢速密集星網',
+        '* 紅魂 1：窄框三道竄升地刺陣',
+        '* 紅魂 2：旋轉鎖定追蹤白矛連射',
+        '* 紅魂 3：7 / 8 矛正反旋轉收縮圈',
+        '* 紅魂 4：6 矛環繞鎖定追蹤齊射陣',
+        '* 紅魂 5：左右擺盪框＋竄升地刺',
         '< 返回主選單',
       ],
       introSpeech: [
@@ -289,31 +293,33 @@
 
       launchSinglePattern(idx) {
         this.arrows = []; this.spears = []; this.invuln = 0;
-        const map = ['g_cadence', 'g_yellow', 'g_storm', 'g_tunnel', 'g_spiral', 'r_rising', 'r_homing', 'r_rings'];
-        this.setupWave(map[idx] || 'g_cadence');
+        const map = ['g_l5', 'g_l8', 'g_l10', 'g_l12', 'g_l14', 'r_rising', 'r_homing', 'r_rings', 'r_followring', 'r_swayrise'];
+        this.setupWave(map[idx] || 'g_l5');
       },
 
       // =====================================================================
-      // 14 CANONICAL UNDYNE THE UNDYING WAVES (Green Shield + Red Bullet-Hell)
+      // 15 CANONICAL UNDYNE THE UNDYING WAVES (EXACT obj_undyne_ex + obj_greenspeargen!)
       // =====================================================================
       launchCampaignWave(w) {
         const seq = [
-          'g_cadence',   // 0: Wave 1 - 4-way Green Shield Cadence
-          'g_barrage',   // 1: Wave 2 - Rapid Alternating Green Spears
-          'g_yellow',    // 2: Wave 3 - First Yellow 180° Reverse Arrows!
-          'r_rising',    // 3: Wave 4 - Red SOUL Narrow Rising Floor Spears!
-          'r_homing',    // 4: Wave 5 - Red SOUL Aimed Homing Spears!
-          'g_yellow2',   // 5: Wave 6 - Double Reverse Spinners
-          'r_rings',     // 6: Wave 7 - 6-Spear Closing Hexagon Rings!
-          'g_storm',     // 7: Wave 8 - High-Speed 4-Way Spear Storm
-          'g_spiral',    // 8: Wave 9 - 360° Spiral + Reverse Mix
-          'r_rings8',    // 9: Wave 10 - 8-Spear Counter-Rotating Rings!
-          'r_swayrise',  // 10: Wave 11 - Swaying Box Rising Spears!
-          'g_tunnel',    // 11: Wave 12 - Slow-Tightening Dense Spear Tunnel!
-          'g_storm',     // 12: Wave 13 - Berserk Spear Storm
-          'r_homing',    // 13+: Loop
+          'g_l5',         // 0: lesson -5  (3 slow top arrows + 10-arrow flurry)
+          'g_l6',         // 1: lesson -6  (Left/Right rhythmic flanks)
+          'g_l7',         // 2: lesson -7  (18 slow 0.45x multi-way web -> switches to RED)
+          'r_homing',     // 3: orderb 0   (obj_spearbulletfollowgen spinning aimed white spears)
+          'r_rising',     // 4: orderb 1   (obj_risespearbulletgen narrow 3-lane rising spears)
+          'g_l8',         // 5: lesson -8  (Fast & Slow OVERTAKING spears!)
+          'g_l9',         // 6: lesson -9  (Top-barrage + sneaky left/right side spears)
+          'g_l10',        // 7: lesson -10 (14 Blue + Yellow 180° Reverse Arrows -> switches to RED)
+          'r_rings',      // 8: orderb 2-3 (obj_rotspeargen_gen 7-spear rotating closing rings)
+          'g_l11',        // 9: lesson -11 (12 4-way Yellow Reverse Spiral!)
+          'g_l12',        // 10: lesson -12 (16 Fast Blue + Yellow Double Reverse Combo!)
+          'g_l13',        // 11: lesson -13 (14 Paired Normal-Then-Reverse Traps!)
+          'g_l14',        // 12: lesson -14 (24 Ultra-Slow 0.35x Swirling Web -> switches to RED)
+          'r_followring', // 13: orderb 4   (obj_followspeargen_2 6-spear spinning burst rings!)
+          'r_rings8',     // 14: orderb 5   (obj_rotspeargen_gen 8-spear fast rotating rings!)
+          'r_swayrise',   // 15: obj_boxsiner swaying narrow box + rising spears
         ];
-        const kind = seq[w < seq.length ? w : (6 + (w % 7))];
+        const kind = seq[w < seq.length ? w : (8 + (w % 8))];
         this.setupWave(kind);
       },
 
@@ -337,64 +343,97 @@
           this.buildGreenScript(kind);
         } else {
           if (kind === 'r_rising' || kind === 'r_swayrise') {
-            this.tBox = { x: 248, y: 256, w: 144, h: 128 };
+            this.tBox = { x: 254, y: 256, w: 132, h: 128 };
             this.boxSway = (kind === 'r_swayrise');
-            this.attackDur = 235;
+            this.attackDur = 290;
+          } else if (kind === 'r_followring') {
+            this.tBox = { x: 196, y: 230, w: 248, h: 162 };
+            this.attackDur = 360;
           } else {
             this.tBox = { x: 216, y: 234, w: 208, h: 158 };
-            this.attackDur = 250;
+            this.attackDur = 290;
           }
           this.soulX = 320; this.soulY = 315;
         }
       },
 
-      // Spawn scheduled arrows: { spawnT, dir (0:up,1:right,2:down,3:left), spd, yellow }
+      // Exact Toby Fox scr_sr(utDir, type, timemod, speedmod) converted 1:1 from 30fps -> 60fps!
+      // utDir: 0=left(our 3), 1=right(our 1), 2=down(our 2), 3=up(our 0), 4=random
       buildGreenScript(kind) {
         const list = [];
-        const add = (t, dir, spd = 3.6, yellow = false) => {
-          list.push({ spawnT: t, dir: ((dir % 4) + 4) % 4, spd, yellow, dist: 225, orbit: 0 });
+        const UT_TO_DIR = [3, 1, 2, 0];
+        const rating60 = 19; // canonical rating=9.5 @ 30fps -> 19 frames @ 60fps
+        let curT = 14;
+        const sr = (utDir, type = 0, timemod = 0, speedmod = 0) => {
+          const dIdx = utDir === 4 ? Math.floor(Math.random() * 4) : utDir;
+          const dir = UT_TO_DIR[dIdx % 4];
+          const tm = (timemod === 0 && type !== 2) ? 1 : timemod;
+          const sm = speedmod === 0 ? 1 : speedmod;
+          // Canonical speed tuned 1:1 to Undertale feel across 292px spawn radius (~45-50% slower than old version!)
+          const spd = 2.05 * sm;
+          list.push({
+            spawnT: Math.round(curT),
+            dir,
+            spd,
+            yellow: type === 1,
+            dist: 292,
+            orbit: 0,
+            part: 0,
+            siner: 0,
+          });
+          curT += rating60 * tm;
         };
-        if (kind === 'g_cadence') {
-          const dirs = [0, 0, 0, 3, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0];
-          dirs.forEach((d, i) => add(10 + i * 16, d, 3.5, false));
-          this.attackDur = 285;
-        } else if (kind === 'g_barrage') {
-          const dirs = [3, 1, 0, 3, 1, 0, 2, 2, 3, 0, 1, 2, 0, 3, 1, 0];
-          dirs.forEach((d, i) => add(8 + i * 13, d, 4.0, false));
-          this.attackDur = 270;
-        } else if (kind === 'g_yellow') {
-          // Teaches Yellow Reverse Arrows (approach from dir, flip 180° to hit opposite!)
-          const seq = [
-            [10, 0, false], [28, 1, false], [48, 0, true], [74, 2, true],
-            [100, 3, false], [118, 3, true], [144, 1, true], [170, 0, false],
-            [186, 2, true], [212, 0, true],
-          ];
-          seq.forEach(([t, d, y]) => add(t, d, 3.4, y));
-          this.attackDur = 290;
-        } else if (kind === 'g_yellow2') {
-          for (let i = 0; i < 14; i++) {
-            add(10 + i * 16, (i * 3) % 4, 3.7, i % 2 === 1);
+
+        if (kind === 'g_l5') {
+          // Exact ut_ref lesson == -5: 3 slow top spears, dramatic pause, then 10 crisp spears!
+          sr(3, 0, 2.0, 0.55); sr(3, 0, 2.0, 0.55); sr(3, 0, 5.2, 0.55);
+          [1, 2, 0, 3, 0, 2, 1, 2, 0, 3].forEach(d => sr(d, 0, 1.05, 1.35));
+        } else if (kind === 'g_l6') {
+          // Exact ut_ref lesson == -6: Left/Right rhythmic flurry
+          [[0,1],[1,1],[0,0.65],[0,1],[1,1],[1,1],[0,1],[1,0.65],[1,1],[0,1],[1,1],[0,1],[1,1],[0,1]].forEach(([d, tm], idx) => {
+            sr(d, 0, tm, idx >= 10 ? 1.48 : 1.38);
+          });
+        } else if (kind === 'g_l7') {
+          // Exact ut_ref lesson == -7: 18 ultra-slow multi-directional spears
+          for (let i = 0; i < 18; i++) sr(4, 0, 0.95, 0.52);
+        } else if (kind === 'g_l8') {
+          // Exact ut_ref lesson == -8: OVERTAKING fast & slow staggered spears!
+          sr(3, 0, 1.0, 0.95); sr(0, 0, 1.0, 1.50); sr(2, 0, 1.0, 0.95);
+          sr(1, 0, 1.0, 1.50); sr(0, 0, 1.0, 0.95); sr(3, 0, 1.0, 0.55);
+          sr(2, 0, 1.0, 0.52); sr(1, 0, 1.0, 1.50); sr(0, 0, 1.0, 0.95);
+          sr(3, 0, 1.0, 1.45); sr(1, 0, 1.0, 0.55); sr(2, 0, 1.0, 1.45);
+        } else if (kind === 'g_l9') {
+          // Exact ut_ref lesson == -9: Top barrage with sneaky left/right flanks
+          const seq = [[3,0.68],[3,0.68],[3,0.68],[3,1.0],[0,0.68],[3,0.68],[3,0.68],[3,0.68],[3,1.0],[1,0.68],[3,0.68],[3,0.68],[3,1.05],[0,0.68],[3,0.68],[3,0.68],[3,1.05],[1,0.68],[3,0.68],[3,0.68]];
+          seq.forEach(([d, tm]) => sr(d, 0, tm, 1.45));
+        } else if (kind === 'g_l10') {
+          // Exact ut_ref lesson == -10: 8 normal alternating then 6 Yellow 180° Reverse Arrows!
+          for (let i = 0; i < 8; i++) sr(i % 2 === 0 ? 0 : 3, 0, 1.05, 1.0);
+          for (let i = 0; i < 6; i++) sr(i % 2 === 0 ? 0 : 3, 1, 1.35, 1.0);
+        } else if (kind === 'g_l11') {
+          // Exact ut_ref lesson == -11: 12 4-way Yellow Reverse + Normal Spiral!
+          [[1,1,1.4],[3,1,1.4],[0,1,1.4],[2,1,2.0],[3,0,1.25],[0,0,1.25],[2,0,1.25],[1,0,1.85],[2,1,1.4],[0,1,1.4],[1,1,1.4],[3,1,1.4]].forEach(([d, y, tm]) => {
+            sr(d, y, tm, 1.42);
+          });
+        } else if (kind === 'g_l12') {
+          // Exact ut_ref lesson == -12: Double Blue + Yellow Reverse Trap (x2)
+          for (let r = 0; r < 2; r++) {
+            sr(0, 0, 1.05, 1.25); sr(1, 0, 1.05, 1.25); sr(3, 0, 0.55, 1.25); sr(2, 1, 2.2, 1.25);
+            sr(0, 0, 1.05, 1.25); sr(1, 0, 1.05, 1.25); sr(2, 0, 0.55, 1.25); sr(3, 1, 2.2, 1.25);
           }
-          this.attackDur = 295;
-        } else if (kind === 'g_storm') {
-          for (let i = 0; i < 22; i++) {
-            const d = (i % 3 === 0) ? Math.floor(Math.random() * 4) : ((i * 7 + 1) % 4);
-            add(8 + i * 10, d, 4.5, false);
-          }
-          this.attackDur = 285;
-        } else if (kind === 'g_tunnel') {
-          // Famous slow-moving tightly-packed spear stream!
-          for (let i = 0; i < 20; i++) {
-            add(6 + i * 11, Math.floor((i * 5 + Math.sin(i) * 2 + 4)) % 4, 2.35, i % 6 === 5);
-          }
-          this.attackDur = 315;
-        } else if (kind === 'g_spiral') {
-          for (let i = 0; i < 20; i++) {
-            add(8 + i * 12, i % 4, 4.1, i % 4 === 3);
-          }
-          this.attackDur = 300;
+        } else if (kind === 'g_l13') {
+          // Exact ut_ref lesson == -13: Paired Blue-then-Yellow Traps from same side!
+          [[0,0,1.0],[0,1,2.1],[2,0,1.0],[2,1,2.1],[1,0,1.0],[1,1,2.2],[3,0,1.0],[3,1,2.1],[0,0,1.0],[0,1,2.1],[2,0,1.0],[2,1,2.1]].forEach(([d, y, tm]) => {
+            sr(d, y, tm, 1.32);
+          });
+        } else if (kind === 'g_l14') {
+          // Exact ut_ref lesson == -14: 24 ultra-slow 0.38x dense multi-way star web!
+          for (let i = 0; i < 24; i++) sr(4, 0, 0.95, 0.42);
+        } else {
+          for (let i = 0; i < 14; i++) sr(4, i % 3 === 2 ? 1 : 0, 1.2, 1.2);
         }
         this.arrows = list;
+        this.attackDur = Math.round(curT + 190);
       },
 
       hurt(dmg) {
@@ -467,7 +506,7 @@
         }
         if (this.mode === 'single_menu') {
           G.sfx.sfx('select', 0.6);
-          if (this.menuCursor < 8) this.startSingle(this.menuCursor);
+          if (this.menuCursor < 10) this.startSingle(this.menuCursor);
           else { this.mode = 'title'; this.menuCursor = 0; }
           return;
         }
@@ -587,7 +626,7 @@
           return;
         }
         if (this.mode === 'title' || this.mode === 'phase_menu' || this.mode === 'single_menu') {
-          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 9);
+          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 11);
           if (dir === 'up') this.menuCursor = (this.menuCursor + n - 1) % n;
           else if (dir === 'down') this.menuCursor = (this.menuCursor + 1) % n;
           G.sfx.sfx('squeak', 0.45);
@@ -617,9 +656,9 @@
       onCanvasTap(cx, cy) {
         G.sfx.unlock();
         if (this.mode === 'title' || this.mode === 'phase_menu' || this.mode === 'single_menu') {
-          const startY = this.mode === 'title' ? 205 : (this.mode === 'phase_menu' ? 120 : 108);
-          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 42 : 35);
-          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 9);
+          const startY = this.mode === 'title' ? 205 : (this.mode === 'phase_menu' ? 120 : 100);
+          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 42 : 30);
+          const n = this.mode === 'title' ? 5 : (this.mode === 'phase_menu' ? 7 : 11);
           const idx = Math.floor((cy - startY) / rowH);
           if (idx >= 0 && idx < n) { this.menuCursor = idx; this.onConfirm(); }
           return;
@@ -665,7 +704,7 @@
         let diff = targetAng - this.shieldDrawAng;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        this.shieldDrawAng += diff * 0.45;
+        this.shieldDrawAng += diff * 0.48;
 
         if (this.mode === 'intro') {
           const cur = this.L().introSpeech[this.introIdx];
@@ -687,9 +726,9 @@
         }
         if (this.mode !== 'battle') return;
 
-        // Smooth arena box tween (+ swaying box on Wave 11!)
+        // Smooth arena box tween (+ swaying box on obj_boxsiner!)
         if (this.boxSway && this.sub === 'dodge') {
-          this.tBox.x = 248 + Math.sin(this.attackTimer * 0.055) * 44;
+          this.tBox.x = 254 + Math.sin(this.attackTimer * 0.055) * 44;
         }
         this.box.x += (this.tBox.x - this.box.x) * 0.24;
         this.box.y += (this.tBox.y - this.box.y) * 0.24;
@@ -761,26 +800,43 @@
           else if (keys.down) this.shieldDir = 2;
           else if (keys.left) this.shieldDir = 3;
 
-          // Update Green Mode directional & yellow reverse arrows!
+          // Update Green Mode directional & canonical Yellow 180° Reverse arrows (obj_blockbullet & obj_blockbullet2)
           const rem = [];
           for (const a of this.arrows) {
             if (t < a.spawnT) { rem.push(a); continue; }
-            if (t === a.spawnT) G.sfx.sfx('spearappear', 0.25, a.yellow ? 1.25 : 1.0);
-            a.dist -= a.spd;
-            // Yellow Reverse Arrow: when dist reaches 72..36, smoothly orbits 180° around the player to strike opposite side!
-            if (a.yellow && a.dist < 76 && a.orbit < Math.PI) {
-              if (a.orbit === 0) G.sfx.sfx('bell', 0.42, 1.3);
-              a.orbit = Math.min(Math.PI, a.orbit + 0.22);
+            if (t === a.spawnT) G.sfx.sfx('spearappear', 0.22, a.yellow ? 1.25 : 1.0);
+
+            if (a.yellow && a.part === 0 && a.dist <= 84) {
+              a.part = 2;
+              a.siner = 0;
+              a.startDist = a.dist;
+              G.sfx.sfx('bell', 0.38, 1.32);
             }
-            const hitDir = a.yellow && a.orbit >= Math.PI * 0.65 ? ((a.dir + 2) % 4) : a.dir;
-            if (a.dist <= 27 && a.dist >= 12 && hitDir === this.shieldDir) {
+
+            if (a.yellow && a.part === 2) {
+              // Exact obj_blockbullet2 smooth 180-degree sinusoidal arc around the SOUL over 20 frames @ 60fps!
+              a.siner++;
+              const frac = Math.min(1, a.siner / 20);
+              a.orbit = frac * Math.PI;
+              a.dist = a.startDist + Math.sin(frac * Math.PI) * 26;
+              if (a.siner >= 20) {
+                a.part = 3;
+                a.orbit = Math.PI;
+                a.dist = a.startDist;
+              }
+            } else {
+              a.dist -= a.spd;
+            }
+
+            const hitDir = (a.yellow && a.part === 3) ? ((a.dir + 2) % 4) : a.dir;
+            if ((!a.yellow || a.part === 3) && a.dist <= 32 && a.dist >= 10 && hitDir === this.shieldDir) {
               // BLOCKED BY SPEAR SHIELD!
               this.shieldFlash = 6;
               this.blockedCount++;
-              G.sfx.sfx('arrow', 0.55, 0.96 + Math.random() * 0.08);
+              G.sfx.sfx('arrow', 0.52, 0.96 + Math.random() * 0.08);
               continue;
             }
-            if (a.dist <= 8) {
+            if ((!a.yellow || a.part === 3) && a.dist <= 9) {
               this.hurt(11);
               continue;
             }
@@ -791,42 +847,66 @@
           return;
         }
 
-        // RED SOUL MODE MOVEMENT & SPEARS
-        const ramp = keys.moveScale != null ? keys.moveScale : 1;
-        const spd = (keys.cancel ? 1.15 : (this.seaTeaBoost ? 2.85 : 2.25)) * ramp;
+        // RED SOUL MODE MOVEMENT (Crisp instant 1:1 Undertale speed — no touch startup lag!)
+        const spd = keys.cancel ? 1.20 : (this.seaTeaBoost ? 2.90 : 2.30);
         let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
         let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-        if (dx && dy) { dx *= 0.75; dy *= 0.75; }
+        if (dx && dy) { dx *= 0.72; dy *= 0.72; }
         this.soulX = Math.max(this.box.x + 10, Math.min(this.box.x + this.box.w - 10, this.soulX + dx * spd));
         this.soulY = Math.max(this.box.y + 10, Math.min(this.box.y + this.box.h - 10, this.soulY + dy * spd));
 
         const kind = this.currentKind;
-        // 1. Rising Floor Spears (3 columns inside narrow box!)
-        if ((kind === 'r_rising' || kind === 'r_swayrise') && t < this.attackDur - 35 && t % 17 === 2) {
-          const col = Math.floor(Math.random() * 3);
-          const relX = 24 + col * 48;
-          this.spears.push({ type: 'rise', relX, timer: 0 });
+        // 1. Canonical obj_risespearbulletgen: 3 exact lanes (floor & ceiling!), never repeating same lane twice!
+        if ((kind === 'r_rising' || kind === 'r_swayrise') && t < this.attackDur - 42 && t % 18 === 2) {
+          let col = Math.floor(Math.random() * 3);
+          if (col === this._lastRiseCol) col = (col + 1 + Math.floor(Math.random() * 2)) % 3;
+          this._lastRiseCol = col;
+          const relX = 22 + col * 44;
+          const fromTop = (kind === 'r_swayrise' || Math.random() < 0.45) ? 1 : 0;
+          G.sfx.sfx('spearappear', 0.32);
+          this.spears.push({ type: 'rise', relX, fromTop, timer: 0 });
         }
-        // 2. Aimed Homing Spears
-        else if (kind === 'r_homing' && t < this.attackDur - 40 && t % 14 === 2) {
-          G.sfx.sfx('spearappear', 0.42);
+        // 2. Canonical obj_spearbullet_follow (spr_whitespearbullet): spins into aim, locks, accelerates straight!
+        else if (kind === 'r_homing' && t < this.attackDur - 44 && t % 16 === 2) {
+          G.sfx.sfx('spearappear', 0.40);
           const ang = Math.random() * Math.PI * 2;
           const sx = this.soulX + Math.cos(ang) * 145;
-          const sy = this.soulY + Math.sin(ang) * 125;
+          const sy = this.soulY + Math.sin(ang) * 128;
           const aim = Math.atan2(this.soulY - sy, this.soulX - sx);
-          this.spears.push({ type: 'aim', x: sx, y: sy, ang: aim, timer: 0, vx: Math.cos(aim) * 6.2, vy: Math.sin(aim) * 6.2 });
+          this.spears.push({
+            type: 'aim', x: sx, y: sy, ang: aim, drawAng: aim + Math.PI * 1.5,
+            rotSpd: 0.34, timer: 0, spd: 2.2, vx: 0, vy: 0, fired: false,
+          });
         }
-        // 3. Closing 6-Spear / 8-Spear Hexagon Rings!
-        else if ((kind === 'r_rings' || kind === 'r_rings8') && t < this.attackDur - 55 && t % 46 === 4) {
-          G.sfx.sfx('spearappear', 0.5);
-          const n = kind === 'r_rings8' ? 7 : 6;
+        // 3. Canonical obj_rotspeargen_gen: 7-spear & 8-spear decelerating closing rings!
+        else if ((kind === 'r_rings' || kind === 'r_rings8') && t < this.attackDur - 65 && t % 54 === 4) {
+          G.sfx.sfx('spearappear', 0.48);
+          const n = kind === 'r_rings8' ? 8 : 7;
           const cx = this.soulX, cy = this.soulY;
-          const spinSign = (Math.floor(t / 46) % 2 === 0) ? 1 : -1;
+          const spinSign = (Math.floor(t / 54) % 2 === 0) ? 1 : -1;
           const baseA = Math.random() * Math.PI * 2;
+          const startRad = kind === 'r_rings8' ? 196 : 184;
           for (let i = 0; i < n; i++) {
             this.spears.push({
               type: 'ring', cx, cy, baseA: baseA + (i / n) * Math.PI * 2,
-              rad: 118, spin: spinSign * 0.032, timer: 0,
+              rad: startRad, rotSpd: spinSign * 0.068, rotMin: spinSign * 0.018, timer: 0,
+            });
+          }
+        }
+        // 4. Canonical obj_followspeargen_2 (type 1): 6-spear spinning burst rings around SOUL that pause & lunge!
+        else if (kind === 'r_followring' && t < this.attackDur - 64 && t % 38 === 4) {
+          G.sfx.sfx('spearappear', 0.46);
+          const n = 6;
+          const cx = this.soulX, cy = this.soulY;
+          const baseA = Math.random() * Math.PI * 2;
+          for (let i = 0; i < n; i++) {
+            const a = baseA + (i / n) * Math.PI * 2;
+            const sx = cx + Math.cos(a) * 165;
+            const sy = cy + Math.sin(a) * 165;
+            const aim = Math.atan2(cy - sy, cx - sx);
+            this.spears.push({
+              type: 'followring', x: sx, y: sy, ang: aim, drawAng: aim + Math.PI,
+              rotSpd: 0.30, timer: 0, fired: false, vx: Math.cos(aim) * 5.2, vy: Math.sin(aim) * 5.2,
             });
           }
         }
@@ -836,30 +916,59 @@
           s.timer++;
           if (s.type === 'rise') {
             const wx = this.box.x + s.relX;
-            const wy = this.box.y + this.box.h;
-            if (s.timer === 18) G.sfx.sfx('spearrise', 0.5);
-            if (s.timer >= 18 && s.timer <= 30) {
-              if (Math.abs(this.soulX - wx) < 15 && this.soulY > wy - 56) this.hurt(11);
+            if (s.timer === 22) G.sfx.sfx('spearrise', 0.48);
+            if (s.timer >= 22 && s.timer <= 38) {
+              const wyTop = this.box.y;
+              const wyBot = this.box.y + this.box.h;
+              if (s.fromTop) {
+                if (Math.abs(this.soulX - wx) < 12 && this.soulY < wyTop + 60) this.hurt(11);
+              } else {
+                if (Math.abs(this.soulX - wx) < 12 && this.soulY > wyBot - 60) this.hurt(11);
+              }
             }
-            if (s.timer < 34) nextS.push(s);
+            if (s.timer < 46) nextS.push(s);
           } else if (s.type === 'aim') {
-            if (s.timer < 18) {
+            if (!s.fired) {
               s.ang = Math.atan2(this.soulY - s.y, this.soulX - s.x);
-              s.vx = Math.cos(s.ang) * 6.2; s.vy = Math.sin(s.ang) * 6.2;
+              s.rotSpd = Math.max(0, s.rotSpd - 0.015);
+              s.drawAng = s.ang + s.rotSpd * 8;
+              if (s.timer >= 24) {
+                s.fired = true;
+                s.drawAng = s.ang;
+                s.spd = 3.2;
+                G.sfx.sfx('arrow', 0.38);
+              }
             } else {
-              if (s.timer === 18) G.sfx.sfx('arrow', 0.4);
+              s.spd = Math.min(8.6, s.spd + 0.16);
+              s.x += Math.cos(s.ang) * s.spd;
+              s.y += Math.sin(s.ang) * s.spd;
+              if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 11) this.hurt(11);
+            }
+            if (s.timer < 115 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
+          } else if (s.type === 'followring') {
+            if (!s.fired) {
+              s.rotSpd = Math.max(0, s.rotSpd - 0.015);
+              s.drawAng = s.ang + s.rotSpd * 9;
+              if (s.timer >= 30) {
+                s.fired = true;
+                s.drawAng = s.ang;
+                G.sfx.sfx('arrow', 0.30, 1.08);
+              }
+            } else {
               s.x += s.vx; s.y += s.vy;
               if (Math.hypot(s.x - this.soulX, s.y - this.soulY) < 11) this.hurt(11);
             }
-            if (s.timer < 95 && s.x > -60 && s.x < 700 && s.y > -60 && s.y < 540) nextS.push(s);
+            if (s.timer < 110 && s.x > -70 && s.x < 710 && s.y > -70 && s.y < 550) nextS.push(s);
           } else if (s.type === 'ring') {
-            s.baseA += s.spin;
-            if (s.timer > 16) s.rad -= 2.35;
+            if (s.rotSpd > s.rotMin) s.rotSpd = Math.max(s.rotMin, s.rotSpd - 0.0018);
+            else if (s.rotSpd < s.rotMin) s.rotSpd = Math.min(s.rotMin, s.rotSpd + 0.0018);
+            s.baseA += s.rotSpd;
+            if (s.timer > 14) s.rad -= (s.rad < 10 ? 1.0 : 2.0);
             const sx = s.cx + Math.cos(s.baseA) * s.rad;
             const sy = s.cy + Math.sin(s.baseA) * s.rad;
             s.x = sx; s.y = sy; s.ang = Math.atan2(s.cy - sy, s.cx - sx);
-            if (s.rad > 8 && Math.hypot(sx - this.soulX, sy - this.soulY) < 10) this.hurt(11);
-            if (s.rad > -18) nextS.push(s);
+            if (s.rad > 10 && Math.hypot(sx - this.soulX, sy - this.soulY) < 10) this.hurt(11);
+            if (s.rad > -14) nextS.push(s);
           }
         }
         this.spears = nextS;
@@ -881,13 +990,12 @@
 
         // ---------------- SIMULATOR MENUS ----------------
         if (this.mode === 'title' || this.mode === 'phase_menu' || this.mode === 'single_menu') {
-          // Subtle Undying silhouette on the right
           this.drawUndyneUndyingBody(ctx, 432, 34);
           ctx.fillStyle = 'rgba(0, 0, 0, 0.64)';
           ctx.fillRect(0, 0, 640, 480);
 
-          drawRichText(ctx, L.simTitle, 42, 34, 999, { size: 30, color: '#48e8ff', who: 'undying' });
-          drawRichText(ctx, L.simSub, 42, 72, 999, { size: 17, color: '#bbbbcc', maxWidth: 560 });
+          drawRichText(ctx, L.simTitle, 42, 30, 999, { size: 30, color: '#48e8ff', who: 'undying' });
+          drawRichText(ctx, L.simSub, 42, 66, 999, { size: 17, color: '#bbbbcc', maxWidth: 560 });
 
           let list;
           if (this.mode === 'title') {
@@ -895,14 +1003,14 @@
           } else {
             list = this.mode === 'phase_menu' ? L.phaseOpts : L.singleOpts;
           }
-          const startY = this.mode === 'title' ? 205 : (this.mode === 'phase_menu' ? 120 : 108);
-          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 42 : 35);
+          const startY = this.mode === 'title' ? 205 : (this.mode === 'phase_menu' ? 120 : 100);
+          const rowH = this.mode === 'title' ? 40 : (this.mode === 'phase_menu' ? 42 : 30);
 
           list.forEach((lbl, idx) => {
             const sel = this.menuCursor === idx;
             const y = startY + idx * rowH;
-            if (sel) drawSpr(ctx, 'spr_heartgreen', 0, 46, y + 4, 1, 1);
-            drawRichText(ctx, lbl, 76, y, 999, { size: this.mode === 'single_menu' ? 18 : 20, color: sel ? '#ffff00' : '#ffffff', maxWidth: 536, maxHeight: rowH - 4 });
+            if (sel) drawSpr(ctx, 'spr_heartgreen', 0, 46, y + 3, 1, 1);
+            drawRichText(ctx, lbl, 74, y, 999, { size: this.mode === 'single_menu' ? 16 : 20, color: sel ? '#ffff00' : '#ffffff', maxWidth: 540, maxHeight: rowH - 2 });
           });
 
           drawRichText(ctx, zh ? '↑↓ 選擇 · Z / 點擊確認 · 綠魂時可直接點擊畫面四方擋矛！' : '↑↓ Select · Z / Click Confirm · Tap around Green SOUL to block!', 42, 446, 999, { size: 15, color: '#888899' });
@@ -962,11 +1070,8 @@
         }
 
         // ---------------- MAIN BATTLE RENDER ----------------
-        // Subtle green ambient grid lines behind Undyne
-        ctx.strokeStyle = 'rgba(30, 110, 75, 0.25)';
-        ctx.lineWidth = 1;
-        for (let gx = 40; gx < 600; gx += 80) { ctx.beginPath(); ctx.moveTo(gx, 12); ctx.lineTo(gx, 232); ctx.stroke(); }
-        for (let gy = 20; gy < 235; gy += 52) { ctx.beginPath(); ctx.moveTo(32, gy); ctx.lineTo(608, gy); ctx.stroke(); }
+        // Authentic Undertale spr_battlebg behind Undyne!
+        drawSpr(ctx, 'spr_battlebg', 0, 16, 10, 1, 1);
 
         // 1. Articulated Undyne the Undying Body (exact obj_undynex_body!)
         const hx = this.bossHurtShake > 0 ? (this.bossHurtShake % 4 < 2 ? -10 : 10) : 0;
@@ -1090,66 +1195,85 @@
           ctx.save();
           ctx.strokeStyle = '#1f8a3c';
           ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(sx, sy, 30, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(sx, sy, 32, 0, Math.PI * 2); ctx.stroke();
 
           // Shield bar perpendicular to shieldDrawAng
           const a = this.shieldDrawAng;
-          const cx = sx + Math.cos(a) * 24, cy = sy + Math.sin(a) * 24;
-          const px = -Math.sin(a) * 24, py = Math.cos(a) * 24;
+          const cx = sx + Math.cos(a) * 26, cy = sy + Math.sin(a) * 26;
+          const px = -Math.sin(a) * 26, py = Math.cos(a) * 26;
           ctx.strokeStyle = this.shieldFlash > 0 ? '#ff3838' : '#38b8ff';
           ctx.lineWidth = 5;
           ctx.beginPath(); ctx.moveTo(cx - px, cy - py); ctx.lineTo(cx + px, cy + py); ctx.stroke();
-          // Spearhead tip on shield
           ctx.fillStyle = this.shieldFlash > 0 ? '#ffff60' : '#90e8ff';
           ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
 
-          // Find closest spawned arrow so it highlights RED (frame 1) just like Undertale!
+          // Closest spawned normal arrow highlights RED (frame 1) just like Undertale!
           let closest = null, minTime = 99999;
           for (const ar of this.arrows) {
             if (this.attackTimer >= ar.spawnT) {
-              const eta = ar.dist / ar.spd;
+              const eta = ar.dist / ar.spd + (ar.yellow && ar.part < 3 ? 20 : 0);
               if (eta < minTime) { minTime = eta; closest = ar; }
             }
           }
 
+          // Exact verified sprite directions:
+          // dir 0=TOP(moves down)->_d, 1=RIGHT(moves left)->_r, 2=BOTTOM(moves up)->_u, 3=LEFT(moves right)->_l
+          const sprNames = ['spr_bullet_test_d', 'spr_bullet_test_r', 'spr_bullet_test_u', 'spr_bullet_test_l'];
+          // spr_bullet_testx_arrow frames: 0=down, 1=up, 2=left, 3=right -> yellow arrow points in its FINAL strike direction!
+          const yellowFrameMap = [1, 3, 0, 2];
+
           for (const ar of this.arrows) {
             if (this.attackTimer < ar.spawnT) continue;
+            const alpha = Math.min(1, (this.attackTimer - ar.spawnT + 1) / 10);
             const ang = DIR_ANG[ar.dir] + (ar.yellow ? ar.orbit : 0);
             const ax = sx + Math.cos(ang) * ar.dist;
             const ay = sy + Math.sin(ang) * ar.dist;
             if (ar.yellow) {
-              // Yellow Reverse Arrow (points inward toward player; flips 180° after orbiting!)
-              const sprDir = ar.orbit >= Math.PI * 0.5 ? ((ar.dir + 2) % 4) : ar.dir;
-              const degMap = [-90, 180, 90, 0];
-              drawSprExt(ctx, 'spr_bullet_testx_arrow', 0, ax, ay, 1.15, 1.15, degMap[sprDir], '#ffe838', 1, true);
+              drawSprExt(ctx, 'spr_bullet_testx_arrow', yellowFrameMap[ar.dir], ax, ay, 1, 1, 0, null, alpha, true);
             } else {
-              const sprNames = ['spr_bullet_test_d', 'spr_bullet_test_l', 'spr_bullet_test_u', 'spr_bullet_test_r'];
               const isRed = (ar === closest);
-              drawSprExt(ctx, sprNames[ar.dir], isRed ? 1 : 0, ax, ay, 1.15, 1.15, 0, null, 1, true);
+              drawSprExt(ctx, sprNames[ar.dir], isRed ? 1 : 0, ax, ay, 1, 1, 0, null, alpha, true);
             }
           }
         } else {
-          // RED MODE SPEARS (clipped cleanly where appropriate)
+          // RED MODE SPEARS
           for (const s of this.spears) {
             if (s.type === 'rise') {
               const wx = this.box.x + s.relX;
-              const wy = this.box.y + this.box.h;
-              if (s.timer < 18) {
+              const wyBot = this.box.y + this.box.h;
+              const wyTop = this.box.y;
+              if (s.timer < 22) {
+                // Warning glow line + exclamation mark matching obj_risespearbullet telegraph
+                ctx.save();
                 ctx.fillStyle = s.timer % 4 < 2 ? '#ff3838' : '#ffff40';
-                ctx.fillRect(wx - 10, wy - 8, 20, 6);
-                drawRichText(ctx, '!', wx - 4, wy - 28, 999, { size: 20, color: '#ff3838' });
+                if (s.fromTop) {
+                  ctx.fillRect(wx - 11, wyTop + 3, 22, 5);
+                  drawRichText(ctx, '!', wx - 4, wyTop + 10, 999, { size: 18, color: '#ff3838' });
+                } else {
+                  ctx.fillRect(wx - 11, wyBot - 8, 22, 5);
+                  drawRichText(ctx, '!', wx - 4, wyBot - 28, 999, { size: 18, color: '#ff3838' });
+                }
+                ctx.restore();
               } else {
-                const lift = Math.min(54, (s.timer - 18) * 14);
+                const lift = Math.min(58, (s.timer - 22) * 14);
+                const fadeAl = s.timer > 38 ? Math.max(0, 1 - (s.timer - 38) / 8) : 1;
                 ctx.save();
                 ctx.beginPath(); ctx.rect(this.box.x + 2, this.box.y + 2, this.box.w - 4, this.box.h - 4); ctx.clip();
-                drawSpr(ctx, 'spr_risespearbullet', 0, Math.round(wx - 12), Math.round(wy - lift), 1, 1);
+                if (s.fromTop) {
+                  drawSprExt(ctx, 'spr_risespearbullet', 0, Math.round(wx - 12), Math.round(wyTop + lift), 1, -1, 0, null, fadeAl, false);
+                } else {
+                  drawSprExt(ctx, 'spr_risespearbullet', 0, Math.round(wx - 12), Math.round(wyBot - lift), 1, 1, 0, null, fadeAl, false);
+                }
                 ctx.restore();
               }
-            } else if (s.type === 'aim' || s.type === 'ring') {
-              const deg = -s.ang * 180 / Math.PI - 45; // spr_followspear_2 points diagonally (+45°) by default
-              const alpha = s.timer < 12 ? s.timer / 12 : 1;
-              drawSprExt(ctx, 'spr_followspear_2', 0, s.x, s.y, 1, 1, deg, null, alpha, true);
+            } else if (s.type === 'aim' || s.type === 'followring' || s.type === 'ring') {
+              // Both spr_whitespearbullet & spr_followspear_2 point RIGHT (0°) natively -> exact -ang*180/PI!
+              const drawA = (s.drawAng != null) ? s.drawAng : s.ang;
+              const deg = -drawA * 180 / Math.PI;
+              const alpha = s.timer < 12 ? (s.timer / 12) : (s.type === 'ring' && s.rad < 8 ? Math.max(0, (s.rad + 14) / 22) : 1);
+              const sp = (s.type === 'aim') ? 'spr_whitespearbullet' : 'spr_followspear_2';
+              drawSprExt(ctx, sp, 0, s.x, s.y, 1, 1, deg, null, alpha, true);
             }
           }
         }

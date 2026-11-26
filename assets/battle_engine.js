@@ -1076,6 +1076,7 @@
         if (this.id === 'papyrus' && !this.blueSoul) {
           this.blueSoul = true;
           G.sfx.sfx('bell', 0.85);
+          G.sfx.playBGM('bonetrousle');
           this.bubble = this.getPapyrusBubble();
           this.bubTimer = 150;
         }
@@ -1085,8 +1086,9 @@
         this.soulVy = 0;
         this.bullets = [];
         this.handSweep = null;
+        this.tobyDog = null;
         this.timer = 0;
-        this.patternIdx = (this.patternIdx + 1) % 3;
+        this.patternIdx = (this.patternIdx + 1) % 4;
       },
 
       update(keys) {
@@ -1217,7 +1219,7 @@
                   this.bossDeathIdx = 0;
                   this.bossDeathLines = (G.isGenocideRuins?.() || this.lastDmg >= 9999)
                     ? (zh
-                      ? ["你……\n就這麼恨我嗎？", "現在我終於明白，\n我把你留在这里\n究竟是在保護誰了。", "不是保護你……\n而是保護外面的大家！\n哈……哈……"]
+                      ? ["你……\n就這麼恨我嗎？", "現在我終於明白，\n我把你留在這裡\n究竟是在保護誰了。", "不是保護你……\n而是保護外面的大家！\n哈……哈……"]
                       : ["Y... you...\nreally hate me\nthat much?", "Now I see who\nI was protecting\nby keeping you\nhere.", "Not you...\nBut them!\nHa... ha..."])
                     : (zh
                       ? ["唔……\n你比我想像中\n還要強大……", "請答應我……\n出去之後一定要\n好好活下去……"]
@@ -1256,21 +1258,21 @@
           this.timer++;
           let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
           let dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-          const ramp = keys.moveScale != null ? keys.moveScale : 1;
-          const spd = (keys.cancel ? 1.15 : 2.25) * ramp;
+          const spd = keys.cancel ? 1.20 : 2.30;
           const oldX = this.soulX, oldY = this.soulY;
 
           if (this.blueSoul) {
-            // Blue SOUL Gravity & Variable-Height Jump (Papyrus Boss Fight!)
+            // Canonical Undertale Blue SOUL Gravity & Crisp Variable-Height Jump!
             this.soulX = Math.max(this.box.x + 12, Math.min(this.box.x + this.box.w - 12, this.soulX + dx * spd));
             const floorY = this.box.y + this.box.h - 10;
             const onFloor = this.soulY >= floorY - 1;
             if (keys.up && onFloor) {
-              this.soulVy = -6.7;
-            } else if (!keys.up && this.soulVy < -2.1) {
-              this.soulVy = -2.1;
+              this.soulVy = -5.65;
+            } else if (!keys.up && this.soulVy < -1.1) {
+              this.soulVy = -1.1; // Instant short-hop cutoff when releasing UP!
             }
-            this.soulVy += 0.32;
+            this.soulVy += 0.245;
+            if (this.soulVy > 6.5) this.soulVy = 6.5;
             this.soulY = Math.max(this.box.y + 12, Math.min(floorY, this.soulY + this.soulVy));
             if (this.soulY >= floorY) this.soulVy = 0;
           } else {
@@ -1288,6 +1290,11 @@
             if (this.handSweep.x > this.box.x + this.box.w + 20 || this.handSweep.x < this.box.x - 20) {
               this.handSweep = null;
             }
+          }
+          if (this.tobyDog) {
+            this.tobyDog.t++;
+            if (this.tobyDog.t > 24 && this.tobyDog.t < 70) this.tobyDog.x += 0; // stops & stares in surprise!
+            else this.tobyDog.x -= 2.8;
           }
 
           for (let i = this.bullets.length - 1; i >= 0; i--) {
@@ -1307,9 +1314,9 @@
             // Collision check (supports rectangular bones/spears or circular bullets)
             let hit = false;
             if (b.w && b.h) {
-              hit = Math.abs(b.x - this.soulX) < (b.w * 0.5 + 5) && Math.abs(b.y - this.soulY) < (b.h * 0.5 + 5);
+              hit = Math.abs(b.x - this.soulX) < (b.w * 0.48 + 4) && Math.abs(b.y - this.soulY) < (b.h * 0.48 + 4);
             } else {
-              hit = Math.hypot(b.x - this.soulX, b.y - this.soulY) < (b.r || 9);
+              hit = Math.hypot(b.x - this.soulX, b.y - this.soulY) < (b.r || 8);
             }
 
             if (hit) {
@@ -1321,9 +1328,7 @@
                 this.bullets.splice(i, 1);
                 continue;
               }
-              // Blue Attack rule: ONLY hurts if SOUL is moving!
               if (b.blue && !this.soulMoving) continue;
-              // Orange Attack rule: ONLY hurts if SOUL is stationary!
               if (b.orange && this.soulMoving) continue;
 
               if (!this.invuln) {
@@ -1338,18 +1343,25 @@
                 this.invuln = 36; this.shake = 12;
                 G.sfx.sfx('hurt', 0.8);
                 if (G.state.hp <= 0) {
-                  G.sfx.stopBGM();
-                  this.menu = 'gameover'; this.goTick = 0; this.shards = [];
-                  return;
+                  // Papyrus NEVER kills Frisk — spares at 1 HP in canonical Undertale!
+                  if (this.id === 'papyrus') {
+                    G.state.hp = 1;
+                    this.spare = true;
+                  } else {
+                    G.sfx.stopBGM();
+                    this.menu = 'gameover'; this.goTick = 0; this.shards = [];
+                    return;
+                  }
                 }
               }
             }
           }
 
-          const maxTime = this.id === 'papyrus' ? 210 : 185;
+          const maxTime = this.id === 'papyrus' ? 235 : 190;
           if (this.timer > maxTime) {
             this.targetBox = { x: 32, y: 250, w: 575, h: 140 };
             this.handSweep = null;
+            this.tobyDog = null;
             this.menu = 'main';
             const idle = G.lang === 'zh' ? this.m.idleZh : this.m.idleEn;
             this.msg = (this.spare && this.id === 'vegetoid')
@@ -1366,16 +1378,16 @@
         // 1. FROGGIT (Pattern A: Homing Pause-Dart Flies | Pattern B: Leaping Frog)
         if (this.id === 'froggit') {
           if (pat % 2 === 0) {
-            if (t % 26 === 1 && t < 150) {
+            if (t % 28 === 1 && t < 150) {
               const x = bx.x + 20 + Math.random() * (bx.w - 40);
               this.bullets.push({
-                x, y: bx.y + 10, vx: 0, vy: 0, age: 0, spr: 'spr_flybullet', r: 8,
+                x, y: bx.y + 10, vx: 0, vy: 0, age: 0, spr: 'spr_flybullet', sc: 1.5, r: 8,
                 step(p, self) {
                   p.age++;
                   const phase = p.age % 34;
                   if (phase === 1) {
                     const a = Math.atan2(self.soulY - p.y, self.soulX - p.x);
-                    p.vx = Math.cos(a) * 2.8; p.vy = Math.sin(a) * 2.8;
+                    p.vx = Math.cos(a) * 2.6; p.vy = Math.sin(a) * 2.6;
                   } else if (phase > 20) {
                     p.vx *= 0.8; p.vy *= 0.8;
                   }
@@ -1383,27 +1395,25 @@
                 }
               });
             }
-          } else {
-            if (t === 8) {
-              this.bullets.push({
-                x: bx.x + bx.w - 22, y: bx.y + bx.h - 16, vx: 0, vy: 0, age: 0, spr: 'spr_frogbullet_stop', r: 12,
-                step(p, self) {
-                  p.age++;
-                  if (p.age === 42) {
-                    p.spr = 'spr_frogbullet_go';
-                    const dx = self.soulX - p.x;
-                    p.vx = Math.max(-4.5, Math.min(-2.4, dx / 28));
-                    p.vy = -5.6;
-                  } else if (p.age > 42) {
-                    p.x += p.vx; p.y += p.vy; p.vy += 0.22;
-                    if (p.y > bx.y + bx.h - 14 && p.vy > 0) {
-                      p.y = bx.y + bx.h - 14; p.vx = 0; p.vy = 0; p.spr = 'spr_frogbullet_stop';
-                      p.age = 10;
-                    }
+          } else if (t === 8) {
+            this.bullets.push({
+              x: bx.x + bx.w - 22, y: bx.y + bx.h - 18, vx: 0, vy: 0, age: 0, spr: 'spr_frogbullet_stop', sc: 1, r: 12,
+              step(p, self) {
+                p.age++;
+                if (p.age === 42) {
+                  p.spr = 'spr_frogbullet_go';
+                  const dx = self.soulX - p.x;
+                  p.vx = Math.max(-4.0, Math.min(-2.2, dx / 30));
+                  p.vy = -5.4;
+                } else if (p.age > 42) {
+                  p.x += p.vx; p.y += p.vy; p.vy += 0.21;
+                  if (p.y > bx.y + bx.h - 16 && p.vy > 0) {
+                    p.y = bx.y + bx.h - 16; p.vx = 0; p.vy = 0; p.spr = 'spr_frogbullet_stop';
+                    p.age = 10;
                   }
                 }
-              });
-            }
+              }
+            });
           }
         }
         // 2. WHIMSUN (Flapping Butterfly Ring OR Butterfly Curtain)
@@ -1413,52 +1423,48 @@
               const ang = t * 0.24;
               this.bullets.push({
                 x: 320 + Math.cos(ang) * 92, y: 320 + Math.sin(ang) * 68,
-                vx: -Math.cos(ang) * 1.65, vy: -Math.sin(ang) * 1.65, spr: 'spr_butterflybullet', r: 8
+                vx: -Math.cos(ang) * 1.55, vy: -Math.sin(ang) * 1.55, spr: 'spr_butterflybullet', sc: 1, r: 8
               });
             }
-          } else {
-            if (t % 16 === 1 && t < 150) {
-              this.bullets.push({ x: bx.x + 18, y: bx.y + 8, vx: 0.7, vy: 2.3, spr: 'spr_butterflybullet', r: 8 });
-              this.bullets.push({ x: bx.x + bx.w - 18, y: bx.y + 8, vx: -0.7, vy: 2.3, spr: 'spr_butterflybullet', r: 8 });
-            }
+          } else if (t % 16 === 1 && t < 150) {
+            this.bullets.push({ x: bx.x + 18, y: bx.y + 8, vx: 0.7, vy: 2.2, spr: 'spr_butterflybullet', sc: 1, r: 8 });
+            this.bullets.push({ x: bx.x + bx.w - 18, y: bx.y + 8, vx: -0.7, vy: 2.2, spr: 'spr_butterflybullet', sc: 1, r: 8 });
           }
         }
-        // 3. MOLDSMAL (Spore Burst OR Sine Wave Spores)
+        // 3. MOLDSMAL (Real Circle Spore Burst OR Sine Wave Spores)
         else if (this.id === 'moldsmal') {
           if (pat % 2 === 0) {
-            if (t % 34 === 6 && t < 145) {
+            if (t % 36 === 6 && t < 145) {
               const sx = bx.x + 36 + Math.random() * (bx.w - 72);
               this.bullets.push({
-                x: sx, y: bx.y + 10, vx: 0, vy: 2.0, age: 0, r: 8,
+                x: sx, y: bx.y + 10, vx: 0, vy: 1.9, age: 0, spr: 'spr_circlebulletmd1', sc: 1, r: 7,
                 step(p, self) {
                   p.y += p.vy; p.age++;
                   if (p.age === 32) {
                     p.x = -999;
                     for (let k = 0; k < 6; k++) {
                       const a = (Math.PI * 2 * k) / 6;
-                      self.bullets.push({ x: sx, y: bx.y + 74, vx: Math.cos(a) * 2.3, vy: Math.sin(a) * 2.3, r: 6 });
+                      self.bullets.push({ x: sx, y: bx.y + 74, vx: Math.cos(a) * 2.1, vy: Math.sin(a) * 2.1, spr: 'spr_circlebulletsm', sc: 1, r: 6 });
                     }
                   }
                 }
               });
             }
-          } else {
-            if (t % 14 === 1 && t < 150) {
-              const sx = bx.x + 28 + ((t * 23) % (bx.w - 56));
-              this.bullets.push({
-                x: sx, y: bx.y + 8, vx: 0, vy: 2.1, age: t, r: 7,
-                step(p) { p.y += p.vy; p.x += Math.sin((p.age++) * 0.14) * 1.8; }
-              });
-            }
+          } else if (t % 15 === 1 && t < 150) {
+            const sx = bx.x + 28 + ((t * 23) % (bx.w - 56));
+            this.bullets.push({
+              x: sx, y: bx.y + 8, vx: 0, vy: 2.0, age: t, spr: 'spr_circlebulletsm', sc: 1, r: 6,
+              step(p) { p.y += p.vy; p.x += Math.sin((p.age++) * 0.14) * 1.7; }
+            });
           }
         }
-        // 4. LOOX (Bouncing Eyeball Rings & Linked Gaze Chain)
+        // 4. LOOX (Real Bouncing Circle Bullets)
         else if (this.id === 'loox') {
-          if (t % 20 === 1 && t < 150) {
-            const dir = (t % 40 === 1) ? 1 : -1;
+          if (t % 22 === 1 && t < 150) {
+            const dir = (t % 44 === 1) ? 1 : -1;
             this.bullets.push({
               x: dir > 0 ? bx.x + 12 : bx.x + bx.w - 12, y: bx.y + 24 + Math.random() * 90,
-              vx: dir * 2.7, vy: 1.9, r: 10, ring: true,
+              vx: dir * 2.5, vy: 1.8, spr: 'spr_circlebulletmd1', sc: 1.25, r: 9,
               step(p) {
                 p.x += p.vx; p.y += p.vy;
                 if (p.y < bx.y + 12 || p.y > bx.y + bx.h - 12) p.vy *= -1;
@@ -1466,141 +1472,132 @@
             });
           }
         }
-        // 5. VEGETOID (Bouncing Vegetables + Green Healing Carrot)
+        // 5. VEGETOID (Real Bouncing Carrots + Green Healing Carrot!)
         else if (this.id === 'vegetoid') {
-          if (t % 16 === 1 && t < 150) {
-            const isGreen = this.greenDinner && (t === 33 || t === 65);
+          if (t % 17 === 1 && t < 150) {
+            const isGreen = this.greenDinner && (t === 35 || t === 69);
             this.bullets.push({
               x: bx.x + 20 + Math.random() * (bx.w - 40), y: bx.y + 8,
-              vx: (Math.random() - 0.5) * 2.5, vy: 2.7, green: isGreen, carrot: true, r: 8,
+              vx: (Math.random() - 0.5) * 2.3, vy: 2.5, green: isGreen,
+              spr: isGreen ? 'spr_carrotbullet_gr' : 'spr_carrotbullet', sc: 1, r: 9,
               step(p) {
                 p.x += p.vx; p.y += p.vy;
-                if (p.y > bx.y + bx.h - 10 && p.vy > 0) p.vy = -2.9;
-                p.vy += 0.09;
+                if (p.y > bx.y + bx.h - 12 && p.vy > 0) p.vy = -2.8;
+                p.vy += 0.085;
               }
             });
           }
         }
-        // 6. MIGOSP (Hopping Roaches & Butterfly Arcs)
+        // 6. MIGOSP (Real Hopping Roaches!)
         else if (this.id === 'migosp') {
           if (t % 22 === 1 && t < 150) {
             const fromLeft = (t % 44 === 1);
             this.bullets.push({
               x: fromLeft ? bx.x + 12 : bx.x + bx.w - 12,
-              y: bx.y + bx.h - 16,
-              vx: fromLeft ? 2.7 : -2.7, vy: -2.6, spr: 'spr_flybullet', r: 8,
+              y: bx.y + bx.h - 14,
+              vx: fromLeft ? 2.5 : -2.5, vy: -2.5, spr: 'spr_roachbullet', sc: 1, r: 8,
               step(p) {
-                p.x += p.vx; p.y += p.vy; p.vy += 0.13;
-                if (p.y > bx.y + bx.h - 14) p.vy = -2.6;
+                p.x += p.vx; p.y += p.vy; p.vy += 0.12;
+                if (p.y > bx.y + bx.h - 12) p.vy = -2.5;
               }
             });
           }
         }
         // 7. NAPSTABLOOK (Dual Tear Streams curving along the floor)
         else if (this.id === 'blook') {
-          if (t % 8 === 1 && t < 155 && !this.dapperHat) {
-            const side = (t % 16 === 1) ? -16 : 16;
+          if (t % 9 === 1 && t < 155 && !this.dapperHat) {
+            const side = (t % 18 === 1) ? -16 : 16;
             this.bullets.push({
-              x: 320 + side, y: 122, vx: (Math.random() - 0.5) * 1.4, vy: 3.1, spr: 'spr_teardrop', r: 7,
+              x: 320 + side, y: 128, vx: (Math.random() - 0.5) * 1.3, vy: 2.9, spr: 'spr_teardrop', sc: 1, r: 7,
               step(p) {
                 p.x += p.vx; p.y += p.vy;
                 if (p.y > bx.y + bx.h - 12) {
                   p.y = bx.y + bx.h - 12;
                   p.vy = 0;
-                  p.vx = side < 0 ? -2.6 : 2.6;
+                  p.vx = side < 0 ? -2.4 : 2.4;
                 }
               }
             });
           }
         }
-        // 8. BOSS TORIEL (Pattern 0: Hand Sweep Fire Cascade | Pattern 1: Helix Spiral | Pattern 2: Side Fire Volley)
+        // 8. BOSS TORIEL (Hand Sweep Fire Cascade | Helix Spiral | Side Fire Volley)
         else if (this.id === 'toriel') {
-          if (pat === 0) {
-            if (t === 2) {
-              this.handSweep = { x: bx.x, y: bx.y - 18, vx: 4.4 };
-            }
+          if (pat % 3 === 0) {
+            if (t === 2) this.handSweep = { x: bx.x, y: bx.y - 18, vx: 4.1 };
             if (this.handSweep && t % 6 === 0 && t < 50) {
               const hx = this.handSweep.x;
               this.bullets.push({
-                x: hx, y: bx.y - 4, vx: (this.soulX - hx) * 0.015, vy: 0, delay: 20, fire: true, r: 9,
+                x: hx, y: bx.y - 4, vx: (this.soulX - hx) * 0.014, vy: 0, delay: 20, fire: true, r: 8,
                 step(p) {
                   if (p.delay > 0) p.delay--;
-                  else { p.x += p.vx; p.y += 3.2; }
+                  else { p.x += p.vx; p.y += 3.0; }
                 }
               });
             }
-            if (t > 60 && t % 12 === 0 && t < 155) {
+            if (t > 60 && t % 13 === 0 && t < 155) {
               const sx = bx.x + 16 + Math.random() * (bx.w - 32);
               this.bullets.push({
-                x: sx, y: bx.y - 12, vx: 0, vy: 2.8, fire: true, r: 9,
-                step(p) { p.x += Math.sin(p.y * 0.06) * 1.3; p.y += p.vy; }
+                x: sx, y: bx.y - 12, vx: 0, vy: 2.6, fire: true, r: 8,
+                step(p) { p.x += Math.sin(p.y * 0.06) * 1.25; p.y += p.vy; }
               });
             }
-          } else if (pat === 1) {
-            if (t % 9 === 1 && t < 155) {
+          } else if (pat % 3 === 1) {
+            if (t % 10 === 1 && t < 155) {
               for (const s of [-1, 1]) {
                 this.bullets.push({
-                  x: 320 + s * 64, y: bx.y - 10, vx: 0, vy: 2.7, side: s, age: 0, fire: true, r: 9,
+                  x: 320 + s * 64, y: bx.y - 10, vx: 0, vy: 2.5, side: s, age: 0, fire: true, r: 8,
                   step(p) {
                     p.age++;
                     p.y += p.vy;
-                    p.x = 320 + Math.cos(p.age * 0.085) * 68 * p.side;
+                    p.x = 320 + Math.cos(p.age * 0.085) * 66 * p.side;
                   }
                 });
               }
             }
-          } else {
-            if (t % 14 === 1 && t < 155) {
-              const side = (t % 28 === 1) ? -1 : 1;
-              const sy = bx.y + 18 + Math.random() * (bx.h - 36);
-              const sx = side < 0 ? bx.x - 10 : bx.x + bx.w + 10;
-              const a = Math.atan2(this.soulY - sy, this.soulX - sx);
-              this.bullets.push({
-                x: sx, y: sy, vx: Math.cos(a) * 2.9, vy: Math.sin(a) * 2.9, fire: true, r: 9
-              });
-            }
+          } else if (t % 15 === 1 && t < 155) {
+            const side = (t % 30 === 1) ? -1 : 1;
+            const sy = bx.y + 18 + Math.random() * (bx.h - 36);
+            const sx = side < 0 ? bx.x - 10 : bx.x + bx.w + 10;
+            const a = Math.atan2(this.soulY - sy, this.soulX - sx);
+            this.bullets.push({ x: sx, y: sy, vx: Math.cos(a) * 2.7, vy: Math.sin(a) * 2.7, fire: true, r: 8 });
           }
         }
-        // 9. SNOWDIN MONSTERS (Snowdrake, Ice Cap, Lesser Dog, Gyftrot)
+        // 9. SNOWDIN MONSTERS (Snowdrake / Ice Cap / Gyftrot — Real Sprites!)
         else if (this.id === 'snowdrake' || this.id === 'icecap' || this.id === 'gyftrot') {
-          if (t % 15 === 1 && t < 155) {
-            const ang = (t * 0.35);
+          if (t % 17 === 1 && t < 155) {
+            const ang = t * 0.35;
             const sx = bx.x + 20 + Math.random() * (bx.w - 40);
+            const sp = this.id === 'gyftrot' ? 'spr_gyftcloud' : (this.id === 'icecap' ? 'spr_iceblock' : 'spr_gyftcloud');
             this.bullets.push({
-              x: sx, y: bx.y - 8, vx: Math.sin(ang) * 1.8, vy: 2.8,
-              spr: this.id === 'gyftrot' ? 'spr_gyftbullet' : null, ice: true, r: 8
+              x: sx, y: bx.y - 8, vx: Math.sin(ang) * 1.6, vy: 2.5,
+              spr: sp, sc: sp === 'spr_iceblock' ? 0.55 : 1.1, r: 8
             });
           }
         }
         else if (this.id === 'lesserdog') {
-          if (t % 24 === 1 && t < 150) {
-            const fromLeft = (t % 48 === 1);
+          if (t % 28 === 1 && t < 155) {
+            const fromLeft = (t % 56 === 1);
             this.bullets.push({
               x: fromLeft ? bx.x - 10 : bx.x + bx.w + 10,
-              y: bx.y + bx.h - 22,
-              vx: fromLeft ? 3.4 : -3.4, vy: -2.2,
-              spr: 'spr_dogspear', w: 14, h: 28,
-              step(p) {
-                p.x += p.vx; p.y += p.vy; p.vy += 0.11;
-                if (p.y > bx.y + bx.h - 18) p.vy = -2.4;
-              }
+              y: bx.y + bx.h - 26,
+              vx: fromLeft ? 3.0 : -3.0, vy: 0,
+              blue: (t % 84 === 1), spr: 'spr_dogspear', sc: 0.75, w: 14, h: 62
             });
           }
         }
-        // 10. DOGGO (Famous BLUE Moving-Detection Sword Sweep!)
+        // 10. DOGGO (Real spr_bluesword Sweeping Blue Sword!)
         else if (this.id === 'doggo') {
-          if (t % 42 === 4 && t < 150) {
-            const fromLeft = ((t / 42) | 0) % 2 === 0;
-            // occasional white bone/treat on edge, main blade is BLUE (stand still!)
+          if (t % 46 === 4 && t < 155) {
+            const fromLeft = ((t / 46) | 0) % 2 === 0;
             this.bullets.push({
-              x: fromLeft ? bx.x - 12 : bx.x + bx.w + 12,
+              x: fromLeft ? bx.x - 14 : bx.x + bx.w + 14,
               y: bx.y + bx.h * 0.5,
-              vx: fromLeft ? 4.4 : -4.4, vy: 0,
-              blue: true, blade: true, w: 16, h: bx.h - 10
+              vx: fromLeft ? 3.8 : -3.8, vy: 0,
+              blue: true, spr: 'spr_bluesword', sc: 1.35, w: 18, h: bx.h - 14
             });
           }
         }
-        // 11. DOGAMY & DOGARESSA (Twin Axes & White/Blue Heart Streams)
+        // 11. DOGAMY & DOGARESSA (Real spr_heartbullet + spr_dogspear!)
         else if (this.id === 'dogi') {
           if (t % 20 === 1 && t < 155) {
             const isBlue = (t % 40 === 1);
@@ -1608,41 +1605,61 @@
             this.bullets.push({
               x: fromLeft ? bx.x - 10 : bx.x + bx.w + 10,
               y: bx.y + 22 + Math.random() * (bx.h - 44),
-              vx: fromLeft ? 3.2 : -3.2, vy: Math.sin(t) * 0.8,
-              blue: isBlue, spr: 'spr_dogspear', w: 14, h: 26
+              vx: fromLeft ? 2.9 : -2.9, vy: Math.sin(t) * 0.7,
+              blue: isBlue, spr: isBlue ? 'spr_heartbullet' : 'spr_dogspear',
+              sc: isBlue ? 1.5 : 0.55, w: isBlue ? 14 : 12, h: isBlue ? 18 : 42
             });
           }
         }
-        // 12. GREATER DOG (Spear Sweep & BARK! Homing Barks)
+        // 12. GREATER DOG (Real spr_barkbullet BARK! & Sleeping Spear)
         else if (this.id === 'greaterdog') {
-          if (t % 22 === 1 && t < 155) {
-            const sx = bx.x + 24 + Math.random() * (bx.w - 48);
+          if (t % 26 === 1 && t < 155) {
+            const sx = bx.x + 26 + Math.random() * (bx.w - 52);
             const a = Math.atan2(this.soulY - bx.y, this.soulX - sx);
             this.bullets.push({
-              x: sx, y: bx.y + 6, vx: Math.cos(a) * 2.9, vy: Math.sin(a) * 2.9,
-              bark: true, r: 9
+              x: sx, y: bx.y + 10, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5,
+              spr: 'spr_barkbullet', sc: 0.7, w: 34, h: 20
             });
           }
         }
-        // 13. BOSS PAPYRUS (Blue SOUL Jumping over Ground Bones, Blue Bones & COOL DUDE wave!)
+        // 13. BOSS PAPYRUS (Real Bones, Blue Bones, COOL DUDE, Skatebone & Annoying Dog Special Attack!)
         else if (this.id === 'papyrus') {
-          if (t % 28 === 4 && t < 175) {
-            const isBlue = (t % 56 === 4) && (pat !== 1);
-            const bh = isBlue ? 88 : (26 + ((t * 7) % 34));
-            const fromRight = true;
+          if (pat === 3) {
+            // Iconic Papyrus "SPECIAL ATTACK" stolen by the Annoying Dog!
+            if (t === 6) {
+              this.tobyDog = { x: bx.x + bx.w - 20, y: bx.y + bx.h - 40, t: 0 };
+              this.bubble = G.lang === 'zh' ? '喂！！那是我的\n特別攻擊！！\n快吐出來！！' : "HEY!! THAT'S MY\nSPECIAL ATTACK!!\nGIVE IT BACK!!";
+              this.bubTimer = 175;
+              G.sfx.sfx('dogbark', 0.8);
+            }
+            if (t === 95 || t === 145) {
+              // Papyrus frantically sends his "Regular Attack" — a single Skateboarding Bone & tiny bone!
+              this.bullets.push({
+                x: bx.x + bx.w + 26, y: bx.y + bx.h - 30, vx: -3.2, vy: 0,
+                spr: t === 95 ? 'spr_skatebone' : 'spr_lonebone', sc: 1, w: t === 95 ? 52 : 16, h: t === 95 ? 52 : 18
+              });
+            }
+          } else if (pat === 2) {
+            // Iconic C-O-O-L D-U-D-E bone parade!
+            if (t === 15) this.bullets.push({ x: bx.x + bx.w + 25, y: bx.y + bx.h - 32, vx: -2.8, vy: 0, spr: 'spr_cbone', sc: 1, w: 38, h: 52 });
+            if (t === 45) this.bullets.push({ x: bx.x + bx.w + 55, y: bx.y + bx.h - 32, vx: -2.8, vy: 0, spr: 'spr_oolbone', sc: 1, w: 96, h: 52 });
+            if (t === 95) this.bullets.push({ x: bx.x + bx.w + 25, y: bx.y + bx.h - 32, vx: -2.8, vy: 0, spr: 'spr_dbone', sc: 1, w: 34, h: 52 });
+            if (t === 125) this.bullets.push({ x: bx.x + bx.w + 55, y: bx.y + bx.h - 32, vx: -2.8, vy: 0, spr: 'spr_udebone', sc: 1, w: 98, h: 52 });
+          } else if (t % 34 === 6 && t < 185) {
+            const isBlue = (t % 68 === 6) && (pat !== 1);
+            const bh = isBlue ? 96 : (26 + ((t * 7) % 34));
             this.bullets.push({
-              x: fromRight ? bx.x + bx.w + 10 : bx.x - 10,
-              y: bx.y + bx.h - bh * 0.5 - 3,
-              vx: -3.7, vy: 0,
+              x: bx.x + bx.w + 12,
+              y: bx.y + bx.h - bh * 0.5 - 2,
+              vx: -3.1, vy: 0,
               bone: true, blue: isBlue, w: 12, h: bh
             });
-            // Top ceiling gap bone on pattern 2
-            if (!isBlue && pat === 2) {
-              const topH = Math.max(18, bx.h - bh - 56);
+            if (!isBlue && pat === 1) {
+              const topH = Math.max(18, bx.h - bh - 60);
               this.bullets.push({
-                x: bx.x + bx.w + 10,
-                y: bx.y + topH * 0.5 + 3,
-                vx: -3.7, vy: 0,
+                x: bx.x + bx.w + 12,
+                y: bx.y + topH * 0.5 + 2,
+                vx: -3.1, vy: 0,
                 bone: true, blue: false, w: 12, h: topH
               });
             }
@@ -1676,20 +1693,24 @@
         if (this.shake > 0) ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 640, 480);
 
-        // Background green grid
-        ctx.strokeStyle = this.id === 'nobody' ? '#240c0c' : '#143818';
-        ctx.lineWidth = 1;
-        for (let gx = 16; gx < 624; gx += 48) ctx.strokeRect(gx, 12, 48, 224);
+        // Authentic Undertale Battle Background (spr_battlebg! Hidden for Papyrus & Nobody, dim for Napstablook)
+        if (this.id !== 'nobody' && this.id !== 'papyrus') {
+          if (SPR['spr_battlebg']) {
+            drawSpr(ctx, 'spr_battlebg', this.id === 'blook' ? 1 : 0, 0, 0, 1, 1);
+          } else {
+            ctx.strokeStyle = '#143818'; ctx.lineWidth = 1;
+            for (let gx = 16; gx < 624; gx += 48) ctx.strokeRect(gx, 12, 48, 224);
+          }
+        }
 
-        // Monster Sprite (with hurt sprite swap, horizontal shake, Lesser Dog extending neck, Papyrus decapitation & dust vaporization!)
+        // Monster Sprite — 1:1 Articulated Multi-Part Rigs & Crisp Integer Scaling (ZERO 1.7x blurry scaling, ZERO normal/hurt flashing!)
         if (this.id !== 'nobody') {
           const mShakeX = this.monsterShake > 0
             ? (this.monsterShake % 2 === 0 ? 1 : -1) * Math.round(this.monsterShake * 0.75)
             : 0;
           ctx.save();
           if (this.menu === 'vapor') {
-            // Clip bottom portion as top dissolves into dust!
-            const cutY = 24 + (this.vaporTick / 36) * 190;
+            const cutY = 24 + (this.vaporTick / 36) * 200;
             ctx.beginPath(); ctx.rect(0, cutY, 640, 260); ctx.clip();
             ctx.globalAlpha = Math.max(0, 1 - this.vaporTick / 42);
           } else {
@@ -1698,53 +1719,145 @@
 
           const bob = Math.sin(time * 0.08) * 3;
           const isHurt = (this.menu === 'slash' && this.slashTick >= 18) || this.menu === 'boss_death_dlg';
+          const sx = mShakeX;
 
           if (this.id === 'toriel') {
             let tspr = 'spr_torielboss';
             if (this.menu === 'boss_death_dlg') {
-              tspr = (G.isGenocideRuins?.() || this.lastDmg >= 9999) ? 'spr_torielboss_reallyhurt' : 'spr_torielboss_hurt';
+              const genoKill = G.isGenocideRuins?.() || this.lastDmg >= 9999;
+              if (genoKill) tspr = this.bossDeathIdx >= 2 ? 'spr_torielboss_murdered' : 'spr_torielboss_reallyhurt';
+              else tspr = this.bossDeathIdx >= 1 ? 'spr_torielboss_kneelsmile' : 'spr_torielboss_kneel';
             } else if (isHurt) tspr = 'spr_torielboss_hurt';
             else if (this.turns >= 10) tspr = 'spr_torielboss_sad';
             else if (this.turns >= 5) tspr = 'spr_torielboss_sidesad';
             else if (this.turns >= 2) tspr = 'spr_torielboss_side';
-            drawSpr(ctx, tspr, 0, 248 + mShakeX, 36, 2, 2);
+            const ty = tspr.includes('kneel') ? 82 : 36;
+            drawSpr(ctx, tspr, 0, 248 + sx, ty, 2, 2);
           } else if (this.id === 'papyrus') {
             if (this.papDecap) {
-              drawSpr(ctx, 'spr_papyrusboss_body', 0, 256 + mShakeX, 68, 1.8, 1.8);
-              const headDrop = Math.min(72, this.bossDeathIdx * 24 + 18);
-              drawSpr(ctx, 'spr_papyrusboss_head', 0, 282 + mShakeX, 36 + headDrop, 1.8, 1.8);
+              drawSpr(ctx, 'spr_papyrusboss_body', 0, 246 + sx, 34, 1, 1);
+              const headDrop = Math.min(82, this.bossDeathIdx * 24 + 18);
+              drawSpr(ctx, 'spr_papyrusboss_head', 0, 298 + sx, 32 + headDrop, 1, 1);
+            } else if (this.tobyDog && SPR['spr_papyrusboss_confuse']) {
+              drawSpr(ctx, 'spr_papyrusboss_confuse', Math.floor(time / 8) % 8, 240 + sx, 22, 2, 2);
             } else {
-              drawSpr(ctx, 'spr_papyrusboss', 0, 250 + mShakeX, 24 + bob * 0.5, 1.75, 1.75);
+              // Authentic 1x native 148x208 Papyrus with crisp energetic bounce (frame 0 normal, frame 1 hurt!)
+              const pb = Math.round(Math.sin(time * 0.12) * 2);
+              drawSpr(ctx, 'spr_papyrusboss', isHurt ? 1 : 0, 246 + sx, 30 + pb, 1, 1);
+            }
+          } else if (this.id === 'froggit') {
+            if (isHurt) {
+              drawSpr(ctx, 'spr_froggit', 1, 264 + sx, 126, 1, 1);
+            } else {
+              // Authentic Articulated Froggit: legs + drifting head!
+              const hx = Math.round(Math.sin(time * 0.06) * 4), hy = Math.round(Math.cos(time * 0.12) * 2);
+              drawSpr(ctx, 'spr_froglegs', 0, 274 + sx, 186, 1, 1);
+              drawSpr(ctx, 'spr_froghead', 0, 269 + sx + hx, 130 + hy, 1, 1);
+            }
+          } else if (this.id === 'whimsun') {
+            if (isHurt && SPR['spr_whimsunhurt']) drawSpr(ctx, 'spr_whimsunhurt', 0, 268 + sx, 118, 1, 1);
+            else drawSpr(ctx, 'spr_whimsun', Math.floor(time / 12) % 2, 275 + sx, 116 + Math.round(Math.sin(time * 0.09) * 8), 1, 1);
+          } else if (this.id === 'moldsmal') {
+            const sq = isHurt ? 1 : (1 + Math.sin(time * 0.08) * 0.06);
+            drawSpr(ctx, 'spr_moldsmal', isHurt ? 1 : 0, 269 + sx, Math.round(154 + (1 - sq) * 84), 1, sq);
+          } else if (this.id === 'loox') {
+            if (isHurt && SPR['spr_looxhurt']) drawSpr(ctx, 'spr_looxhurt', 0, 268 + sx, 118, 1, 1);
+            else {
+              // Periodic authentic eye-blink cycle
+              const cyc = time % 150;
+              const f = cyc < 130 ? 0 : Math.min(4, Math.floor((cyc - 130) / 4));
+              drawSpr(ctx, 'spr_loox', f, 270 + sx, 122 + Math.round(bob * 0.5), 1, 1);
+            }
+          } else if (this.id === 'vegetoid') {
+            if (isHurt && SPR['spr_vegetoidhurt']) drawSpr(ctx, 'spr_vegetoidhurt', 0, 268 + sx, 128, 1, 1);
+            else drawSpr(ctx, 'spr_vegetoid', Math.floor(time / 14) % 4, 284 + sx, 134, 1, 1);
+          } else if (this.id === 'migosp') {
+            if (isHurt && SPR['spr_migosphurt']) drawSpr(ctx, 'spr_migosphurt', 0, 268 + sx, 132, 1, 1);
+            else drawSpr(ctx, 'spr_migosphappy', Math.floor(time / 11) % 2, 284 + sx, 140, 1, 1);
+          } else if (this.id === 'blook') {
+            const by = 84 + Math.round(Math.sin(time * 0.07) * 7);
+            drawSpr(ctx, 'spr_napstabattle', Math.floor(time / 10) % 2, 268 + sx, by, 2, 2);
+            if (this.dapperHat && SPR['spr_blookhat']) {
+              drawSpr(ctx, 'spr_blookhat', Math.min(5, Math.floor(time / 8) % 6), 278 + sx, by - 44, 2, 2);
+            }
+          } else if (this.id === 'snowdrake') {
+            if (isHurt) {
+              drawSpr(ctx, 'spr_snowdrake', 1, 234 + sx, 42, 1, 1);
+            } else {
+              const bx0 = 288 + sx, by0 = 158;
+              const sw = Math.round(Math.sin(time * 0.1) * 3);
+              drawSpr(ctx, 'spr_snowdrake_legs', 0, bx0 - 12, by0 + 50, 2, 2);
+              drawSpr(ctx, 'spr_snowdrake_body', 0, bx0, by0 + 24 + sw, 2, 2);
+              drawSpr(ctx, 'spr_snowdrake_head', Math.floor(time / 6) % 20, bx0 - 32, by0 - 96 + sw, 2, 2);
+            }
+          } else if (this.id === 'icecap') {
+            if ((isHurt || this.spare) && SPR['spr_icecaphurt']) drawSpr(ctx, 'spr_icecaphurt', 0, 267 + sx, 70, 1, 1);
+            else drawSpr(ctx, 'spr_icecap', Math.floor(time / 14) % 4, 267 + sx, 72, 1, 1);
+          } else if (this.id === 'lesserdog') {
+            if (isHurt && SPR['spr_lesserdogehurt']) {
+              drawSpr(ctx, 'spr_lesserdogehurt', 0, 269 + sx, 60, 1, 1);
+            } else {
+              const mx = 269 + sx, my = 62;
+              drawSpr(ctx, 'spr_lesserdogetail', Math.floor(time / 6) % 5, mx + 92, my + 124, 2, 2);
+              drawSpr(ctx, 'spr_lesserdoge', 0, mx, my, 1, 1);
+              if (this.neckLen > 0) {
+                const segs = Math.min(8, this.neckLen);
+                for (let n = 0; n < segs; n++) drawSpr(ctx, 'spr_dogneck1', 0, mx + 26, my - 6 - n * 16, 2, 2);
+                drawSpr(ctx, 'spr_lesserdogehead', Math.floor(time / 12) % 2, mx + 12, my - 46 - segs * 16, 2, 2);
+              }
+            }
+          } else if (this.id === 'gyftrot') {
+            if (isHurt) {
+              drawSpr(ctx, 'spr_gyftrot', 1, 219 + sx, 38, 1, 1);
+            } else {
+              const gx = 219 + sx, gy = 38;
+              const nod = Math.round(Math.sin(time * 0.08) * 3);
+              drawSpr(ctx, 'spr_gyftrotbody', 0, gx, gy, 2, 2);
+              drawSpr(ctx, 'spr_gyftrothead', Math.floor(time / 22) % 2, gx + 16, gy + 18 + nod, 2, 2);
+              drawSpr(ctx, 'spr_gyftrotmouth', Math.floor(time / 8) % 9, gx + 62, gy + 82 + nod, 2, 2);
+              if (!this.spare) {
+                drawSpr(ctx, 'spr_gyfgift', 0, gx + 28, gy + 20 + nod, 2, 2);
+                drawSpr(ctx, 'spr_gyfgift', 2, gx + 146, gy + 24 + nod, 2, 2);
+              }
+            }
+          } else if (this.id === 'doggo') {
+            if (isHurt) {
+              drawSpr(ctx, 'spr_movedoge', 1, 253 + sx, 22, 1, 1);
+            } else {
+              const dx0 = 288 + sx, dy0 = 96;
+              const trem = this.spare ? Math.round((Math.random() - 0.5) * 4) : 0;
+              drawSpr(ctx, 'spr_movedogetail', 0, dx0 + 48, dy0 + 104, 2, 2);
+              drawSpr(ctx, 'spr_movedogebody', 0, dx0, dy0, 2, 2);
+              drawSpr(ctx, 'spr_movedogearms', 0, dx0 - 24 + trem, dy0 + 26 + Math.round(Math.sin(time * 0.14) * 2), 2, 2);
+              if (this.spare) {
+                drawSpr(ctx, 'spr_movedogeheadb', Math.floor(time / 6) % 2, dx0 - 14 + trem, dy0 - 52, 2, 2);
+              } else {
+                drawSpr(ctx, 'spr_movedogeheada', Math.floor(time / 12) % 13, dx0 - 4, dy0 - 52, 2, 2);
+              }
             }
           } else if (this.id === 'dogi') {
-            drawSpr(ctx, 'spr_mandoge', Math.floor(time / 16), 196 + mShakeX, 58 + bob, 1.65, 1.65);
-            drawSpr(ctx, 'spr_womandoge', Math.floor(time / 16), 336 + mShakeX, 58 - bob, 1.65, 1.65);
+            // Native 1x (224x200) Dogamy & Dogaressa side by side — zero overlap, frame 0 normal / 1 hurt!
+            const b1 = Math.round(Math.sin(time * 0.08) * 2);
+            drawSpr(ctx, 'spr_mandoge', isHurt ? 1 : 0, 122 + sx, 44 + b1, 1, 1);
+            drawSpr(ctx, 'spr_womandoge', isHurt ? 1 : 0, 294 + sx, 44 - b1, 1, 1);
+          } else if (this.id === 'greaterdog') {
+            if (isHurt) drawSpr(ctx, 'spr_greatdog', 1, 220 + sx, 42, 1, 1);
+            else drawSpr(ctx, 'spr_greatdog_n', Math.floor(time / 14) % 2, 236 + sx, 54, 2, 2);
           } else {
-            const sprKey = (isHurt && this.m.hurtSpr && SPR[this.m.hurtSpr])
-              ? this.m.hurtSpr
-              : (this.id === 'icecap' && this.spare && SPR['spr_icecaphurt'] ? 'spr_icecaphurt' : this.m.spr);
+            // Dummy & fallback: crisp 1x integer scale, frame 0 normal / frame 1 hurt!
+            const sprKey = (isHurt && this.m.hurtSpr && SPR[this.m.hurtSpr]) ? this.m.hurtSpr : this.m.spr;
             const ms = SPR[sprKey];
             if (ms) {
-              const sc = ms.h < 65 ? 2 : 1.7;
-              const mx = 320 - (ms.w * sc) / 2 + mShakeX, my = 132 - (ms.h * sc) / 2 + bob;
-              drawSpr(ctx, sprKey, Math.floor(time / 16), mx, my, sc, sc);
-              // Lesser Dog extending neck when petted!
-              if (this.id === 'lesserdog' && this.neckLen > 0) {
-                for (let n = 0; n < Math.min(8, this.neckLen); n++) {
-                  drawSpr(ctx, 'spr_dogneck1', 0, mx + 36, my - 10 - n * 18, sc, sc);
-                }
-                drawSpr(ctx, 'spr_lesserdogehead', 0, mx + 24, my - 22 - Math.min(8, this.neckLen) * 18, sc, sc);
-              }
-              if (this.id === 'blook' && this.dapperHat) {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(298, my - 30, 44, 24);
-                ctx.fillRect(286, my - 8, 68, 6);
-              }
+              const sc = ms.h <= 80 ? 2 : 1;
+              const f = (isHurt && !this.m.hurtSpr && ms.n > 1) ? 1 : 0;
+              const mx = Math.round(320 - (ms.w * sc) / 2 + sx);
+              const my = Math.round(240 - ms.h * sc);
+              drawSpr(ctx, sprKey, f, mx, my, sc, sc);
             }
           }
           ctx.restore();
 
-          // Render rising dust particles during vaporization!
+          // Rising dust particles during vaporization!
           if (this.menu === 'vapor') {
             ctx.fillStyle = '#ffffff';
             for (const p of this.dustParticles) {
@@ -1760,7 +1873,7 @@
         // Tough Glove Punch Impacts
         if (this.menu === 'glove_mash') {
           for (const p of this.punches) {
-            if (p.t > 0) drawSpr(ctx, 'spr_strike', Math.floor((12 - p.t) / 2), p.x - 24, p.y - 24, 2.2, 2.2);
+            if (p.t > 0) drawSpr(ctx, 'spr_strike', Math.floor((12 - p.t) / 2), p.x - 24, p.y - 24, 2, 2);
           }
           drawRichText(ctx, G.lang === 'zh' ? '\\Y[連按 Z 鍵出拳！]' : '\\Y[PRESS Z REPEATEDLY!]', 205, 198, 999, { size: 22 });
         }
@@ -1788,20 +1901,19 @@
         }
         if (this.menu === 'slash' && this.slashTick < 20) {
           const f = Math.min(5, Math.floor(this.slashTick / 3));
-          if (SPR['spr_slice_o']) {
-            drawSpr(ctx, 'spr_slice_o', f, 302, 52, 2.2, 2.2);
-          } else {
-            drawSpr(ctx, 'spr_strike', f, 296, 68, 3.5, 5.5);
-          }
+          if (SPR['spr_slice_o']) drawSpr(ctx, 'spr_slice_o', f, 302, 52, 2, 2);
+          else drawSpr(ctx, 'spr_strike', f, 296, 68, 3, 5);
         }
 
-        // Monster Speech Bubble (with authentic character-specific font & auto-fit!)
+        // Authentic Undertale Rounded Speech Bubble
         if (this.bubTimer > 0 && this.bubble) {
           ctx.fillStyle = '#fff';
-          ctx.fillRect(402, 44, 226, 126);
-          ctx.beginPath(); ctx.moveTo(402, 92); ctx.lineTo(384, 102); ctx.lineTo(402, 112); ctx.fill();
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(402, 42, 224, 126, 12) : ctx.rect(402, 42, 224, 126);
+          ctx.fill();
+          ctx.beginPath(); ctx.moveTo(404, 88); ctx.lineTo(382, 100); ctx.lineTo(404, 112); ctx.fill();
           const bubWho = this.id === 'papyrus' ? 'papyrus' : (this.id === 'toriel' ? 'toriel' : 'narrator');
-          drawRichText(ctx, this.bubble, 412, 52, 999, { size: 19, lineH: 24, color: '#000', who: bubWho, maxWidth: 206, maxHeight: 110 });
+          drawRichText(ctx, this.bubble, 414, 52, 999, { size: 19, lineH: 24, color: '#000', who: bubWho, maxWidth: 202, maxHeight: 108 });
         }
 
         // Battle Box
@@ -1816,6 +1928,12 @@
           if (this.handSweep) {
             drawSpr(ctx, 'spr_handbullet', 0, this.handSweep.x - 16, this.handSweep.y - 12, 1.5, 1.5);
           }
+          // Clip all arena bullets cleanly inside the white battle box!
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(bx.x + 2, bx.y + 2, bx.w - 4, bx.h - 4);
+          ctx.clip();
+
           if (!this.invuln || Math.floor(this.invuln / 4) % 2 === 0) {
             const heartSpr = (this.blueSoul && SPR['spr_heartblue']) ? 'spr_heartblue' : 'spr_heart';
             drawSpr(ctx, heartSpr, 0, this.soulX - 8, this.soulY - 8, 1, 1);
@@ -1824,50 +1942,50 @@
             ctx.save(); ctx.strokeStyle = 'rgba(80,235,255,0.85)'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(this.soulX, this.soulY, 14, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
           }
+
+          // Annoying Dog stealing Papyrus's Special Attack!
+          if (this.tobyDog) {
+            const dogSpr = (this.tobyDog.t > 24 && this.tobyDog.t < 70) ? 'spr_tobydogsurprise' : 'spr_tobydogscoot';
+            drawSpr(ctx, dogSpr, Math.floor(time / 6) % 2, this.tobyDog.x, this.tobyDog.y, 1, 1);
+          }
+
           for (const b of this.bullets) {
             if (b.fire) {
               const fs = SPR['spr_firebullet'] ? 'spr_firebullet' : 'spr_torielflame';
-              drawSpr(ctx, fs, Math.floor(time / 4), b.x - 12, b.y - 12, 1.1, 1.1);
-            } else if (b.blade) {
-              // Doggo's Blue Moving-Detection Sword!
-              ctx.fillStyle = '#28b8ff';
-              ctx.fillRect(Math.round(b.x - 6), Math.round(b.y - b.h * 0.5), 12, Math.round(b.h));
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(Math.round(b.x - 10), Math.round(b.y - b.h * 0.5 - 6), 20, 8);
+              drawSpr(ctx, fs, Math.floor(time / 4), b.x - 10, b.y - 10, 1, 1);
             } else if (b.bone) {
-              // Papyrus's White & Blue Bones!
-              const col = b.blue ? '#28b8ff' : '#ffffff';
+              // Pure Undertale Bone using spr_s_bonewall (pure white 10x50 -> crisp white or cyan blue bone!)
               const topY = Math.round(b.y - b.h * 0.5), botY = Math.round(b.y + b.h * 0.5);
-              ctx.fillStyle = col;
-              ctx.fillRect(Math.round(b.x - 4), topY + 4, 8, Math.max(4, Math.round(b.h - 8)));
-              ctx.fillRect(Math.round(b.x - 7), topY, 14, 6);
-              ctx.fillRect(Math.round(b.x - 7), botY - 6, 14, 6);
+              const col = b.blue ? '#28b8ff' : (b.orange ? '#ffa028' : '#ffffff');
+              const s = SPR['spr_s_bonewall'];
+              if (s && s.img.complete && s.img.naturalWidth) {
+                const bx0 = Math.round(b.x - 5);
+                if (b.blue || b.orange) {
+                  // Draw tinted bone via drawSprExt scaling cleanly
+                  drawSprExt(ctx, 'spr_s_bonewall', 0, bx0, topY, 1, Math.max(0.24, b.h / 50), 0, col, 1, false);
+                } else {
+                  // Crisp 3-part vertical slice: top 6px cap, middle stretched shaft, bottom 6px cap!
+                  ctx.drawImage(s.img, 0, 0, 10, 6, bx0, topY, 10, 6);
+                  ctx.drawImage(s.img, 0, 10, 10, 30, bx0, topY + 6, 10, Math.max(2, Math.round(b.h - 12)));
+                  ctx.drawImage(s.img, 0, 44, 10, 6, bx0, botY - 6, 10, 6);
+                }
+              } else {
+                ctx.fillStyle = col;
+                ctx.fillRect(Math.round(b.x - 3), topY + 4, 6, Math.max(4, Math.round(b.h - 8)));
+                ctx.fillRect(Math.round(b.x - 5), topY, 10, 5);
+                ctx.fillRect(Math.round(b.x - 5), botY - 5, 10, 5);
+              }
             } else if (b.spr && SPR[b.spr]) {
               const s = SPR[b.spr];
-              ctx.save();
-              if (b.blue) ctx.filter = 'sepia(1) saturate(6) hue-rotate(170deg)';
-              drawSpr(ctx, b.spr, Math.floor(time / 5), b.x - s.w * 0.7, b.y - s.h * 0.7, 1.4, 1.4);
-              ctx.restore();
-            } else if (b.ring) {
-              ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-              ctx.beginPath(); ctx.arc(b.x, b.y, b.r || 9, 0, Math.PI * 2); ctx.stroke();
-              ctx.fillStyle = '#ffffff';
-              ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill();
-            } else if (b.carrot) {
-              ctx.fillStyle = b.green ? '#38ff38' : '#ffffff';
-              ctx.beginPath();
-              ctx.moveTo(b.x, b.y + 9);
-              ctx.lineTo(b.x - 6, b.y - 6);
-              ctx.lineTo(b.x + 6, b.y - 6);
-              ctx.closePath();
-              ctx.fill();
-            } else if (b.bark) {
-              drawRichText(ctx, 'BARK!', b.x - 22, b.y - 8, 999, { size: 16, color: '#ffffff' });
+              const sc = b.sc != null ? b.sc : 1;
+              const tint = b.blue ? '#28b8ff' : (b.orange ? '#ffa028' : null);
+              drawSprExt(ctx, b.spr, Math.floor(time / 6), Math.round(b.x - (s.w * sc) / 2), Math.round(b.y - (s.h * sc) / 2), sc, sc, 0, tint, 1);
             } else {
               ctx.fillStyle = b.green ? '#38ff38' : (b.blue ? '#28b8ff' : (b.orange ? '#ffa028' : '#ffffff'));
               ctx.beginPath(); ctx.arc(b.x, b.y, b.r || 6, 0, Math.PI * 2); ctx.fill();
             }
           }
+          ctx.restore();
         } else if (this.menu === 'fight_bar' || this.menu === 'glove_mash' || this.menu === 'slash') {
           ctx.save();
           const sc = this.targetScale || 1;

@@ -1416,7 +1416,7 @@
       },
 
       exitToOverworld() {
-        if (this.standalone) { window.location.href = 'index.html'; }
+        if (this.standalone) { window.location.href = 'overworld.html'; }
         else { G.onExitAsriel?.(); }
       },
 

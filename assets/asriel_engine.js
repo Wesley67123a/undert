@@ -532,6 +532,7 @@
         this.p2ArmRot = 0; this.p2Shake = 0; this.p2Radi = 0; this.p2RadiAlpha = 0;
         this.finaleShout = '';
         this.sub = 'main'; this.currentAtk = null;
+        this.waveQueue = []; this.chainIdx = 0; this.chainTotal = 0; this.diffLvl = 0;
       },
 
       startPhase(tag) {
@@ -744,37 +745,42 @@
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.asExpr = 2;
           G.sfx.sfx('spellcast', 0.7);
-          this.stars = { hard, windup: 26, explodedBig: false, explodedBig2: false };
+          this.stars = { hard, windup: 26, explodedBig: false, explodedBigMid: false };
         } else if (kind === 'shocker') {
           this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          this.attackDur = hard ? 225 : 205;
+          const cycles = Math.max(1, opts.cycles || 1);
+          const cycleLen = hard ? 190 : 175;
+          this.attackDur = 24 + cycles * cycleLen + 25;
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.asExpr = 2;
           G.sfx.sfx('spellcast', 0.7);
-          this.bolts = { hard, windup: 24, idx: 0, gigaPhase: 0, trackCnt: 0 };
+          this.bolts = { hard, windup: 24, cycles, cycleLen, idx: 0, gigaPhase: 0, trackCnt: 0 };
         } else if (kind === 'saber') {
           // Canonical obj_asriel_swordmaster: border=4 (square/narrower arena), Asriel drops to y=100
           this.tBox = { x: 230, y: 248, w: 180, h: 140 };
-          this.attackDur = hard ? 265 : 235;
+          const swings = opts.swings || (hard ? 6 : 5);
+          const period = hard ? 26 : 32;
+          this.attackDur = Math.max(hard ? 265 : 235, 24 + swings * period + 96);
           this.asX = 320; this.asY = 92; this.asRely = 0;
           this.armAlpha = 0;
           G.sfx.sfx('swordappear', 0.7);
           this.sabers = {
             hard, t: 0, sOffset: 40, armed: false, swingTimer: 0,
-            count: 0, maxSwings: hard ? 6 : 5, curSide: 0, prevSide: -1, prev2Side: -1,
+            count: 0, maxSwings: swings, curSide: 0, prevSide: -1, prev2Side: -1,
             smearAlpha: 0, smearSide: 0, swordSpriteTimer: 0,
             twinkleMode: false, twinkleT: 0, twinklesSpawned: false,
             lungeX: 320,
           };
         } else if (kind === 'buster') {
           this.tBox = { x: 215, y: 244, w: 210, h: 146 };
-          this.attackDur = hard ? 295 : 275;
+          const salvos = opts.salvos || 7;
+          this.attackDur = Math.max(hard ? 295 : 275, salvos * (hard ? 20 : 25) + 120);
           this.asX = 320; this.asY = 45; this.asRely = 0;
           this.armAlpha = 0;
           this.gun = {
             hard, t: 0, bx: 390, by: 65, thisx: 390, thisy: 65,
             relx: 70, rely: 20, angle: Math.PI / 2, recoil: 0,
-            salvo: 0, maxSalvo: 7, fireSub: 0, lines: 3, aimFlash: 0,
+            salvo: 0, maxSalvo: salvos, fireSub: 0, lines: 3, aimFlash: 0,
             meter: false, meterCnt: 0, spinning: false, spinSpd: 0, spinAng: 0,
             unhinge: false, unhingeFrame: 0, blasting: false, beamW: 0, beamTimer: 0,
           };
@@ -828,41 +834,102 @@
           this.soulX = 320; this.soulY = 320;
           this.attackDur = 195;
         }
+        this.diffLvl = this.mode === 'p1' ? Math.floor(this.p1Turn / 4)
+          : this.mode === 'p2' ? Math.min(3, this.p2Turn)
+          : this.mode === 'lost_soul' ? (this.lsActDone || 0)
+          : 0;
+        const scalableDur = !['shocker', 'saber', 'buster', 'hypergoner', 'lastbeam'].includes(kind);
+        if (scalableDur && opts.durMul && opts.durMul !== 1) {
+          this.attackDur = Math.round(this.attackDur * opts.durMul);
+        }
         if (kind !== 'hypergoner') {
           this.soulX = Math.max(this.tBox.x + 14, Math.min(this.tBox.x + this.tBox.w - 14, this.soulX));
           this.soulY = Math.max(this.tBox.y + 14, Math.min(this.tBox.y + this.tBox.h - 14, this.soulY));
         }
       },
 
+      // ---------------------------------------------------------------------
+      // PACING ENGINE: each turn = ordered chain of existing attacks.
+      // Later turns chain more attacks with higher counts/hard flags so the
+      // full run lasts ~10-15 minutes instead of a few short single waves.
+      // ---------------------------------------------------------------------
+      P1_TIMELINE: [
+        /* 0  */ [['fire_magic', { durMul: 2.0 }]],
+        /* 1  */ [['star', { hard: false, durMul: 1.8 }]],
+        /* 2  */ [['shocker', { hard: false, cycles: 2 }]],
+        /* 3  */ [['saber', { hard: false, swings: 10 }]],
+        /* 4  */ [['shocker', { hard: false, cycles: 2 }], ['fire_magic', { durMul: 1.6 }], ['star', { hard: false, durMul: 1.4 }]],
+        /* 5  */ [['star', { hard: false, durMul: 1.8 }], ['saber', { hard: false, swings: 10 }], ['shocker', { hard: false, cycles: 2 }]],
+        /* 6  */ [['buster', { hard: false, salvos: 12 }], ['fire_magic', { durMul: 1.6 }]],
+        /* 7  */ [['saber', { hard: false, swings: 11 }], ['shocker', { hard: false, cycles: 2 }], ['buster', { hard: false, salvos: 10 }]],
+        /* 8  */ [['buster', { hard: false, salvos: 12 }], ['star', { hard: false, durMul: 1.8 }], ['saber', { hard: false, swings: 10 }]],
+        /* 9  */ [['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 11 }], ['star', { hard: true, durMul: 1.6 }]],
+        /* 10 */ [['star', { hard: true, durMul: 2.0 }], ['buster', { hard: true, salvos: 13 }], ['shocker', { hard: true, cycles: 2 }]],
+        /* 11 */ [['saber', { hard: true, swings: 13 }], ['buster', { hard: true, salvos: 14 }], ['star', { hard: true, durMul: 1.8 }]],
+        /* 12 */ [['buster', { hard: true, salvos: 15 }], ['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 13 }], ['star', { hard: true, durMul: 1.7 }]],
+        /* 13 */ [['shocker', { hard: true, cycles: 3 }], ['saber', { hard: true, swings: 15 }], ['buster', { hard: true, salvos: 16 }], ['star', { hard: true, durMul: 2.0 }]],
+        /* 14 */ [['hypergoner', {}]],
+      ],
+
+      runChain(chain) {
+        const list = chain.map(([kind, opts]) => ({ kind, opts: { ...(opts || {}) } }));
+        const first = list.shift();
+        this.waveQueue = list;
+        this.chainTotal = list.length + 1;
+        this.chainIdx = 1;
+        this.spawnAttack(first.kind, first.opts);
+      },
+
       launchP1Wave(t) {
         const L = this.L();
         this.statusTxt = L.p1Status[Math.min(t, L.p1Status.length - 1)] || L.p1Status[0];
-        if (t === 0) this.spawnAttack('fire_magic', {});
-        else if (t === 1 || t === 5) this.spawnAttack('star', { hard: false });
-        else if (t === 10) this.spawnAttack('star', { hard: true });
-        else if (t === 2 || t === 4) this.spawnAttack('shocker', { hard: false });
-        else if (t === 9 || t === 13) this.spawnAttack('shocker', { hard: true });
-        else if (t === 3 || t === 7) this.spawnAttack('saber', { hard: false });
-        else if (t === 11) this.spawnAttack('saber', { hard: true });
-        else if (t === 6 || t === 8) this.spawnAttack('buster', { hard: false });
-        else if (t === 12) this.spawnAttack('buster', { hard: true });
-        else if (t >= 14) this.spawnAttack('hypergoner', {});
+        const tl = this.P1_TIMELINE;
+        this.runChain(tl[Math.min(t, tl.length - 1)]);
+      },
+
+      launchP2Wave() {
+        const n = this.p2Turn;
+        const durMul = 1.6 + Math.min(0.8, n * 0.2);
+        const a = n % 2 === 0 ? 'p2_comets' : 'p2_orb_beam';
+        const b = n % 2 === 0 ? 'p2_orb_beam' : 'p2_comets';
+        const chain = [
+          [a, { durMul }],
+          [b, { durMul }],
+          [a, { durMul: Math.max(1.25, +(durMul - 0.3).toFixed(2)) }],
+        ];
+        this.runChain(chain);
+      },
+
+      launchLostSoulWave() {
+        const kind = 'ls_' + this.activeLostSoul;
+        const durMul = this.lsActDone >= 2 ? 2.5 : 2.0;
+        this.runChain([[kind, { durMul }]]);
       },
 
       launchFinaleWave(t) {
         if (t >= 6) {
           this.asrielCry = 2;
-          this.spawnAttack('lastbeam', {});
+          this.runChain([['lastbeam', {}]]);
         } else if (t <= 1) {
           this.asrielCry = 1;
-          this.spawnAttack('p2_comets', { weak: true });
+          this.runChain([['p2_comets', { weak: true, durMul: 1.6 }], ['finale_fire', { weak: true, durMul: 1.8 }]]);
         } else {
           this.asrielCry = 2;
-          this.spawnAttack('finale_fire', { weak: true });
+          this.runChain([['finale_fire', { weak: true, durMul: +(2.2 + (t - 2) * 0.25).toFixed(2) }]]);
         }
       },
 
       finishWave() {
+        if (!this.singlePractice && this.waveQueue && this.waveQueue.length) {
+          const nx = this.waveQueue.shift();
+          this.chainIdx = (this.chainIdx || 1) + 1;
+          this.shrug = false;
+          this.soulColor = 'red';
+          this.whiteAlpha = Math.max(this.whiteAlpha, 0.35);
+          this.spawnAttack(nx.kind, nx.opts);
+          return;
+        }
+        this.waveQueue = [];
         this.hopeActive = false;
         this.asX = 320; this.asY = 48; this.asAlpha = 1; this.armAlpha = 1;
         this.armRotL = 0; this.armRotR = 0; this.torsoRot = 0; this.headRot = 0; this.headY = 0;
@@ -1078,7 +1145,7 @@
             } else {
               this.beginMsg(this.L().struggleFail, () => {
                 const sp = this.L().p2Speech[Math.min(this.struggles - 1, this.L().p2Speech.length - 1)];
-                this.beginBubble([sp], () => this.spawnAttack(this.p2Turn % 2 === 0 ? 'p2_comets' : 'p2_orb_beam'));
+                this.beginBubble([sp], () => this.launchP2Wave());
               });
             }
             return;
@@ -1204,7 +1271,7 @@
                 : (G.lang === 'zh' ? `* 成功喚醒了 ${ls.name}！（${n}/4）` : `* SAVED ${ls.name}! (${n}/4 Friends Resonating)`);
             });
           } else {
-            this.beginMsg(resTxt, () => this.spawnAttack('ls_' + this.activeLostSoul));
+            this.beginMsg(resTxt, () => this.launchLostSoulWave());
           }
         }
       },
@@ -1216,7 +1283,7 @@
           else this.launchP1Wave(this.p1Turn);
         } else if (this.mode === 'p2') {
           this.hp = Math.min(this.maxHp, this.hp + 5);
-          this.spawnAttack(this.p2Turn % 2 === 0 ? 'p2_comets' : 'p2_orb_beam');
+          this.launchP2Wave();
         } else {
           this.sub = 'main';
         }
@@ -1619,6 +1686,16 @@
               big: false, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 10,
             });
           }
+          if (this.attackDur >= 380 && t === Math.floor((S.windup + this.attackDur - 70) / 2) && !S.explodedBigMid) {
+            S.explodedBigMid = true;
+            G.sfx.sfx('star', 0.7, 0.45);
+            const ang = 215 * Math.PI / 180;
+            this.bullets.push({
+              type: 'stormstar', x: 740, y: -115,
+              vx: Math.cos(ang) * 4.4, vy: -Math.sin(ang) * 4.4,
+              hue: 195, splitY: 282, big: true, hard: S.hard, prevs: [], oo: 0, rot: 0, r: 22,
+            });
+          }
           if (t === this.attackDur - 70 && !S.explodedBig) {
             S.explodedBig = true;
             G.sfx.sfx('star', 0.7, 0.42);
@@ -1643,56 +1720,61 @@
             else { this.asExpr = 0; this.asAlpha = Math.min(1, this.asAlpha + 0.06); this.armRotL *= 0.85; this.armRotR *= 0.85; }
           }
           if (t >= B.windup) {
-            const localT = t - B.windup;
-            if (!B.hard) {
-              // H_MODE=0: 4 rapid 8-column sweeps (L->R, R->L, L->R, R->L) then 3 -> 2 -> 3 Giga columns!
-              const sweepWindows = [
-                { s: 2, e: 18, dir: 1 }, { s: 26, e: 42, dir: -1 },
-                { s: 50, e: 66, dir: 1 }, { s: 74, e: 90, dir: -1 },
-              ];
-              for (const sw of sweepWindows) {
-                if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
-                  const step = (localT - sw.s) / 2;
-                  const idx = sw.dir === 1 ? step : (7 - step);
-                  const tx = this.box.x + 14 + (idx / 7) * (this.box.w - 28);
-                  G.sfx.sfx('target', 0.3);
-                  this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 20, w: 32, giga: false });
+            const rawT = t - B.windup;
+            const cLen = B.cycleLen || (B.hard ? 190 : 175);
+            const cyc = Math.floor(rawT / cLen);
+            const localT = rawT % cLen;
+            if (cyc < (B.cycles || 1)) {
+              if (!B.hard) {
+                // H_MODE=0: 4 rapid 8-column sweeps (L->R, R->L, L->R, R->L) then 3 -> 2 -> 3 Giga columns!
+                const sweepWindows = [
+                  { s: 2, e: 18, dir: 1 }, { s: 26, e: 42, dir: -1 },
+                  { s: 50, e: 66, dir: 1 }, { s: 74, e: 90, dir: -1 },
+                ];
+                for (const sw of sweepWindows) {
+                  if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
+                    const step = (localT - sw.s) / 2;
+                    const idx = sw.dir === 1 ? step : (7 - step);
+                    const tx = this.box.x + 14 + (idx / 7) * (this.box.w - 28);
+                    G.sfx.sfx('target', 0.3);
+                    this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 20, w: 32, giga: false });
+                  }
                 }
-              }
-              if (localT === 108 || localT === 144) {
-                G.sfx.sfx('target', 0.5);
-                for (const gx of [200, 320, 440]) {
-                  this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+                if (localT === 108 || localT === 144) {
+                  G.sfx.sfx('target', 0.5);
+                  for (const gx of [200, 320, 440]) {
+                    this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+                  }
+                } else if (localT === 126) {
+                  G.sfx.sfx('target', 0.5);
+                  for (const gx of [260, 380]) {
+                    this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+                  }
                 }
-              } else if (localT === 126) {
-                G.sfx.sfx('target', 0.5);
-                for (const gx of [260, 380]) {
-                  this.bullets.push({ type: 'warnbolt', x: gx, y: 360, timer: 22, w: 68, giga: true });
+              } else {
+                // H_MODE=1 (Shocker Breaker II): 3 fast sweeps, homing lock onto player X, then 5 rolling Giga bolts!
+                const sweepWindows = [
+                  { s: 2, e: 16, dir: 1 }, { s: 22, e: 36, dir: -1 }, { s: 42, e: 56, dir: 1 },
+                ];
+                for (const sw of sweepWindows) {
+                  if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
+                    const step = (localT - sw.s) / 2;
+                    const idx = sw.dir === 1 ? step : (6 - step);
+                    const tx = this.box.x + 14 + (idx / 6) * (this.box.w - 28);
+                    G.sfx.sfx('target', 0.3);
+                    this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 18, w: 32, giga: false });
+                  }
                 }
-              }
-            } else {
-              // H_MODE=1 (Shocker Breaker II): 3 fast sweeps, homing lock onto player X, then 5 rolling Giga bolts!
-              const sweepWindows = [
-                { s: 2, e: 16, dir: 1 }, { s: 22, e: 36, dir: -1 }, { s: 42, e: 56, dir: 1 },
-              ];
-              for (const sw of sweepWindows) {
-                if (localT >= sw.s && localT < sw.e && (localT - sw.s) % 2 === 0) {
-                  const step = (localT - sw.s) / 2;
-                  const idx = sw.dir === 1 ? step : (6 - step);
-                  const tx = this.box.x + 14 + (idx / 6) * (this.box.w - 28);
-                  G.sfx.sfx('target', 0.3);
-                  this.bullets.push({ type: 'warnbolt', x: tx, y: 360, timer: 18, w: 32, giga: false });
+                if (localT >= 64 && localT <= 92 && localT % 4 === 0) {
+                  G.sfx.sfx('target', 0.35);
+                  this.bullets.push({ type: 'warnbolt', x: this.soulX, y: 360, timer: 18, w: 32, giga: false });
                 }
-              }
-              if (localT >= 64 && localT <= 92 && localT % 4 === 0) {
-                G.sfx.sfx('target', 0.35);
-                this.bullets.push({ type: 'warnbolt', x: this.soulX, y: 360, timer: 18, w: 32, giga: false });
-              }
-              const gigaTimes = [104, 118, 132, 146, 160];
-              const gIdx = gigaTimes.indexOf(localT);
-              if (gIdx !== -1) {
-                G.sfx.sfx('target', 0.55);
-                this.bullets.push({ type: 'warnbolt', x: 200 + gIdx * 60, y: 360, timer: 20, w: 68, giga: true });
+                const gigaTimes = [104, 118, 132, 146, 160];
+                const gIdx = gigaTimes.indexOf(localT);
+                if (gIdx !== -1) {
+                  G.sfx.sfx('target', 0.55);
+                  this.bullets.push({ type: 'warnbolt', x: 200 + gIdx * 60, y: 360, timer: 20, w: 68, giga: true });
+                }
               }
             }
           }
@@ -1934,17 +2016,24 @@
               r: 6, life: 150,
             });
           };
-          if (t === 16 || t === 96) spawnSalvo(0);
-          if (t === 56 || t === 136) spawnSalvo(1);
-          if (t === 176) { spawnSalvo(0); spawnSalvo(1); }
-          if ((t > 20 && t < 38 && t % 3 === 0) || (t > 100 && t < 118 && t % 3 === 0)) spawnUltBullet(0);
-          if ((t > 60 && t < 78 && t % 3 === 0) || (t > 140 && t < 158 && t % 3 === 0)) spawnUltBullet(1);
-          if (!this.attackWeak && t > 180 && t < 208 && t % 3 === 0) spawnUltBullet(Math.random() < 0.5 ? 0 : 1);
+          // Loop the canonical 215-frame salvo schedule so longer (durMul) turns stay dense.
+          const tc = t < 1 ? t : ((t - 1) % 215) + 1;
+          const live = t < this.attackDur - 40;
+          if (live) {
+            if (tc === 16 || tc === 96) spawnSalvo(0);
+            if (tc === 56 || tc === 136) spawnSalvo(1);
+            if (tc === 176) { spawnSalvo(0); spawnSalvo(1); }
+            if ((tc > 20 && tc < 38 && tc % 3 === 0) || (tc > 100 && tc < 118 && tc % 3 === 0)) spawnUltBullet(0);
+            if ((tc > 60 && tc < 78 && tc % 3 === 0) || (tc > 140 && tc < 158 && tc % 3 === 0)) spawnUltBullet(1);
+            if (!this.attackWeak && tc > 180 && tc < 208 && tc % 3 === 0) spawnUltBullet(Math.random() < 0.5 ? 0 : 1);
+          }
         }
 
         // Pattern F2: Phase 2 Canonical obj_chaosbomb + Shoulder Comet Pincers!
         else if (kind === 'p2_orb_beam') {
-          if (t < this.attackDur - 55 && t % 36 === 4) {
+          const bombInt = Math.max(26, 36 - (this.diffLvl || 0) * 3);
+          const cometInt = Math.max(36, 48 - (this.diffLvl || 0) * 4);
+          if (t < this.attackDur - 55 && t % bombInt === 4) {
             G.sfx.sfx('spellcast', 0.48, 1.15);
             const bx2 = this.box.x + 28 + Math.random() * (this.box.w - 56);
             const by2 = this.box.y + 24 + Math.random() * (this.box.h - 48);
@@ -1953,8 +2042,8 @@
               stage: 0, sc: 0.85, angle: 0, alpha: 1, timer: 0, hue: (t * 16) % 360, r: 14,
             });
           }
-          if (t < this.attackDur - 55 && t % 48 === 20) {
-            const side = (Math.floor(t / 48) % 2);
+          if (t < this.attackDur - 55 && t % cometInt === 20) {
+            const side = (Math.floor(t / cometInt) % 2);
             const sx = side === 0 ? 160 : 480, sy = 128;
             this.blastOrbs.push({ x: sx, y: sy, sc: 1.4, alpha: 0.9, hue: (t * 19) % 360 });
             G.sfx.sfx('segapower', 0.4, 0.9);
@@ -2030,9 +2119,10 @@
 
         // Pattern H: Lost Souls Mini-Waves
         else if (kind === 'ls_undyne') {
-          if (t % 24 === 2) {
+          const step = (this.diffLvl || 0) >= 2 ? 20 : 24;
+          if (t < this.attackDur - 28 && t % step === 2) {
             G.sfx.sfx('spearappear', 0.35);
-            const d = (Math.floor(t / 24) + (t > 100 ? 1 : 0)) % 4;
+            const d = (Math.floor(t / step) + (t > 100 ? 1 : 0)) % 4;
             const pos = [
               { x: 320, y: this.box.y - 110, vx: 0, vy: 3.1, dir: 0 },
               { x: this.box.x + this.box.w + 110, y: 318, vx: -3.1, vy: 0, dir: 1 },
@@ -2042,7 +2132,8 @@
             this.bullets.push({ type: 'ls_arrow', ...pos, r: 7 });
           }
         } else if (kind === 'ls_alphys') {
-          if (t % 18 === 2) {
+          const step = (this.diffLvl || 0) >= 2 ? 15 : 18;
+          if (t < this.attackDur - 28 && t % step === 2) {
             this.bullets.push({
               type: 'ls_zap',
               x: this.box.x + 22 + Math.random() * (this.box.w - 44),
@@ -2050,8 +2141,9 @@
             });
           }
         } else if (kind === 'ls_skelebros') {
-          if (t % 28 === 2) {
-            const fromLeft = (t / 28) % 2 === 0;
+          const step = (this.diffLvl || 0) >= 2 ? 23 : 28;
+          if (t < this.attackDur - 28 && t % step === 2) {
+            const fromLeft = Math.floor(t / step) % 2 === 0;
             const tall = Math.random() < 0.35 ? 50 : 28;
             this.bullets.push({
               type: 'ls_bone',
@@ -2061,9 +2153,10 @@
             });
           }
         } else if (kind === 'ls_parents') {
-          if (t % 14 === 1) {
+          const step = (this.diffLvl || 0) >= 2 ? 12 : 14;
+          if (t < this.attackDur - 28 && t % step === 1) {
             G.sfx.sfx('chug', 0.28);
-            const sx = t % 28 === 1 ? this.box.x + 12 : this.box.x + this.box.w - 12;
+            const sx = Math.floor(t / step) % 2 === 0 ? this.box.x + 12 : this.box.x + this.box.w - 12;
             const ang = Math.atan2(this.soulY - (this.box.y + 10), this.soulX - sx);
             this.bullets.push({
               type: 'ls_fire', x: sx, y: this.box.y + 10,

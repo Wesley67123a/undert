@@ -555,6 +555,7 @@ export class Battle {
     ctx.fillStyle = '#f00'; ctx.fillRect(bx, 400, barW, 21);
     ctx.fillStyle = '#ff0'; ctx.fillRect(bx, 400, Math.round(p.hp * 1.2), 21);
     drawText(ctx, 'fnt_curs', `${p.hp} / ${p.maxHp}`, bx + barW + 14, 400);
+    if (this.isShieldOn()) drawText(ctx, 'fnt_maintext', 'SHIELD', 552, 404, { color: '#48e8ff' });
   }
 
   drawButtons(ctx) {

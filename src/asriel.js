@@ -804,6 +804,7 @@ export class AsrielBattle extends Battle {
     let hw = Number.isInteger(hp) ? String(hp) : '0' + hp.toFixed(2);
     if (this.hpGlitch) hw = ['00.001', '00.0001', '00.000001', '00.0000000001'][this.hpGlitch - 1] || hw;
     drawText(ctx, 'fnt_curs', `${hw} / ${p.maxHp}`, bx + barW + 14, 400);
+    if (this.isShieldOn()) drawText(ctx, 'fnt_maintext', 'SHIELD', 552, 404, { color: '#48e8ff' });
   }
 }
 

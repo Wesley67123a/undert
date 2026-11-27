@@ -63,6 +63,10 @@ if (typeof window.UT_NO_HIT_SHIELD === 'boolean') {
 } else {
   window.UT_NO_HIT_SHIELD = !!SETTINGS.shield;
 }
+if (window.UTGame) {
+  window.UTGame.noHitShield = !!window.UT_NO_HIT_SHIELD;
+  window.UTGame.onUI?.();
+}
 
 window.addEventListener('dbs-settings-change', () => {
   window.UT_NO_HIT_SHIELD = !!SETTINGS.shield;

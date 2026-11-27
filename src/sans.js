@@ -499,7 +499,8 @@ export class SansBattle extends Battle {
     if (km > 0) { ctx.fillStyle = '#f0f'; ctx.fillRect(255 + X + hw - Math.round(km * 1.2), 400, Math.round(km * 1.2) + 1, 21); }
     drawSprite(ctx, 'spr_krmeter', 0, 265 + X + W1, 405);
     const hp = p.hp < 10 ? '0' + Math.max(0, p.hp) : String(p.hp);
-    drawText(ctx, 'fnt_curs', `${hp} / ${p.maxHp}`, 305 + X + W1, 400, { color: km > 0 ? '#f0f' : '#fff' });
+    const hpEnd = 305 + X + W1 + drawText(ctx, 'fnt_curs', `${hp} / ${p.maxHp}`, 305 + X + W1, 400, { color: km > 0 ? '#f0f' : '#fff' });
+    if (this.isShieldOn() && hpEnd + 8 < 608) drawText(ctx, 'fnt_maintext', 'SHIELD', Math.max(552, hpEnd + 8), 404, { color: '#48e8ff' });
   }
   drawSubmenu(ctx) {
     const x = BORDER[0][0] + 20, y = BORDER[0][2] + 20, line = s => drawText(ctx, 'fnt_main', s, x, y, { mono: 16 });

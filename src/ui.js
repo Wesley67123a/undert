@@ -1,4 +1,4 @@
-import { FNT, SPR, drawText, setVolume, isMuted, toggleMute, VOLUME, playSound } from './assets.js';
+import { FNT, SPR, drawText, setVolume, isMuted, toggleMute, VOLUME, playSound, unlockAudio } from './assets.js';
 import { SETTINGS, saveSettings, resolution } from './settings.js';
 import { isES, tr } from './i18n.js';
 
@@ -155,11 +155,12 @@ function initTouchControls() {
   }
   if (btnMute && !btnMute.dataset.bound) {
     btnMute.dataset.bound = '1';
-    btnMute.addEventListener('click', () => { toggleMute(); refreshVolume(); });
+    btnMute.addEventListener('click', () => { unlockAudio(); toggleMute(); refreshVolume(); });
   }
   if (btnShield && !btnShield.dataset.bound) {
     btnShield.dataset.bound = '1';
     btnShield.addEventListener('click', () => {
+      unlockAudio();
       SETTINGS.shield = !SETTINGS.shield;
       saveSettings();
       refreshShield();

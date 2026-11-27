@@ -6,6 +6,12 @@
   const { G, getRoomImg } = window.UTOverworldFactory.createGame(canvas);
   const { SPR, drawSpr, drawRichText, stripCodes } = window.UTEngineCore;
   window.UTGame = G;
+  try {
+    const saved = JSON.parse(localStorage.getItem('dbs-settings') || '{}');
+    if (typeof window.UT_NO_HIT_SHIELD !== 'boolean' && typeof saved.shield === 'boolean') {
+      window.UT_NO_HIT_SHIELD = saved.shield;
+    }
+  } catch {}
   G.noHitShield = !!window.UT_NO_HIT_SHIELD;
   G.keys.moveScale = 1;
   G.asriel = window.UTAsrielEngine?.createAsrielBattle(G) || null;
@@ -1166,10 +1172,11 @@
 
   const toggleShield = () => {
     G.sfx.unlock();
-    window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
-    G.noHitShield = window.UT_NO_HIT_SHIELD;
-    window.UTDBS?.setShield(window.UT_NO_HIT_SHIELD);
-    G.sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
+    const next = !(G.noHitShield || window.UT_NO_HIT_SHIELD);
+    window.UT_NO_HIT_SHIELD = next;
+    G.noHitShield = next;
+    window.UTDBS?.setShield(next);
+    G.sfx.sfx(next ? 'heal' : 'select', 0.65);
     G.onUI();
   };
   document.getElementById('btnMenuToggle')?.addEventListener('click', () => {

@@ -504,8 +504,16 @@
         return true;
       }
       if (dtype === 'EXIT') {
-        if (G.isGenocideSnowdin() && G.startUndyne) {
-          G.startFade(() => G.startUndyne('intro'));
+        if (G.isGenocideSnowdin() && (G.startStoryDBS || G.startUndyne)) {
+          G.startFade(() => {
+            if (G.startStoryDBS && window.UTDBS) {
+              G.startStoryDBS('undyne', (outcome) => {
+                if (outcome === 'killed') G.enterRoom(999);
+              });
+            } else if (G.startUndyne) {
+              G.startUndyne('intro');
+            }
+          });
           return true;
         }
         G.startFade(() => G.enterRoom(999));
@@ -574,13 +582,51 @@
       } }];
     };
 
-    G.endRPGBattle = function(enemyId, outcome, cb) {
-      G.mode = 'explore';
-      const id = G.state.room;
-      if (id >= 6 && id <= 31) sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'ruins');
-      else if (id >= 38 && id <= 41) sfx.stopBGM();
+    G.restoreRoomBGM = function() {
+      const id = G.state.room, fl = G.state.flags;
+      if (id === 4 || id === 42) sfx.stopBGM();
+      else if (id === 5) {
+        if (!fl.floweyDone) sfx.stopBGM();
+        else sfx.playBGM('fallendown');
+      } else if (id >= 6 && id <= 31) sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'ruins');
+      else if (id >= 32 && id <= 37) sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : ((fl.torBasement || fl.torielDone) ? 'home_box' : 'home'));
+      else if (id >= 38 && id <= 41) {
+        if (fl.torielDone) sfx.stopBGM();
+        else sfx.playBGM(G.isGenocideRuins() ? 'toomuch' : 'fallendown');
+      } else if (id === 43) sfx.stopBGM();
       else if (id >= 44 && id <= 67) sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'snowy');
-      else if (id === 81) sfx.stopBGM();
+      else if (id >= 68 && id <= 78) sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : (id === 73 ? 'sans' : 'town'));
+      else if (id === 81) {
+        if (fl.papyrusDone) sfx.stopBGM();
+        else sfx.playBGM(G.isGenocideSnowdin() ? 'toomuch' : 'wind');
+      }
+    };
+
+    G.endRPGBattle = function(enemyId, outcome, cb) {
+      if (outcome === 'gameover') {
+        G.reloadFromSave();
+        return;
+      }
+      if (outcome === 'killed') {
+        const M = window.UT_MONSTERS?.[enemyId];
+        if (M && M.exp) {
+          const LV_THRESHOLDS = [0, 10, 30, 70, 120, 200, 300, 500, 800, 1200, 1700, 2500];
+          G.state.exp += M.exp;
+          G.state.gold += M.gold || 0;
+          let lvUp = false;
+          while (G.state.lv < LV_THRESHOLDS.length && G.state.exp >= LV_THRESHOLDS[G.state.lv]) {
+            G.state.lv++;
+            G.state.maxHp = 16 + G.state.lv * 4;
+            G.state.atk = (G.state.lv - 1) * 2;
+            G.state.def = Math.floor((G.state.lv - 1) / 4);
+            lvUp = true;
+          }
+          if (lvUp) G.state.hp = G.state.maxHp;
+        }
+      }
+      G.mode = 'explore';
+      G.restoreRoomBGM();
+      G.onUI?.();
       if (cb) cb(outcome);
     };
 
@@ -761,6 +807,10 @@
         G.tor.dir = 'down';
         G.sayKey('basement4', () => {
           G.triggerBattle('toriel', (outcome) => {
+            if (outcome === 'exit') {
+              G.frisk.y = Math.max(G.frisk.y, 150);
+              return;
+            }
             fl.torielDone = true;
             fl.torielKilled = (outcome === 'killed');
             if (outcome === 'killed') {
@@ -935,6 +985,10 @@
         const introKey = G.isGenocideSnowdin() ? 'papyrusBossGenoIntro' : 'papyrusBossIntro';
         G.sayKey(introKey, () => {
           G.triggerBattle('papyrus', (outcome) => {
+            if (outcome === 'exit' || outcome === 'captured') {
+              G.frisk.x = Math.min(G.frisk.x, 300);
+              return;
+            }
             fl.papyrusDone = true;
             fl.papyrusKilled = (outcome === 'killed');
             if (outcome === 'killed') {
@@ -1292,6 +1346,7 @@
       }
       else if (choiceKey === 'blookAsk' && idx === 0) {
         setTimeout(() => G.triggerBattle('blook', (out) => {
+          if (out === 'exit') return;
           fl.blookMoved = true;
           if (out !== 'fled') G.sayKey('blookAfter');
         }), 20);

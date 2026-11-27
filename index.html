@@ -31,6 +31,7 @@
   #dbsNav.compact .dbs-pill{font-size:10.5px;padding:2.5px 5px}
   .dbs-pill:hover,.dbs-pill.on{border-color:#ff0;color:#ff0}
   .dbs-pill.ow{border-color:#48e8ff;color:#9ef5ff}
+  .dbs-pill.shield-on{border-color:#48e8ff;color:#48e8ff;background:#062b36}
 
   /* Mobile / Touch Deck */
   #dbsTouchDeck{position:fixed;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);z-index:25;display:none;align-items:center;justify-content:space-between;padding:6px 14px 10px;box-sizing:border-box;background:linear-gradient(to top,rgba(0,0,0,0.96),rgba(0,0,0,0.65));touch-action:none}
@@ -60,6 +61,7 @@
   <a class="dbs-pill ow" href="overworld.html" title="Ruins & Snowdin Story Overworld">🏠 Overworld</a>
   <a class="dbs-pill" href="asriel.html" title="Asriel Standalone Sim">★ Asriel</a>
   <a class="dbs-pill" href="undyne.html" title="Undyne Standalone Sim">💚 Undying</a>
+  <button id="dbsBtnShield" class="dbs-pill" type="button" title="Toggle No-Hit Practice Shield">🛡 Shield OFF</button>
   <button id="dbsBtnEsc" class="dbs-pill" type="button" style="display:none" title="Return to Boss Attack List">ESC Back</button>
   <button id="dbsBtnPad" class="dbs-pill" type="button" title="Toggle Touch Controls">📱 Pad</button>
   <button id="dbsBtnMute" class="dbs-pill" type="button" title="Toggle Mute (M)">🔊</button>

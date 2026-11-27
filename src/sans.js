@@ -55,7 +55,7 @@ const PHASE1 = [0, 3, 23, 6, 7, 8, 17, 15, 18, 1, 5, 21, 16];
 const stop = s => { if (s) try { s.stop(); } catch (e) {} };
 
 export class SansBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // NV 19, 92 PV, Real Knife + The Locket (ruta genocida). 4 Legendary Hero + 2 Face Steak.
   playerSetup() { return playerAt(19, { name: 'Real Knife', atk: 99, knife: true }, { name: 'The Locket', def: 99 }); }
@@ -102,12 +102,14 @@ export class SansBattle extends Battle {
 
   // obj_sansbullet_parent User Event 7: KARMA y daño (1 PV por frame como mucho)
   hit(o) {
+    if (this.isShieldOn()) { if (this.invc < 1) this.shieldBlock({ invc: 15 }); return; }
     const b = this.body, hp = this.player.hp;
     if (b.lac < 4) { if (b.damageturn === 0) { this.km += o.karma; if (o.karma >= 3) o.karma = 2; this.bodyHurt(); } return; }
     if (hp >= 60) { this.km += o.karma; if (o.karma >= 3) o.karma = 2; } else if (hp >= 30) this.km += 1;
     this.bodyHurt();
   }
   bodyHurt() {                                       // obj_sansb_body User Event 2
+    if (this.isShieldOn()) { if (this.invc < 1) this.shieldBlock({ invc: 15 }); return; }
     const b = this.body; if (b.damageturn !== 0 || this.state === 'gameover') return;
     stop(this.hurtSnd); this.hurtSnd = playSound('hurt');
     this.player.hp -= 1; b.damageturn = 1;
@@ -116,7 +118,7 @@ export class SansBattle extends Battle {
   heartImpact() {                                    // obj_heart User Event 7: choque contra la pared
     const H = this.H, speed = Math.hypot(H.hs, H.vs);
     if (speed <= 10) return;
-    if (H.slamPain && this.player.hp > 1) this.player.hp -= 1;
+    if (H.slamPain && this.player.hp > 1 && !this.isShieldOn()) this.player.hp -= 1;
     stop(this.impSnd); stop(this.hurtSnd);
     this.hurtSnd = playSound('hurt'); this.impSnd = playSound('impact');
     this.shaker(Math.floor(speed / 3));
@@ -145,6 +147,14 @@ export class SansBattle extends Battle {
     this.state = 'sIntro';
     if (this.single) {                               // práctica: directo al ataque
       this.krOn = true; playMusic('sans'); setMusicVolume(this.musVol); this.normalfight = 1; this.body.bounce = 1; this.startEnemyTurn();
+      return;
+    }
+    if (this.phaseOpt) {
+      this.krOn = true; playMusic('sans'); setMusicVolume(this.musVol); this.normalfight = 1; this.body.bounce = 1;
+      if (this.phaseOpt === 'p1') { this.hitTry = 0; this.part = 0; this.flavor = T.flavor.keep; }
+      else if (this.phaseOpt === 'p2') { this.hitTry = 14; this.hitReached = 14; this.nx = 0; this.part = 0; this.mercymod = -10000; this.flavor = T.flavor.turning; }
+      else if (this.phaseOpt === 'final') { this.hitTry = 23; this.hitReached = 23; this.nx = 1; this.part = 8; this.mercymod = -10000; this.flavor = T.flavor.special; }
+      this.toMenu();
       return;
     }
     this.con = 1; this.a4 = 30; this.heartOn = false; this.showBox = false;
@@ -461,10 +471,13 @@ export class SansBattle extends Battle {
     if (S === 'sTalk' || S === 'sAttack' || S === 'sIntro') {
       if (!this.heartOn || S === 'sIntro') return;
       this.hx = H.x; this.hy = H.y;
-      drawSprite(ctx, H.spr, 0, Math.round(H.x), Math.round(H.y)); return;
+      drawSprite(ctx, H.spr, 0, Math.round(H.x), Math.round(H.y));
+      this.drawShield(ctx, Math.round(H.x) + 8, Math.round(H.y) + 8);
+      return;
     }
     this.soul = H.spr === 'spr_heart_battle_pl' ? 'spr_heart' : H.spr;
     super.drawHeart(ctx);
+    if (this.mobjs && this.mobjs.length && this.hx != null) this.drawShield(ctx, this.hx + 8, this.hy + 8);
   }
   drawButtons(ctx) {
     const active = ['menu', 'itemList', 'fightTarget', 'actTarget', 'actList', 'mercyList'].includes(this.state);

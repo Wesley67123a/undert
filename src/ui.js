@@ -1,7 +1,18 @@
-import { FNT, SPR, drawText, setVolume, isMuted, toggleMute, VOLUME } from './assets.js';
+import { FNT, SPR, drawText, setVolume, isMuted, toggleMute, VOLUME, playSound } from './assets.js';
 import { SETTINGS, saveSettings, resolution } from './settings.js';
 import { isES, tr } from './i18n.js';
-import { setTouchDirs, touchAction, touchEsc, touchTypeText } from './main.js';
+
+let uiHandlers = {
+  setTouchDirs: () => {},
+  touchAction: () => {},
+  touchEsc: () => {},
+  touchTypeText: () => {},
+};
+export function bindUIHandlers(h) {
+  uiHandlers = { ...uiHandlers, ...h };
+  initTouchControls();
+  refreshShield();
+}
 
 // ============================================================================
 //  Todo lo que va FUERA del área de combate (640x480): título, aviso de fan-game,
@@ -32,6 +43,16 @@ function place(e, x, y, w, h) { Object.assign(e.style, { left: x + 'px', top: y 
 
 let parts = null, K = 1, drag = false;
 
+export function refreshShield() {
+  const on = Boolean(SETTINGS.shield);
+  if (typeof window !== 'undefined') window.UT_NO_HIT_SHIELD = on;
+  const btn = document.getElementById('dbsBtnShield');
+  if (btn) {
+    btn.classList.toggle('shield-on', on);
+    btn.textContent = on ? '🛡 Shield ON' : '🛡 Shield OFF';
+  }
+}
+
 function initTouchControls() {
   const dpad = document.getElementById('dbsDpad');
   const btnZ = document.getElementById('dbsBtnZ');
@@ -39,6 +60,7 @@ function initTouchControls() {
   const btnEsc = document.getElementById('dbsBtnEsc');
   const btnEscDeck = document.getElementById('dbsDeckEsc');
   const btnMute = document.getElementById('dbsBtnMute');
+  const btnShield = document.getElementById('dbsBtnShield');
   const btnPad = document.getElementById('dbsBtnPad');
   const btnType = document.getElementById('dbsBtnType');
   const mobInput = document.getElementById('dbsMobInput');
@@ -70,7 +92,7 @@ function initTouchControls() {
     const syncDpad = () => {
       const comb = new Set();
       for (const arr of dTouches.values()) for (const d of arr) comb.add(d);
-      setTouchDirs([...comb]);
+      uiHandlers.setTouchDirs([...comb]);
       for (const dir of ['up', 'down', 'left', 'right']) {
         const ind = dpad.querySelector(`.dp-${dir}`);
         if (ind) ind.classList.toggle('active', comb.has(dir));
@@ -108,32 +130,41 @@ function initTouchControls() {
       e.preventDefault();
       for (const t of e.changedTouches) actIds.add(t.identifier);
       elBtn.classList.add('active');
-      touchAction(act, true);
+      uiHandlers.touchAction(act, true);
     }, { passive: false });
     const release = e => {
       e.preventDefault();
       for (const t of e.changedTouches) actIds.delete(t.identifier);
-      if (actIds.size === 0 && !mOn) { elBtn.classList.remove('active'); touchAction(act, false); }
+      if (actIds.size === 0 && !mOn) { elBtn.classList.remove('active'); uiHandlers.touchAction(act, false); }
     };
     elBtn.addEventListener('touchend', release, { passive: false });
     elBtn.addEventListener('touchcancel', release, { passive: false });
-    elBtn.addEventListener('mousedown', e => { e.preventDefault(); mOn = true; elBtn.classList.add('active'); touchAction(act, true); });
-    addEventListener('mouseup', () => { if (!mOn) return; mOn = false; if (actIds.size === 0) { elBtn.classList.remove('active'); touchAction(act, false); } });
+    elBtn.addEventListener('mousedown', e => { e.preventDefault(); mOn = true; elBtn.classList.add('active'); uiHandlers.touchAction(act, true); });
+    addEventListener('mouseup', () => { if (!mOn) return; mOn = false; if (actIds.size === 0) { elBtn.classList.remove('active'); uiHandlers.touchAction(act, false); } });
   };
   bindBtn(btnZ, 'confirm');
   bindBtn(btnX, 'cancel');
 
   if (btnEsc && !btnEsc.dataset.bound) {
     btnEsc.dataset.bound = '1';
-    btnEsc.addEventListener('click', () => touchEsc());
+    btnEsc.addEventListener('click', () => uiHandlers.touchEsc());
   }
   if (btnEscDeck && !btnEscDeck.dataset.bound) {
     btnEscDeck.dataset.bound = '1';
-    btnEscDeck.addEventListener('click', () => touchEsc());
+    btnEscDeck.addEventListener('click', () => uiHandlers.touchEsc());
   }
   if (btnMute && !btnMute.dataset.bound) {
     btnMute.dataset.bound = '1';
     btnMute.addEventListener('click', () => { toggleMute(); refreshVolume(); });
+  }
+  if (btnShield && !btnShield.dataset.bound) {
+    btnShield.dataset.bound = '1';
+    btnShield.addEventListener('click', () => {
+      SETTINGS.shield = !SETTINGS.shield;
+      saveSettings();
+      refreshShield();
+      playSound(SETTINGS.shield ? 'power' : 'select');
+    });
   }
   if (btnPad && !btnPad.dataset.bound) {
     btnPad.dataset.bound = '1';
@@ -147,11 +178,11 @@ function initTouchControls() {
     btnType.dataset.bound = '1';
     btnType.addEventListener('click', () => { mobInput.focus(); });
     mobInput.addEventListener('input', () => {
-      if (mobInput.value) { touchTypeText(mobInput.value); mobInput.value = ''; }
+      if (mobInput.value) { uiHandlers.touchTypeText(mobInput.value); mobInput.value = ''; }
     });
     mobInput.addEventListener('keydown', e => {
-      if (e.key === 'Backspace') { e.preventDefault(); touchTypeText('\b'); }
-      else if (e.key === 'Enter') { e.preventDefault(); touchAction('confirm', true); setTimeout(() => touchAction('confirm', false), 60); mobInput.blur(); }
+      if (e.key === 'Backspace') { e.preventDefault(); uiHandlers.touchTypeText('\b'); }
+      else if (e.key === 'Enter') { e.preventDefault(); uiHandlers.touchAction('confirm', true); setTimeout(() => uiHandlers.touchAction('confirm', false), 60); mobInput.blur(); }
     });
   }
 }
@@ -179,6 +210,7 @@ export function buildUI() {
   track.addEventListener('pointercancel', () => { drag = false; });
   parts = { tribute, credits, frame, vol, track, fill, knob, num };
   initTouchControls();
+  refreshShield();
   setVolume(SETTINGS.volume);
   refreshTexts();
   addEventListener('resize', layout);
@@ -241,6 +273,7 @@ export function layout() {
   const cv = document.getElementById('game');
   const deck = document.getElementById('dbsTouchDeck');
   const nav = document.getElementById('dbsNav');
+  if (!nav) return;
   const btnPad = document.getElementById('dbsBtnPad');
   const touch = isTouchLayout();
 

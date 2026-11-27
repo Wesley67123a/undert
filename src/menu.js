@@ -9,23 +9,35 @@ import { ASGORE_ATTACKS } from './asgore.js';
 import { ASRIEL_ATTACKS } from './asriel.js';
 import { SANS_ATTACKS } from './sans.js';
 import { SETTINGS, saveSettings, RESOLUTIONS, LANGS } from './settings.js';
-import { layout, refreshTexts } from './ui.js';
+import { layout, refreshTexts, refreshShield } from './ui.js';
 import { tr, playerName } from './i18n.js';
 
 // Menús de inicio al estilo "Select your bad time": texto blanco sobre negro y el alma roja como cursor.
 //   Página 0: Bosses List (+ Options)
-//   Página 1: la pelea completa de un jefe y debajo cada ataque por separado
-//   Página 2: Options (resolución, idioma y nombre)    Página 3: nombrar al humano (como al empezar el juego)
+//   Página 1: pelea completa, Phases (fases) y debajo cada ataque por separado
+//   Página 2: Options (resolución, idioma, escudo y nombre)    Página 3: nombrar al humano
 export const BOSSES = [
-  { name: 'Undyne the Undying', id: 'undyne', full: 'Battle Against a True Hero', attacks: ATTACKS },
-  { name: 'Muffet', id: 'muffet', full: 'Spider Dance', attacks: MUFFET_ATTACKS },
-  { name: 'Mettaton EX', id: 'mettaton', full: 'Death by Glamour', attacks: METT_ATTACKS },
-  { name: 'Napstablook', id: 'napstablook', full: 'Ghost Fight', attacks: NAPSTA_ATTACKS },
-  { name: 'Toriel', id: 'toriel', full: 'Heartache', attacks: TORIEL_ATTACKS },
-  { name: 'Papyrus', id: 'papyrus', full: 'Bonetrousle', attacks: PAPYRUS_ATTACKS },
-  { name: 'Asgore', id: 'asgore', full: 'ASGORE', attacks: ASGORE_ATTACKS },
-  { name: 'Asriel Dreemurr', id: 'asriel', full: 'Hopes and Dreams', attacks: ASRIEL_ATTACKS },
-  { name: 'Sans', id: 'sans', full: 'MEGALOVANIA', attacks: SANS_ATTACKS },
+  { name: 'Undyne the Undying', id: 'undyne', full: 'Battle Against a True Hero', attacks: ATTACKS,
+    phases: [{ name: 'Phase 2: Red SOUL Spears', phase: 'red' }, { name: 'Phase 3: Reverse & Final Rush', phase: 'p3' }] },
+  { name: 'Muffet', id: 'muffet', full: 'Spider Dance', attacks: MUFFET_ATTACKS,
+    phases: [{ name: 'Phase 1: Purple Web', phase: 'web' }, { name: 'Phase 2: Cupcake Chase', phase: 'pet1' }, { name: 'Phase 3: Final Pet & Telegram', phase: 'pet3' }] },
+  { name: 'Mettaton EX', id: 'mettaton', full: 'Death by Glamour', attacks: METT_ATTACKS,
+    phases: [{ name: 'Phase 2: Heart-to-Heart', phase: 'p2' }, { name: 'Phase 3: Armless Glamour', phase: 'p3' }] },
+  { name: 'Napstablook', id: 'napstablook', full: 'Ghost Fight', attacks: NAPSTA_ATTACKS,
+    phases: [{ name: 'Phase 2: Dapper Blook', phase: 'dapper' }] },
+  { name: 'Toriel', id: 'toriel', full: 'Heartache', attacks: TORIEL_ATTACKS,
+    phases: [{ name: 'Phase 2: Final Refusal & Spare', phase: 'mercy' }] },
+  { name: 'Papyrus', id: 'papyrus', full: 'Bonetrousle', attacks: PAPYRUS_ATTACKS,
+    phases: [{ name: 'Phase 1: Fabled Blue Attack', phase: 'blue' }, { name: 'Phase 2: Special Attack & Spare', phase: 'special' }] },
+  { name: 'Asgore', id: 'asgore', full: 'ASGORE', attacks: ASGORE_ATTACKS,
+    phases: [{ name: 'Phase 1: Battle Start (Skip Intro)', phase: 'battle' }, { name: 'Phase 2: Intense Phase', phase: 'p2' }] },
+  { name: 'Asriel Dreemurr', id: 'asriel', full: 'Hopes and Dreams', attacks: ASRIEL_ATTACKS,
+    phases: [{ name: 'Phase 1: Hopes and Dreams', phase: 'p1' }, { name: 'Phase 2: Hyper Goner', phase: 'goner' },
+             { name: 'Phase 3: Burn in Despair!', phase: 'p2' }, { name: 'Phase 4: SAVE the World!', phase: 'save' },
+             { name: 'Phase 5: Finale & Last Beam', phase: 'finale' }] },
+  { name: 'Sans', id: 'sans', full: 'MEGALOVANIA', attacks: SANS_ATTACKS,
+    phases: [{ name: 'Phase 1: Blue SOUL (Turns 1-13)', phase: 'p1' }, { name: 'Phase 2: Chaos & Menu Bones', phase: 'p2' },
+             { name: 'Phase 3: Special Attack', phase: 'final' }] },
 ];
 
 const VISIBLE = 13;          // filas visibles antes de desplazar la lista
@@ -33,16 +45,24 @@ const SCALE = 0.75, ROW = 26; // las listas de jefes / ataques van con fnt_main 
 const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', LOWER = 'abcdefghijklmnopqrstuvwxyz';
 
 export class BossMenu {
-  constructor(onPick, page = 0, boss = 0) {
-    this.onPick = onPick; this.page = page; this.boss = boss; this.sel = page === 1 ? 0 : 0; this.scroll = 0; this.t = 0; this.chosen = null;
+  constructor(onPick, page = 0, boss = 0, { onExitOverworld = null } = {}) {
+    this.onPick = onPick; this.page = page; this.boss = boss; this.onExitOverworld = onExitOverworld;
+    this.sel = 0; this.scroll = 0; this.t = 0; this.chosen = null;
     this.face = 0; this.dogX = -80;
   }
 
   items() {
-    if (this.page === 0) return [...BOSSES.map(b => ({ label: tr(b.name) })), { label: tr('Options'), options: true }];
+    if (this.page === 0) {
+      const base = [...BOSSES.map(b => ({ label: tr(b.name) })), { label: tr('Options'), options: true }];
+      if (this.onExitOverworld) base.push({ label: tr('Return to Overworld'), exitOverworld: true, color: '#68e8ff' });
+      return base;
+    }
     const B = BOSSES[this.boss];
-    return [{ label: tr(B.full), mode: 'battle', boss: B.id },
-            ...B.attacks.map(a => ({ label: tr(a.name), mode: 'single', attack: a, boss: B.id }))];
+    return [
+      { label: tr(B.full), mode: 'battle', boss: B.id },
+      ...(B.phases || []).map(p => ({ label: tr(p.name), mode: 'phase', phase: p.phase, boss: B.id, color: '#68e8ff' })),
+      ...B.attacks.map(a => ({ label: tr(a.name), mode: 'single', attack: a, boss: B.id })),
+    ];
   }
 
   update(inp) {
@@ -59,8 +79,10 @@ export class BossMenu {
     if (this.sel < this.scroll) this.scroll = this.sel;
     if (this.sel >= this.scroll + VISIBLE) this.scroll = this.sel - VISIBLE + 1;
     if (inp.cancel && this.page === 1) { this.page = 0; this.sel = this.boss; this.scroll = 0; playSound('squeak'); return; }
+    if (inp.cancel && this.page === 0 && this.onExitOverworld) { playSound('squeak'); this.onExitOverworld(); return; }
     if (inp.confirm) {
       playSound('select');
+      if (this.page === 0 && list[this.sel].exitOverworld) { this.onExitOverworld(); return; }
       if (this.page === 0 && list[this.sel].options) { this.page = 2; this.opt = 0; return; }
       if (this.page === 0) { this.boss = this.sel; this.page = 1; this.sel = 0; this.scroll = 0; return; }
       this.chosen = list[this.sel]; this.t = 0;
@@ -71,8 +93,8 @@ export class BossMenu {
   updateOptions(inp) {
     const back = () => { this.page = 0; this.sel = BOSSES.length; playSound('squeak'); };
     if (inp.cancel) return back();
-    if (inp.up) { this.opt = (this.opt + 3) % 4; playSound('squeak'); }
-    if (inp.down) { this.opt = (this.opt + 1) % 4; playSound('squeak'); }
+    if (inp.up) { this.opt = (this.opt + 4) % 5; playSound('squeak'); }
+    if (inp.down) { this.opt = (this.opt + 1) % 5; playSound('squeak'); }
     if (this.opt === 0 && (inp.left || inp.right || inp.confirm)) {       // resolución: Small / Default / Large
       const i = RESOLUTIONS.findIndex(r => r.id === SETTINGS.res), d = inp.left ? -1 : 1;
       SETTINGS.res = RESOLUTIONS[(i + d + RESOLUTIONS.length) % RESOLUTIONS.length].id;
@@ -83,8 +105,14 @@ export class BossMenu {
       SETTINGS.lang = LANGS[(i + d + LANGS.length) % LANGS.length].id;
       saveSettings(); refreshTexts(); playSound(inp.confirm ? 'select' : 'squeak');
     }
-    if (this.opt === 2 && inp.confirm) { playSound('select'); this.page = 3; this.draft = SETTINGS.name === 'Player' ? '' : SETTINGS.name; this.cur = 0; }
-    if (this.opt === 3 && inp.confirm) { playSound('select'); back(); }
+    if (this.opt === 2 && (inp.left || inp.right || inp.confirm)) {       // No-Hit Shield
+      SETTINGS.shield = !SETTINGS.shield;
+      saveSettings(); refreshShield();
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('dbs-settings-change'));
+      playSound(SETTINGS.shield ? 'power' : 'select');
+    }
+    if (this.opt === 3 && inp.confirm) { playSound('select'); this.page = 3; this.draft = SETTINGS.name === 'Player' ? '' : SETTINGS.name; this.cur = 0; }
+    if (this.opt === 4 && inp.confirm) { playSound('select'); back(); }
   }
 
   // ---------------------------------------------------------------- nombre (obj_naming): letras + Quit / Backspace / Done
@@ -127,10 +155,10 @@ export class BossMenu {
     const list = this.items();
     list.slice(this.scroll, this.scroll + VISIBLE).forEach((it, k) => {
       const i = k + this.scroll;
-      // pelea completa arriba y, tras un hueco, los ataques / Options separado de los jefes
-      const gap = (this.page === 1 && i > 0 && this.scroll === 0) || (this.page === 0 && it.options) ? 16 : 0;
+      // pelea completa arriba y, tras un hueco, fases / ataques / Options separado de los jefes
+      const gap = (this.page === 1 && i > 0 && this.scroll === 0) || (this.page === 0 && (it.options || it.exitOverworld)) ? 16 : 0;
       const y = 90 + k * ROW + gap;
-      small(ctx, it.label, 124, y);
+      small(ctx, it.label, 124, y, it.color || '#fff');
       if (i === this.sel) drawSprite(ctx, 'spr_heart', 0, 92, y + 2);
     });
     if (this.scroll > 0) small(ctx, '^', 600, 90, '#808080');
@@ -154,15 +182,29 @@ export class BossMenu {
   drawOptions(ctx) {
     drawText(ctx, 'fnt_main', tr('Options'), 24, 20, { mono: 16 });
     const res = RESOLUTIONS.find(r => r.id === SETTINGS.res), lang = LANGS.find(l => l.id === SETTINGS.lang);
-    const rows = [[tr('Resolution'), `< ${tr(res.label)} >`], [tr('Language'), `< ${lang.label} >`], [tr('Name'), playerName()], [tr('Back'), '']];
+    const sh = SETTINGS.shield ? tr('ON') : tr('OFF');
+    const rows = [
+      [tr('Resolution'), `< ${tr(res.label)} >`],
+      [tr('Language'), `< ${lang.label} >`],
+      [tr('No-Hit Shield'), `< ${sh} >`],
+      [tr('Name'), playerName()],
+      [tr('Back'), ''],
+    ];
     rows.forEach(([a, b], i) => {
-      const y = 110 + i * 48;
-      drawText(ctx, 'fnt_main', a, 124, y, { mono: 16, color: this.opt === i ? '#ff0' : '#fff' });
-      if (b) drawText(ctx, 'fnt_main', b, 340, y, { mono: 16, color: this.opt === i ? '#ff0' : '#fff' });
+      const y = 100 + i * 44;
+      const col = this.opt === i ? '#ff0' : (i === 2 && SETTINGS.shield ? '#48e8ff' : '#fff');
+      drawText(ctx, 'fnt_main', a, 124, y, { mono: 16, color: col });
+      if (b) drawText(ctx, 'fnt_main', b, 388, y, { mono: 16, color: col });
       if (this.opt === i) drawSprite(ctx, 'spr_heart', 0, 84, y + 6);
     });
-    const help = ['Left / Right: change the size of the game.', 'Left / Right on Language: English / Español.', 'Z on Name: choose the name used in battle.', 'X: go back.'];
-    help.forEach((s, i) => drawText(ctx, 'fnt_maintext', tr(s), 124, 330 + i * 18, { color: '#808080' }));
+    const help = [
+      'Left / Right: change the size of the game.',
+      'Left / Right on Language: English / Español.',
+      'Left / Right on Shield: block all damage.',
+      'Z on Name: choose the name used in battle.',
+      'X: go back.',
+    ];
+    help.forEach((s, i) => drawText(ctx, 'fnt_maintext', tr(s), 124, 344 + i * 18, { color: '#808080' }));
   }
 
   drawNaming(ctx) {

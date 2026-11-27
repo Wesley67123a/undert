@@ -1,4 +1,5 @@
 import { drawSprite, drawText, playSound, playMusic, stopMusic, SPR } from './assets.js';
+import { SETTINGS } from './settings.js';
 import { texts, tr, trn, sprL, itemL, playerName } from './i18n.js';
 import { UndyneBody } from './undyne.js';
 import { Writer, TYPER_UNDYNE } from './text.js';
@@ -46,13 +47,30 @@ const GREEN = 'spr_heartgreen', RED = 'spr_heart';
 export { BORDER, BUTTONS, TXT, DmgWriter, Slice, Target, Vapor };
 
 export class Battle {
-  // single = un ataque de ATTACKS para practicarlo solo (se repite cada turno); null = la pelea completa
-  constructor(single = null) { this.single = single; this.smooth = true; this.reset(); }   // smooth: dibujo fluido (src/smooth.js)
+  // single = un ataque de ATTACKS para practicarlo solo; phase = fase inicial opcional
+  constructor(single = null, phase = null) { this.single = single; this.phaseOpt = phase; this.smooth = true; this.reset(); }   // smooth: dibujo fluido (src/smooth.js)
+
+  isShieldOn() { return Boolean(SETTINGS.shield || (typeof window !== 'undefined' && window.UT_NO_HIT_SHIELD)); }
+  shieldBlock({ invc = 20, sound = 'bell' } = {}) {
+    this.invc = invc;
+    this.shieldFlash = 8;
+    if (sound) playSound(sound, { volume: 0.45 });
+  }
+  drawShield(ctx, cx, cy) {
+    if (!this.isShieldOn()) return;
+    ctx.save();
+    ctx.strokeStyle = this.shieldFlash > 0 ? '#a8ffff' : 'rgba(80,235,255,0.85)';
+    ctx.lineWidth = this.shieldFlash > 0 ? 3 : 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, this.shieldFlash > 0 ? 15 : 13, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   reset() {
     this.player = this.playerSetup();
     this.inventory = this.itemSetup();
-    this.invc = 0;
+    this.invc = 0; this.shieldFlash = 0;
     // Undyne the Undying (scr_monstersetup, tipo 65) y su estado de combate (obj_undyne_ex Create)
     this.enemy = { hp: 23000, maxHp: 23000, atk: 12, def: 5, x: 210, y: 20, wd: 200 };
     this.body = new UndyneBody(210, 20);
@@ -72,6 +90,15 @@ export class Battle {
     this.heart = { x: 312, y: 284 };
     this.soul = RED;                             // empieza roja; Undyne la vuelve verde al comenzar
     this.jobs = [];
+    if (!this.single && this.constructor === Battle) {
+      if (this.phaseOpt === 'red') {
+        this.enemy.hp = 16000; this.soul = RED; this.order = 4; this.orderb = 0; this.lesson = -8;
+        this.rating = 9; this.ratingb = 8; this.flavor = TXT.flavor;
+      } else if (this.phaseOpt === 'p3') {
+        this.enemy.hp = 8500; this.soul = GREEN; this.order = 11; this.orderb = 4; this.lesson = -11;
+        this.rating = 10; this.ratingb = 10; this.flavor = TXT.flavor;
+      }
+    }
   }
 
   // Jugador e inventario de cada jefe (Undyne the Undying: LV 10, Toy Knife + Faded Ribbon)
@@ -142,6 +169,7 @@ export class Battle {
 
   hurtPlayer(dmg, { minHp = 0 } = {}) {          // scr_damagestandard(0,0,0,0,0)
     if (this.invc >= 1 || this.state === 'gameover') return;
+    if (this.isShieldOn()) { this.shieldBlock(); return; }
     const p = this.player;
     this.hitno++;
     for (const lim of [21, 30, 40, 50, 60, 70, 80, 90]) if (p.hp >= lim) dmg++;
@@ -156,6 +184,7 @@ export class Battle {
     this.timer++;
     this.tickJobs();
     if (this.invc > 0) this.invc--;
+    if (this.shieldFlash > 0) this.shieldFlash--;
     this.heartFrame = this.invc > 0 ? this.heartFrame + 0.5 : 0;
     this.moveBox();
     if (this.darkify === 1) { this.dark = Math.min(0.5, this.dark + 0.04); }
@@ -170,6 +199,8 @@ export class Battle {
     if (S === 'introUndyne') {                   // arranca solo al elegir en el menú
       playMusic();
       if (this.single && this.single.kind === 'red') { this.startEnemyTurn(); return; }
+      if (!this.single && this.phaseOpt === 'red') { this.startMenu(); return; }
+      if (!this.single && this.phaseOpt === 'p3') { this.go('greenIntro'); this.setBorder(12); this.introPhase = 2; this.timer = 12; return; }
       // La caja se encoge con el alma roja en el centro, Undyne blande la lanza y el alma se vuelve verde
       this.go('greenIntro'); this.setBorder(12); this.introPhase = 0;
       return;
@@ -541,6 +572,7 @@ export class Battle {
     if (x === null) return;
     this.hx = x; this.hy = y;
     drawSprite(ctx, this.soul, Math.floor(this.heartFrame), x, y);
+    if (['greenIntro', 'enemyPre', 'enemyAttack', 'enemyEnd'].includes(S)) this.drawShield(ctx, x + 8, y + 8);
   }
 }
 

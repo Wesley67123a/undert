@@ -7,11 +7,12 @@ export const RESOLUTIONS = [                       // como en Sans Battle Simula
 ];
 export const LANGS = [{ id: 'en', label: 'English' }, { id: 'es', label: 'Español' }];
 const browserLang = (() => { try { return /^es\b/i.test(navigator.language || '') ? 'es' : 'en'; } catch (e) { return 'en'; } })();
-export const SETTINGS = { name: 'Player', res: 'default', volume: 0.4, lang: browserLang };
+export const SETTINGS = { name: 'Player', res: 'default', volume: 0.4, lang: browserLang, shield: false };
 try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* sin almacenamiento: valores por defecto */ }
 if (typeof SETTINGS.name !== 'string' || !SETTINGS.name) SETTINGS.name = 'Player';
 SETTINGS.name = SETTINGS.name.slice(0, 6);
 if (!RESOLUTIONS.some(r => r.id === SETTINGS.res)) SETTINGS.res = 'default';
 if (!LANGS.some(l => l.id === SETTINGS.lang)) SETTINGS.lang = 'en';
+SETTINGS.shield = Boolean(SETTINGS.shield);
 export function saveSettings() { try { localStorage.setItem(KEY, JSON.stringify(SETTINGS)); } catch (e) { /* ignorar */ } }
 export const resolution = () => RESOLUTIONS.find(r => r.id === SETTINGS.res);

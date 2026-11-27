@@ -188,7 +188,7 @@ const ATTACK_STATES = ['aTalk', 'aAttack', 'aTrans'];
 
 // ============================================================================
 export class AsrielBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Pacifista: NV 1 y 20 PV. Worn Dagger + Heart Locket: lo último que se encuentra en la casa de Asgore (New Home)
   // antes de los combates finales. En este combate sí se pueden usar objetos.
@@ -202,6 +202,9 @@ export class AsrielBattle extends Battle {
     this.saved = { undyne: 0, alphys: 0, papyrus: 0, toriel: 0 }; this.tv12 = 0; this.dreamUsed = false;
     this.inv = 20; this.view = { x: 0, y: 0 }; this.fshake = null; this.whiter = null; this.fadeOut = 0; this.flash = 0; this.falpha = 0;
     if (this.single && this.single.final) this.newFinal(this.single.kind === 'ultima' && this.single.u === 0 ? 1 : 3);
+    else if (!this.single && this.phaseOpt === 'p2') this.newFinal(0);
+    else if (!this.single && this.phaseOpt === 'save') this.newFinal(1);
+    else if (!this.single && this.phaseOpt === 'finale') this.newFinal(3);
     else this.newFight();
   }
   // Empieza (o vuelve a empezar tras morir) la primera forma (obj_asrielb Create)
@@ -212,6 +215,11 @@ export class AsrielBattle extends Battle {
     this.body = new GodBody(this);
     this.ftimer = (this.deaths > 0 || this.single) ? 9999 : 0; this.falpha = 0;          // obj_roundedge
     this.enterCommon(); this.flavor = T.intro; this.monsteratk = 8;
+    if (!this.single && (this.phaseOpt === 'p1' || this.phaseOpt === 'goner')) {
+      this.ftimer = 9999; this.body.specialnormal = 0; this.body.aligncon = 0; this.body.aimage = 1;
+      if (this.phaseOpt === 'goner') { this.turns = 13; this.maxTurn = 13; this.flavor = T.flavor.goner; }
+      else { this.turns = 0; this.maxTurn = 0; this.flavor = T.trueBattle; }
+    }
   }
   enterCommon() {
     this.tb = null; this.ignoreBorder = false; this.heartAlpha = 1; this.heartDepth = 0; this.heartShown = false; this.lost = null;
@@ -262,6 +270,7 @@ export class AsrielBattle extends Battle {
   }
   asHit() {
     if (this.state === 'refused') return;
+    if (this.isShieldOn()) { if (this.invc < 1) this.shieldBlock({ invc: this.inv }); return; }
     const p = this.player;
     if (this.phase < 3) {
       const thishp = p.hp;
@@ -279,6 +288,7 @@ export class AsrielBattle extends Battle {
   }
   bltHit(dmg) {
     if (this.invc >= 1 || this.state === 'refused') return false;
+    if (this.isShieldOn()) { this.shieldBlock({ invc: this.inv }); return true; }
     const p = this.player;
     p.hp = Math.max(0, p.hp - Math.max(1, Math.round(dmg - (p.df + p.armor.def) / 5)));
     playSound('hurt'); this.shake = 2; this.invc = this.inv;
@@ -713,7 +723,7 @@ export class AsrielBattle extends Battle {
     if (this.whiter) over(this.whiter.a, '#fff');
     over(this.fadeOut, '#000');
   }
-  drawSoul(ctx) { this.hx = this.heart.x; this.hy = this.heart.y; drawSprite(ctx, 'spr_heart', Math.floor(this.heartFrame), this.heart.x, this.heart.y, { alpha: this.heartAlpha }); }
+  drawSoul(ctx) { this.hx = this.heart.x; this.hy = this.heart.y; drawSprite(ctx, 'spr_heart', Math.floor(this.heartFrame), this.hx, this.hy, { alpha: this.heartAlpha }); this.drawShield(ctx, this.hx + 8, this.hy + 8); }
   drawRefused(ctx) {
     const d = this.dead;
     drawSprite(ctx, d.spr, 0, d.x, d.y);

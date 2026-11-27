@@ -82,7 +82,7 @@ const MX = 210, MY = 60;                           // obj_mettatonex (scr_battle
 const BORDERS = { 0: [32, 602, 250, 385], 24: [235, 405, 250, 385], 26: [295, 345, 250, 385], 27: [270, 370, 250, 385] };
 
 export class MettatonBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Mettaton EX se suele pelear en la ruta pacifista (LV 1, 20 HP): Burnt Pan (cura +4) y Old Tutu.
   // Objetos más usados: Glamburger y Legendary Hero (MTT Resort / Burgerpants); al público le encanta la marca.
@@ -103,6 +103,11 @@ export class MettatonBattle extends Battle {
     this.turns = 0; this.specialdam = [0, 0, 0]; this.shots = []; this.charge = 0; this.canShoot = true;
     this.mycommand = 0; this.gen = null; this.essay = null; this.mb = null; this.fans = []; this.narrow = false;
     this.bossHeart = null; this.heartBurst = null; this.prev = { x: 0, y: 0 }; this.actPos = 0; this.typing = false;
+    if (!this.single && this.phaseOpt === 'p2') {
+      this.turns = 5; this.rat.ratings = 4500;
+    } else if (!this.single && this.phaseOpt === 'p3') {
+      this.turns = 13; this.rat.ratings = 9000; this.body.noarm = 1; this.enemy.hp = 600;
+    }
   }
 
   // ---------------------------------------------------------------- ganchos de la base
@@ -382,7 +387,9 @@ export class MettatonBattle extends Battle {
     const S = this.state;
     if (S === 'mTalk' || S === 'mAttack' || S === 'mEssay') {
       this.hx = this.heart.x; this.hy = this.heart.y;
-      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); return;
+      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy);
+      this.drawShield(ctx, this.hx + 8, this.hy + 8);
+      return;
     }
     if (S === 'mEnd' || S === 'mBoxText') return;
     if (S === 'actList') {

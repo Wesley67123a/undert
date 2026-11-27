@@ -346,7 +346,7 @@ class TorielAttack {
 
 // ============================================================================
 export class TorielBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Toriel: final de las RUINAS, NV 1 con el Toy Knife y la Faded Ribbon; Monster Candy y Spider Donut
   playerSetup() { return playerAt(1, { name: 'Toy Knife', atk: 3, knife: true }, { name: 'Faded Ribbon', def: 3 }); }
@@ -361,6 +361,9 @@ export class TorielBattle extends Battle {
     this.conversation = 0; this.hplastturn = 440; this.talked = -1; this.tt = 0; this.mycommand = 0; this.destroyed = 0;
     this.tb = null; this.clock = 0; this.actPos = 0; this.shudder = 0; this.faceemotion = 0; this.heartHidden = false;
     this.bare = false; this.dust = null; this.soulT = null; this.shards = []; this.slowTick = 0; this.fadeSpeed = 0.08;
+    if (!this.single && this.phaseOpt === 'mercy') {
+      this.conversation = 13; this.spr = 'spr_torielboss_sidesad'; this.flavor = T.flavors[4];
+    }
   }
 
   // ---------------------------------------------------------------- ganchos de la base
@@ -376,6 +379,7 @@ export class TorielBattle extends Battle {
   // Daño de las balas (blt_parent Collision obj_heart): sin los extras por PV de scr_damagestandard
   bulletHit(dmg) {
     if (this.invc >= 1 || this.state === 'gameover') return;
+    if (this.isShieldOn()) { this.shieldBlock(); return; }
     const p = this.player, amt = Math.max(1, Math.round(dmg - (p.df + p.armor.def) / 5));
     p.hp = Math.max(0, p.hp - amt);
     playSound('hurt'); this.shake = 2; this.invc = 20;
@@ -652,7 +656,9 @@ export class TorielBattle extends Battle {
     if (S === 'tTalk' || S === 'tAttack' || S === 'tEnd' || S === 'tLeave') {
       if (this.heartHidden) return;
       this.hx = this.heart.x; this.hy = this.heart.y;
-      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); return;
+      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy);
+      this.drawShield(ctx, this.hx + 8, this.hy + 8);
+      return;
     }
     if (S === 'actList') {
       this.hx = 72 + (this.actPos === 3 ? 256 : 0); this.hy = 278;

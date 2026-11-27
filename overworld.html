@@ -421,7 +421,8 @@
     @media (max-width: 680px) {
       .app-shell { padding: 5px 6px env(safe-area-inset-bottom, 8px); gap: 5px; }
       .topbar { padding: 5px 8px; gap: 6px; }
-      .brand { flex: 1; }
+      .brand { flex: 1; min-width: 0; }
+      .brand-text { min-width: 0; overflow: hidden; }
       .brand-text h1 { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .brand-text p { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .mobile-quick { display: inline-flex; }
@@ -478,6 +479,7 @@
         </div>
       </div>
       <div class="mobile-quick">
+        <button id="btnOwExitQuick" class="ut-btn" type="button" style="display:none" title="Exit Battle / Menu (ESC)">🚪 Exit</button>
         <button id="btnShieldQuick" class="ut-btn" type="button" title="Toggle No-Hit Shield">🛡</button>
         <button id="btnMenuToggle" class="ut-btn accent" type="button" aria-label="Toggle Menu">☰ 選單</button>
       </div>
@@ -485,11 +487,10 @@
         <select id="roomJumpSel" class="ut-select" aria-label="Jump to Scene">
           <option value="">Jump Scene ▾</option>
         </select>
-        <a class="ut-btn rainbow" href="index.html" title="Determination Battle Simulator (9 Bosses: Sans, Asriel, Undyne, Mettaton, Muffet, Asgore, Papyrus, Toriel, Napstablook)">⚔ 9-Boss Sim</a>
+        <button id="btnDBSMenu" class="ut-btn rainbow" type="button" title="9-Boss Determination Battle Simulator (Sans, Asriel, Undyne, Mettaton, Muffet, Asgore, Papyrus, Toriel, Napstablook)">⚔ 9-Boss Sim</button>
         <button id="btnUndyne" class="ut-btn hero" type="button" title="Undyne the Undying — Battle Against a True Hero">💚 Undying</button>
-        <a class="ut-btn hero" href="undyne.html" title="Standalone Undyne the Undying Simulator (Waves / Practice)">⚔ Sim</a>
         <button id="btnAsriel" class="ut-btn rainbow" type="button" title="Asriel Dreemurr — 7 SOULs Boss Fight Simulator">★ Asriel</button>
-        <a class="ut-btn rainbow" href="asriel.html" title="Standalone Asriel Boss Simulator (Normal / Practice / Single Attacks)">🌈 Sim</a>
+        <button id="btnOwExitBattle" class="ut-btn" type="button" style="display:none" title="Return to Overworld Map">🚪 Exit</button>
         <button id="btnShield" class="ut-btn" type="button" title="Toggle No-Hit Invincibility Shield in Battles">🛡 Shield OFF</button>
         <button id="btnGeno" class="ut-btn" type="button" title="Toggle Genocide Route (or grind kills naturally)">☠ Genocide 0/20</button>
         <button id="btnWalkthrough" class="ut-btn accent" type="button">📖 Guide</button>
@@ -522,6 +523,10 @@
         </div>
 
         <div class="action-cluster">
+          <button id="btnOwType" class="act-btn c-btn" type="button" style="display:none" aria-label="Type Essay Answer">
+            <span class="k">⌨</span>
+            <span class="sub">TYPE</span>
+          </button>
           <button id="btnActC" class="act-btn c-btn" type="button" aria-label="Menu and Cell Phone">
             <span class="k">C</span>
             <span class="sub">MENU</span>
@@ -535,6 +540,7 @@
             <span class="sub">OK</span>
           </button>
         </div>
+        <input id="owMobInput" type="text" autocomplete="off" aria-label="Essay Input" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0">
       </div>
     </section>
   </main>
@@ -557,5 +563,6 @@
   <script src="assets/undyne_engine.js"></script>
   <script src="assets/overworld.js"></script>
   <script src="assets/app.js"></script>
+  <script type="module" src="src/overworld_bridge.js"></script>
 </body>
 </html>

@@ -20,6 +20,40 @@
     if (!G.undyne) return;
     G.sfx.unlock(); G.mode = 'undyne_battle'; G.undyne.open(entry, false); G.onUI?.();
   };
+  G.onExitDBS = () => {
+    if ((G.state.room || 1) <= 3) G.enterRoom(4);
+    else { G.mode = 'explore'; G.restoreRoomBGM?.(); }
+    G.onUI?.();
+  };
+  G.openDBSMenu = (page = 0, boss = 0) => {
+    if (!window.UTDBS) return;
+    G.sfx.unlock(); G.sfx.stopBGM();
+    G.mode = 'dbs_battle';
+    window.UTDBS.openMenu({ page, boss, onExitOverworld: () => G.onExitDBS() });
+    G.onUI?.();
+  };
+  G.startDBS = (bossId, opts = {}) => {
+    if (!window.UTDBS) {
+      if (bossId === 'asriel') return G.startAsriel('title');
+      if (bossId === 'undyne') return G.startUndyne('title');
+      return;
+    }
+    G.sfx.unlock(); G.sfx.stopBGM();
+    G.mode = 'dbs_battle';
+    window.UTDBS.openBattle(bossId, { ...opts, story: false, onExitOverworld: () => G.onExitDBS() });
+    G.onUI?.();
+  };
+  G.startStoryDBS = (enemyId, cb = null) => {
+    if (!window.UTDBS) { G.mode = 'rpg_battle'; G.rpg.start(enemyId, cb); return; }
+    G.sfx.unlock(); G.sfx.stopBGM();
+    G.mode = 'dbs_battle';
+    window.UTDBS.openBattle(enemyId, {
+      story: true,
+      onOutcome: (outcome) => G.endRPGBattle(enemyId, outcome, cb),
+      onExitOverworld: () => G.endRPGBattle(enemyId, 'exit', cb),
+    });
+    G.onUI?.();
+  };
 
   const motes = Array.from({ length: 18 }, () => ({
     x: 110 + Math.random() * 90, y: Math.random() * 170, vy: 0.16 + Math.random() * 0.2, a: 0.35 + Math.random() * 0.4
@@ -73,7 +107,9 @@
     if (G.mode === 'enc_flash') {
       if (--G.enc.timer <= 0) {
         if (G.enc.isFlowey) { G.mode = 'flowey_battle'; G.fb.start(); }
-        else { G.mode = 'rpg_battle'; G.rpg.start(G.enc.enemy, G.enc.cb); }
+        else if (window.UTDBS?.supportsStoryBoss?.(G.enc.enemy)) {
+          G.startStoryDBS(G.enc.enemy, G.enc.cb);
+        } else { G.mode = 'rpg_battle'; G.rpg.start(G.enc.enemy, G.enc.cb); }
         G.onUI?.();
       }
       return;
@@ -82,6 +118,7 @@
     if (G.mode === 'rpg_battle') { G.rpg.update(G.keys); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.update(G.keys); return; }
     if (G.mode === 'undyne_battle') { G.undyne?.update(G.keys); return; }
+    if (G.mode === 'dbs_battle') return;
 
     if (G.mode === 'fall') {
       G.frisk.y += G.fallAnim.vy;
@@ -162,6 +199,8 @@
       G.asriel?.render(ctx, G._battleInterp);
     } else if (G.mode === 'undyne_battle') {
       G.undyne?.render(ctx, G._battleInterp);
+    } else if (G.mode === 'dbs_battle') {
+      window.UTDBS?.render(ctx);
     } else if (G.mode === 'finale') {
       renderFinale(ctx);
     } else {
@@ -701,6 +740,7 @@
     if (G.mode === 'rpg_battle') { G.rpg.confirm(); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.onConfirm(); return; }
     if (G.mode === 'undyne_battle') { G.undyne?.onConfirm(); return; }
+    if (G.mode === 'dbs_battle') { window.UTDBS?.pulseKey('confirm'); return; }
 
     if (G.mode === 'save_menu') {
       if (G.saveMenu.saved) { G.mode = 'explore'; return; }
@@ -782,6 +822,7 @@
     if (G.mode === 'rpg_battle') { G.rpg.cancel(); return; }
     if (G.mode === 'asriel_battle') { G.asriel?.onCancel(); return; }
     if (G.mode === 'undyne_battle') { G.undyne?.onCancel(); return; }
+    if (G.mode === 'dbs_battle') { window.UTDBS?.pulseKey('cancel'); return; }
     if (G.mode === 'dlg') {
       const cur = G.dlg.q[G.dlg.i];
       if (cur) G.dlg.c = stripCodes(cur.text).length;
@@ -835,6 +876,8 @@
       G.asriel?.onNav(dir);
     } else if (G.mode === 'undyne_battle') {
       G.undyne?.onNav(dir);
+    } else if (G.mode === 'dbs_battle') {
+      window.UTDBS?.pulseKey(dir);
     }
   }
 
@@ -842,14 +885,16 @@
   // KEYBOARD + HUGE SIMULATED KEYBOARD ARROW PAD & MULTI-TOUCH ACTION KEYS
   // =========================================================================
   const kbState = {};
-  const touchState = { up: false, down: false, left: false, right: false, cancel: false };
+  const touchState = { up: false, down: false, left: false, right: false, cancel: false, confirm: false };
   function syncKeys() {
-    G.keys.up     = !!(kbState.up     || touchState.up);
-    G.keys.down   = !!(kbState.down   || touchState.down);
-    G.keys.left   = !!(kbState.left   || touchState.left);
-    G.keys.right  = !!(kbState.right  || touchState.right);
-    G.keys.cancel = !!(kbState.cancel || touchState.cancel);
+    G.keys.up      = !!(kbState.up      || touchState.up);
+    G.keys.down    = !!(kbState.down    || touchState.down);
+    G.keys.left    = !!(kbState.left    || touchState.left);
+    G.keys.right   = !!(kbState.right   || touchState.right);
+    G.keys.cancel  = !!(kbState.cancel  || touchState.cancel);
+    G.keys.confirm = !!(kbState.confirm || touchState.confirm);
     G.keys.moveScale = 1.0;
+    if (G.mode === 'dbs_battle') window.UTDBS?.syncHeld(G.keys);
     document.querySelectorAll('[data-dir]').forEach(el => {
       el.classList.toggle('active', !!G.keys[el.dataset.dir]);
     });
@@ -858,14 +903,24 @@
   const KEY_DIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
   window.addEventListener('keydown', (e) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+    if (G.mode === 'dbs_battle' && window.UTDBS?.isTyping?.() && document.activeElement?.id !== 'owMobInput') {
+      if (e.key === 'Backspace') { e.preventDefault(); window.UTDBS.typeText('\b'); return; }
+      if (e.key.length === 1 && !/[zx]/i.test(e.key) && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        window.UTDBS.typeText(e.key);
+        return;
+      }
+    }
     if (e.repeat) return;
+    if (e.code === 'Escape' && G.mode === 'dbs_battle') { e.preventDefault(); window.UTDBS?.escape(); return; }
     if (KEY_DIR[e.code]) { kbState[KEY_DIR[e.code]] = true; navDir(KEY_DIR[e.code]); syncKeys(); }
-    else if (e.code === 'KeyZ' || e.code === 'Enter' || e.code === 'Space') pressConfirm();
+    else if (e.code === 'KeyZ' || e.code === 'Enter' || e.code === 'Space') { kbState.confirm = true; pressConfirm(); syncKeys(); }
     else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { kbState.cancel = true; pressCancel(); syncKeys(); }
     else if (e.code === 'KeyC' || e.code === 'ControlLeft' || e.code === 'ControlRight') pressMenu();
   });
   window.addEventListener('keyup', (e) => {
     if (KEY_DIR[e.code]) { kbState[KEY_DIR[e.code]] = false; syncKeys(); }
+    else if (e.code === 'KeyZ' || e.code === 'Enter' || e.code === 'Space') { kbState.confirm = false; syncKeys(); }
     else if (e.code === 'KeyX' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { kbState.cancel = false; syncKeys(); }
   });
 
@@ -897,8 +952,11 @@
     menuNavRepeatTimer = setTimeout(() => {
       menuNavRepeatTimer = setInterval(() => {
         if (menuNavRepeatDir && touchState[menuNavRepeatDir]) {
-          // Only auto-repeat in menus, not during Green SOUL shield holding
-          if (G.mode !== 'explore' && !(G.mode === 'undyne_battle' && G.undyne?.sub === 'dodge') && !(G.mode === 'asriel_battle' && G.asriel?.sub === 'dodge')) {
+          // Only auto-repeat in menus, not during Green SOUL shield holding / combat dodging
+          if (G.mode !== 'explore'
+            && !(G.mode === 'undyne_battle' && G.undyne?.sub === 'dodge')
+            && !(G.mode === 'asriel_battle' && G.asriel?.sub === 'dodge')
+            && !(G.mode === 'dbs_battle' && window.UTDBS?.inCombat?.())) {
             navDir(menuNavRepeatDir);
           }
         } else stopMenuRepeat();
@@ -974,9 +1032,23 @@
     el.addEventListener('mouseup', up);
     el.addEventListener('mouseleave', up);
   }
-  bindActionBtn('btnActZ', () => pressConfirm());
+  bindActionBtn('btnActZ', () => { touchState.confirm = true; pressConfirm(); syncKeys(); }, () => { touchState.confirm = false; syncKeys(); });
   bindActionBtn('btnActX', () => { touchState.cancel = true; pressCancel(); syncKeys(); }, () => { touchState.cancel = false; syncKeys(); });
   bindActionBtn('btnActC', () => pressMenu());
+  const owMobInput = document.getElementById('owMobInput');
+  document.getElementById('btnOwType')?.addEventListener('click', () => {
+    if (owMobInput) { owMobInput.value = ''; owMobInput.focus(); }
+  });
+  owMobInput?.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Backspace') { e.preventDefault(); window.UTDBS?.typeText('\b'); }
+    else if (e.key === 'Enter') { e.preventDefault(); owMobInput.blur(); pressConfirm(); }
+    else if (e.key === 'Escape') { e.preventDefault(); owMobInput.blur(); }
+  });
+  owMobInput?.addEventListener('input', () => {
+    const v = owMobInput.value; owMobInput.value = '';
+    if (v) window.UTDBS?.typeText(v);
+  });
   canvas.addEventListener('pointerdown', (e) => {
     G.sfx.unlock(); canvas.focus();
     const r = canvas.getBoundingClientRect();
@@ -1042,13 +1114,23 @@
 
   G.onUI = function() {
     const zh = G.lang === 'zh';
-    const rName = G.mode === 'asriel_battle'
-      ? (zh ? '艾斯利爾·逐夢 (7 SOULs 終極決戰)' : 'ASRIEL DREEMURR (7 SOULs Finale)')
-      : G.mode === 'undyne_battle'
-        ? (zh ? '不滅的安黛因 (真正的英雄之戰)' : 'UNDYNE THE UNDYING (Genocide Boss)')
-        : (G.D().roomNames[G.state.room] || `Room ${G.state.room}`);
+    const rName = G.mode === 'dbs_battle'
+      ? (window.UTDBS?.getBossName?.() || (zh ? '9 大頭目戰鬥模擬器' : '9-BOSS BATTLE SIMULATOR'))
+      : G.mode === 'asriel_battle'
+        ? (zh ? '艾斯利爾·逐夢 (7 SOULs 終極決戰)' : 'ASRIEL DREEMURR (7 SOULs Finale)')
+        : G.mode === 'undyne_battle'
+          ? (zh ? '不滅的安黛因 (真正的英雄之戰)' : 'UNDYNE THE UNDYING (Genocide Boss)')
+          : (G.D().roomNames[G.state.room] || `Room ${G.state.room}`);
     const lbl = document.getElementById('roomLabel');
-    if (lbl) lbl.textContent = (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') ? rName : `${rName} (#${G.state.room})`;
+    if (lbl) lbl.textContent = (G.mode === 'asriel_battle' || G.mode === 'undyne_battle' || G.mode === 'dbs_battle') ? rName : `${rName} (#${G.state.room})`;
+
+    const inDBS = G.mode === 'dbs_battle';
+    const bExit = document.getElementById('btnOwExitBattle');
+    const bExitQ = document.getElementById('btnOwExitQuick');
+    const bType = document.getElementById('btnOwType');
+    if (bExit) bExit.style.display = inDBS ? '' : 'none';
+    if (bExitQ) bExitQ.style.display = inDBS ? '' : 'none';
+    if (bType) bType.style.display = (inDBS && window.UTDBS?.isTyping?.()) ? 'flex' : 'none';
 
     const shOn = !!(G.noHitShield || window.UT_NO_HIT_SHIELD);
     for (const sid of ['btnShield', 'btnShieldQuick']) {
@@ -1071,11 +1153,13 @@
     const step = window.UT_WALKTHROUGH.slice().reverse().find(w => w.room <= G.state.room) || window.UT_WALKTHROUGH[0];
     const hint = document.getElementById('liveWalkthroughHint');
     if (hint) {
-      hint.textContent = G.mode === 'asriel_battle'
-        ? (zh ? '★ 艾斯利爾 (7 個靈魂)：選「完整決戰」或「單一招式練習」；方向鍵閃躲，[Z] 確認 / 黃魂射擊！' : '★ ASRIEL DREEMURR (7 SOULs): Play Normal Mode, Phase Select, or Single Attack Practice! Arrows move, [Z] Confirm.')
-        : G.mode === 'undyne_battle'
-          ? (zh ? '💚 不滅的安黛因：方向鍵 / 大型鍵盤十字鍵 / 點擊畫面四方擋住飛矛！注意黃色反轉箭頭！' : '💚 UNDYNE THE UNDYING: Point your spear shield (Arrow Keys or tap screen sides) to block! Watch for yellow reverse arrows!')
-          : `♥ ${zh ? step.tipZh : step.tipEn}`;
+      hint.textContent = inDBS
+        ? (zh ? '⚔ 9 大頭目戰鬥引擎：方向鍵移動，[Z] 確認 / 射擊，[X] 返回 / 減速，[ESC] 返回階段選單，[Exit] 回到地圖。' : '⚔ 9-BOSS SIMULATOR: Arrows move · [Z] Confirm · [X] Back/Slow · [ESC] Attack/Phase Menu · [Exit] Back to Map.')
+        : G.mode === 'asriel_battle'
+          ? (zh ? '★ 艾斯利爾 (7 個靈魂)：選「完整決戰」或「單一招式練習」；方向鍵閃躲，[Z] 確認 / 黃魂射擊！' : '★ ASRIEL DREEMURR (7 SOULs): Play Normal Mode, Phase Select, or Single Attack Practice! Arrows move, [Z] Confirm.')
+          : G.mode === 'undyne_battle'
+            ? (zh ? '💚 不滅的安黛因：方向鍵 / 大型鍵盤十字鍵 / 點擊畫面四方擋住飛矛！注意黃色反轉箭頭！' : '💚 UNDYNE THE UNDYING: Point your spear shield (Arrow Keys or tap screen sides) to block! Watch for yellow reverse arrows!')
+            : `♥ ${zh ? step.tipZh : step.tipEn}`;
     }
     renderWalkthroughList();
   };
@@ -1084,6 +1168,7 @@
     G.sfx.unlock();
     window.UT_NO_HIT_SHIELD = !window.UT_NO_HIT_SHIELD;
     G.noHitShield = window.UT_NO_HIT_SHIELD;
+    window.UTDBS?.setShield(window.UT_NO_HIT_SHIELD);
     G.sfx.sfx(G.noHitShield ? 'heal' : 'select', 0.65);
     G.onUI();
   };
@@ -1096,16 +1181,25 @@
   });
   document.getElementById('btnGeno')?.addEventListener('click', () => {
     G.sfx.unlock();
-    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle' || G.mode === 'asriel_battle' || G.mode === 'undyne_battle') return;
+    if (G.mode === 'rpg_battle' || G.mode === 'flowey_battle' || G.mode === 'asriel_battle' || G.mode === 'undyne_battle' || G.mode === 'dbs_battle') return;
     G.toggleGenocideRoute();
     G.onUI();
   });
+  document.getElementById('btnDBSMenu')?.addEventListener('click', () => {
+    G.openDBSMenu(0, 0); document.getElementById('topToolbar')?.classList.remove('open');
+  });
   document.getElementById('btnAsriel')?.addEventListener('click', () => {
-    G.startAsriel('title'); document.getElementById('topToolbar')?.classList.remove('open');
+    G.startDBS('asriel'); document.getElementById('topToolbar')?.classList.remove('open');
   });
   document.getElementById('btnUndyne')?.addEventListener('click', () => {
-    G.startUndyne('title'); document.getElementById('topToolbar')?.classList.remove('open');
+    G.startDBS('undyne'); document.getElementById('topToolbar')?.classList.remove('open');
   });
+  const exitDBSBattle = () => {
+    window.UTDBS?.abortToOverworld();
+    document.getElementById('topToolbar')?.classList.remove('open');
+  };
+  document.getElementById('btnOwExitBattle')?.addEventListener('click', exitDBSBattle);
+  document.getElementById('btnOwExitQuick')?.addEventListener('click', exitDBSBattle);
   document.getElementById('btnShield')?.addEventListener('click', toggleShield);
   document.getElementById('btnShieldQuick')?.addEventListener('click', toggleShield);
   document.getElementById('btnLang')?.addEventListener('click', () => {
@@ -1115,6 +1209,7 @@
   document.getElementById('btnMute')?.addEventListener('click', (e) => {
     G.sfx.unlock();
     G.sfx.setMuted(!G.sfx.muted);
+    window.UTDBS?.setMuted(G.sfx.muted);
     e.currentTarget.textContent = G.sfx.muted ? '🔇 Muted' : '🔊 Audio';
   });
   document.getElementById('btnWalkthrough')?.addEventListener('click', () => {
@@ -1139,7 +1234,10 @@
   function frame(ts) {
     if (!lastTs) lastTs = ts;
     const dt = Math.min(100, ts - lastTs); lastTs = ts;
-    if (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') {
+    if (G.mode === 'dbs_battle') {
+      window.UTDBS?.step(dt);
+      acc = 0; bAcc = 0; G._battleInterp = 1.0;
+    } else if (G.mode === 'asriel_battle' || G.mode === 'undyne_battle') {
       bAcc += dt;
       while (bAcc >= STEP30) {
         G.keys.moveScale = 1.0;

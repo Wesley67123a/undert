@@ -324,9 +324,9 @@ class MuffetAttack {
     if (this.cupcake) this.cupcake.draw(ctx);
     if (this.monster) this.monster.draw(ctx);
     ctx.restore();
-    if (this.heart) this.heart.draw(ctx);
+    if (this.heart) { this.heart.draw(ctx); this.b.drawShield(ctx, this.heart.x, this.heart.y); }
     for (const s of this.bullets) s.draw(ctx);
-    if (b.heartFree) drawSprite(ctx, 'spr_heartpurple', 0, b.heartFree.x, b.heartFree.y);
+    if (b.heartFree) { drawSprite(ctx, 'spr_heartpurple', 0, b.heartFree.x, b.heartFree.y); this.b.drawShield(ctx, b.heartFree.x + 8, b.heartFree.y + 8); }
   }
 
   draw(ctx) {
@@ -413,7 +413,7 @@ class PourDrop {  // cae hasta el fondo de la caja y suma 4 al "purple" del cuer
 
 // ============================================================================
 export class MuffetBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Muffet se suele pelear en la ruta pacifista (LV 1, 20 HP) con Ballet Shoes + Old Tutu de Waterfall.
   // Objetos más usados antes de llegar: Hot Dog...? (puesto de Sans en Hotland) y Cinnamon Bunny (tienda de Snowdin).
@@ -426,11 +426,13 @@ export class MuffetBattle extends Battle {
     this.enemyName = 'Muffet';
     this.body = new MuffetBody(214 + 62, 37 - 2);
     this.body.onPourDrop = (x, y, dir) => { const d = new PourDrop(x, y, dir); if (this.purple > 80) d.visible = false; this.drops.push(d); };
-    this.flavor = T.intro;
-    this.turnamt = this.single ? this.single.type : 0; this.turnamtNow = this.turnamt;
-    this.con = this.single ? 4 : 0; this.purpletime = this.single ? 1 : 0; this.talktime = 0;
+    const skipTea = Boolean(this.single || (this.phaseOpt && ['web', 'pet1', 'pet3'].includes(this.phaseOpt)));
+    this.flavor = skipTea && !this.single ? T.trapped : T.intro;
+    this.turnamt = this.single ? this.single.type : (this.phaseOpt === 'pet1' ? 4 : this.phaseOpt === 'pet3' ? 15 : this.phaseOpt === 'web' ? 1 : 0);
+    this.turnamtNow = this.turnamt;
+    this.con = skipTea ? 4 : 0; this.purpletime = skipTea ? 1 : 0; this.purpleDone = skipTea && !this.single; this.talktime = 0;
     this.struggle = 0; this.bribes = 0; this.price = 10; this.gold = 100; this.atkdown = 0; this.spareable = false;
-    this.soul = this.single ? 'spr_heartpurple' : 'spr_heart';
+    this.soul = skipTea ? 'spr_heartpurple' : 'spr_heart';
     this.pheart = null; this.heartFree = null; this.drops = []; this.purple = 0; this.sign = null; this.telegram = null;
     this.actPos = 0;
   }
@@ -467,8 +469,8 @@ export class MuffetBattle extends Battle {
       ctx.save(); ctx.globalAlpha = this.purple > 160 ? Math.max(0, 1 - (this.purple - 160) / 40) : 1;
       ctx.fillStyle = PURPLE; ctx.fillRect(l + 2, b - p2, r - l, p2 + 2); ctx.restore();
     }
-    if (this.pheart) this.pheart.draw(ctx);
-    if (this.heartFree) drawSprite(ctx, 'spr_heartpurple', 0, this.heartFree.x, this.heartFree.y);
+    if (this.pheart) { this.pheart.draw(ctx); this.drawShield(ctx, this.pheart.x, this.pheart.y); }
+    if (this.heartFree) { drawSprite(ctx, 'spr_heartpurple', 0, this.heartFree.x, this.heartFree.y); this.drawShield(ctx, this.heartFree.x + 8, this.heartFree.y + 8); }
   }
 
   drawEnemy(ctx) {
@@ -486,10 +488,10 @@ export class MuffetBattle extends Battle {
     if (['mTalk', 'mPour', 'mAttack', 'mStory', 'mEnd'].includes(this.state)) {
       const h = this.pheart;
       if (h) { this.hx = h.x - 8; this.hy = h.y - 8; }
-      else if (this.redHeart && this.state === 'mPour') { this.hx = this.redHeart.x; this.hy = this.redHeart.y; drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); }
+      else if (this.redHeart && this.state === 'mPour') { this.hx = this.redHeart.x; this.hy = this.redHeart.y; drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); this.drawShield(ctx, this.hx + 8, this.hy + 8); }
       else if (!this.heartFree && this.state !== 'mAttack') {   // alma normal en el centro de la caja
         const [l, r, t, b] = this.ideal(); this.hx = Math.round((l + r) / 2) - 8; this.hy = Math.round((t + b) / 2) - 8;
-        drawSprite(ctx, this.soul, 0, this.hx, this.hy);
+        drawSprite(ctx, this.soul, 0, this.hx, this.hy); this.drawShield(ctx, this.hx + 8, this.hy + 8);
       }
       return;
     }

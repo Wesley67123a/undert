@@ -101,7 +101,7 @@ class Seq {
 
 // ============================================================================
 export class AsgoreBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Final de la ruta neutral/pacifista: NV 1 con la Burnt Pan (cura 4 más) y el Stained Apron (cura 1 PV cada dos turnos)
   playerSetup() { return playerAt(1, { name: 'Burnt Pan', atk: 10, healBonus: 4 }, { name: 'Stained Apron', def: 11 }); }
@@ -118,12 +118,20 @@ export class AsgoreBattle extends Battle {
     this.btAlpha = 1; this.boxAlpha = 1; this.boxHidden = false; this.statsHidden = false; this.heartHidden = true;
     this.seq = null; this.bubble = null; this.bubbleWide = false; this.fin = null; this.fake = null; this.asg = null;
     this.slow = 0; this.slowTick = 0; this.fadeOut = 0; this.heartPrevX = 0;
+    if (!this.single && this.phaseOpt === 'p2') {
+      this.turns = 14; this.turn = 14; this.enemy.hp = 1200;
+    }
   }
 
   // ---------------------------------------------------------------- ganchos de la base
   ideal() { return this.border === 29 ? B29 : this.border === 30 ? B30 : BORDER[this.border]; }
   startIntro() {
     if (this.single) { this.startBattle(); playMusic('asgore'); this.startEnemyTurn(); }
+    else if (this.phaseOpt === 'battle' || this.phaseOpt === 'p2') {
+      this.startBattle(); playMusic('asgore');
+      if (this.phaseOpt === 'p2') this.flavor = T.lowhp;
+      this.startMenu();
+    }
     else this.startCinematic();
   }
   missPos() { return [EX + 150 - 48, EY + 126]; }
@@ -146,6 +154,7 @@ export class AsgoreBattle extends Battle {
   // Daño de las balas (obj_asgorebulparent Other_10): dmg = ATQ actual; si tenías más de 1 PV te deja en 1
   bulletHit() {
     if (this.invc >= 1 || this.state === 'gameover') return;
+    if (this.isShieldOn()) { this.shieldBlock({ invc: 30 }); return; }
     const p = this.player, before = p.hp;
     let dmg = this.enemy.atk;
     for (const lim of [21, 30, 40, 50, 60, 70, 80, 90]) if (p.hp >= lim) dmg++;       // scr_damagestandard
@@ -551,7 +560,9 @@ export class AsgoreBattle extends Battle {
     if (S === 'aPre' || S === 'aAttack' || S === 'aEnd') {
       if (this.heartHidden) return;
       this.hx = this.heart.x; this.hy = this.heart.y;
-      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); return;
+      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy);
+      this.drawShield(ctx, this.hx + 8, this.hy + 8);
+      return;
     }
     if (S === 'actList') {
       this.hx = 72 + (this.actPos === 3 ? 256 : 0); this.hy = 278;

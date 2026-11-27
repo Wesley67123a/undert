@@ -201,7 +201,7 @@ class NapstaAttack {
 
 // ============================================================================
 export class NapstablookBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Napstablook: Ruinas, LV 1 y 20 HP con el Stick y la Bandage. En las Ruinas solo hay Monster Candy y Spider Donut.
   playerSetup() { return playerAt(1, { name: 'Stick', atk: 0 }, { name: 'Bandage', def: 0 }); }
@@ -215,10 +215,13 @@ export class NapstablookBattle extends Battle {
     this.flavor = T.intro; this.soul = 'spr_heart';
     this.mercymod = -400; this.whatiheard = -1; this.mercer = 0; this.turn = 0; this.mycommand = 0;
     this.frame = 0; this.alpha = 1; this.hat = null; this.nbubble = null; this.actPos = 0;
+    if (!this.single && this.phaseOpt === 'dapper') {
+      this.mercymod = -100; this.turn = 4; this.flavor = T.better2;
+    }
   }
 
   // ---------------------------------------------------------------- ganchos de la base
-  startIntro() { playMusic('ghost'); if (this.single) this.startEnemyTurn(); else this.startMenu(); }
+  startIntro() { playMusic('ghost'); if (this.single || this.phaseOpt === 'dapper') this.startEnemyTurn(); else this.startMenu(); }
   enemyTake(d) { return d; }
   missPos() { return [NX + NW / 2 - 48, NY - 24]; }
   dmgPos() { return [NX + NW / 2 - 48, NY - 20]; }
@@ -229,6 +232,7 @@ export class NapstablookBattle extends Battle {
   // Daño de las balas (blt_parent Collision obj_heart): sin los extras por HP de scr_damagestandard
   bulletHit(dmg) {
     if (this.invc >= 1 || this.state === 'gameover') return;
+    if (this.isShieldOn()) { this.shieldBlock(); return; }
     const p = this.player, amt = Math.max(1, Math.round(dmg - (p.df + p.armor.def) / 5));
     p.hp = Math.max(0, p.hp - amt);
     playSound('hurt'); this.shake = 2; this.invc = 20;
@@ -400,7 +404,9 @@ export class NapstablookBattle extends Battle {
     if (S === 'nTalk' || S === 'nAttack' || S === 'nLeave') {
       if (S === 'nLeave') return;
       this.hx = this.heart.x; this.hy = this.heart.y;
-      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); return;
+      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy);
+      this.drawShield(ctx, this.hx + 8, this.hy + 8);
+      return;
     }
     if (S === 'actList') {
       this.hx = 72 + (this.actPos >= 3 ? 256 : 0); this.hy = 278 + (this.actPos % 3) * 32;

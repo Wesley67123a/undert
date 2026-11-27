@@ -155,7 +155,7 @@ class Punch {                                          // obj_lightpunch / obj_s
 
 // ============================================================================
 export class PapyrusBattle extends Battle {
-  constructor(single = null) { super(single); }
+  constructor(single = null, phase = null) { super(single, phase); }
 
   // Papyrus: Snowdin, NV 1 y 20 PV con el Tough Glove y la Manly Bandanna (tienda de Snowdin).
   // Objetos: 4 Nice Cream (cura 15) y 2 Cinnamon Bunny (cura 22).
@@ -176,6 +176,13 @@ export class PapyrusBattle extends Battle {
     this.hurt = null; this.pxoff = 0; this.hidden = false; this.corpse = null; this.fade = 0; this.fadeSpeed = 0;
     this.top51 = TOP; this.actPos = 0; this.choice = 0; this.vol = undefined;
     this.heart = { x: 309, y: 310, vs: 0, prevX: 309, prevY: 310, movement: 0, jumpstage: 0 };
+    if (!this.single && this.phaseOpt === 'blue') {
+      this.rematch = true; this.truefight = 1; this.conversation = 1; this.fighto = -1;
+      this.soul = 'spr_heartblue'; this.flavor = T.blueNow;
+    } else if (!this.single && this.phaseOpt === 'special') {
+      this.rematch = true; this.truefight = 1; this.conversation = 1; this.fighto = 14; this.xfight = 3;
+      this.enemy.hp = 120; this.prevhp = 120; this.soul = 'spr_heartblue'; this.flavor = T.edge;
+    }
   }
 
   // ---------------------------------------------------------------- utilidades
@@ -451,6 +458,7 @@ export class PapyrusBattle extends Battle {
     const h = this.heart, moved = Math.abs(h.prevX - h.x) > 0.01 || Math.abs(h.prevY - h.y) > 0.01;
     if (o.blue && !moved) return;                      // scr_blueat: los azules solo dañan si te mueves
     if (this.invc >= 1) return;
+    if (this.isShieldOn()) { this.shieldBlock({ invc: 40 }); o.dead = true; return; }
     const p = this.player;
     let amt = Math.max(3, Math.round(o.dmg - (p.df + p.armor.def) / 5));   // nunca menos de 3
     if (!this.single && this.fighto > 13) { if (p.hp < 10) amt--; if (p.hp < 5) amt--; }
@@ -628,7 +636,9 @@ export class PapyrusBattle extends Battle {
     const S = this.state;
     if (S === 'pTalk' || S === 'pAttack' || S === 'pCaptured') {
       this.hx = Math.round(this.heart.x); this.hy = Math.round(this.heart.y);
-      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy); return;
+      drawSprite(ctx, this.soul, Math.floor(this.heartFrame), this.hx, this.hy);
+      this.drawShield(ctx, this.hx + 8, this.hy + 8);
+      return;
     }
     if (S === 'actList') { drawSprite(ctx, this.soul, 0, 72 + (this.actPos >= 3 ? 256 : 0), 278 + (this.actPos % 3) * 32); return; }
     if (S === 'pChoice') { drawSprite(ctx, this.soul, 0, BORDER[0][0] + 32 + this.choice * 252, BORDER[0][2] + 92); return; }

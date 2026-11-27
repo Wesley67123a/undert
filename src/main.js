@@ -13,7 +13,7 @@ import { PapyrusBattle } from './papyrus.js';
 import { AsgoreBattle } from './asgore.js';
 import { AsrielBattle } from './asriel.js';
 import { SansBattle } from './sans.js';
-import { buildUI, layout, updateUI, refreshVolume } from './ui.js';
+import { buildUI, bindUIHandlers, layout, updateUI, refreshVolume } from './ui.js';
 import { buildSpanishSprites } from './lang/sprites_es.js';
 import { Smoother } from './smooth.js';
 const smoother = window.dbsSmoother = new Smoother();
@@ -95,7 +95,7 @@ function toMenu(page = 0, boss = 0) {
   scene = new BossMenu(item => {
     const Cls = CLASSES[item.boss] || Battle;
     const bossIdx = BOSSES.findIndex(b => b.id === item.boss);
-    scene = new Cls(item.mode === 'single' ? item.attack : null);     // pelea completa o un solo ataque
+    scene = new Cls(item.mode === 'single' ? item.attack : null, item.mode === 'phase' ? item.phase : null);     // pelea completa, fase o ataque
     scene.bossIdx = bossIdx;
     scene.onExit = () => toMenu(1, bossIdx);     // al terminar (o al morir) se vuelve a la lista de ese jefe
     window.battle = scene;
@@ -161,6 +161,7 @@ function drawLoading() {
   requestAnimationFrame(drawLoading);
 }
 drawLoading();
+bindUIHandlers({ setTouchDirs, touchAction, touchEsc, touchTypeText });
 Promise.all([loadAssets(), papyrusFont, sansFont]).catch(e => console.error('carga', e)).then(() => {
   loading = false; pressed.clear(); typed.length = 0;           // lo pulsado mientras cargaba no cuenta
   buildSpanishSprites(); buildUI(); scene.draw(ctx);
